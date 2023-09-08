@@ -1,5 +1,7 @@
 package br.com.louvor4.louvor4api.controllers;
 
+import br.com.louvor4.louvor4api.converter.PersonConverter;
+import br.com.louvor4.louvor4api.dto.PersonDTO;
 import br.com.louvor4.louvor4api.models.Person;
 import br.com.louvor4.louvor4api.services.PersonService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +29,8 @@ public class PersonControlller {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Person create(@RequestBody Person person){
-        return personService.create(person);
+    public PersonDTO create(@RequestBody PersonDTO persondto){
+        return PersonConverter.INSTANCE.toDto(personService.create(PersonConverter.INSTANCE.toEntity(persondto)));
     }
 
     @DeleteMapping(value = "/{id}")
@@ -37,3 +39,4 @@ public class PersonControlller {
         return ResponseEntity.noContent().build();
     }
 }
+

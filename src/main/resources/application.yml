@@ -12,3 +12,7 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         show_sql: false
 
+api:
+  security:
+    token:
+      secret: minhachavesecreta

@@ -44,8 +44,7 @@ public class Person implements UserDetails, Serializable {
             , inverseJoinColumns = {@JoinColumn(name = "id_permission")})
     private List<Permission> permissions;
 
-    public Person() {
-    }
+    public Person() {}
 
     public List<String> getRoles() {
         return permissions.stream().map(permission -> permission.getDescription()).collect(Collectors.toList());

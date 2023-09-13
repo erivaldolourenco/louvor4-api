@@ -13,9 +13,7 @@ import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "tb_person")
-public class Person implements UserDetails, Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Person implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

@@ -1,12 +1,18 @@
 package br.com.louvor4.louvor4api.services;
 
+import br.com.louvor4.louvor4api.converter.MinistryConverter;
+import br.com.louvor4.louvor4api.converter.PersonConverter;
+import br.com.louvor4.louvor4api.dto.MinistryDTO;
+import br.com.louvor4.louvor4api.dto.PersonDTO;
 import br.com.louvor4.louvor4api.exceptions.NotFoundException;
+import br.com.louvor4.louvor4api.models.Ministry;
 import br.com.louvor4.louvor4api.models.Permission;
 import br.com.louvor4.louvor4api.models.Person;
 import br.com.louvor4.louvor4api.repositories.PermissionRepository;
 import br.com.louvor4.louvor4api.repositories.PersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -33,14 +39,17 @@ public class PersonService {
         return personRepository.findById(id).orElseThrow(() -> new NotFoundException("Não foi encontrado pessoa come esse ID."));
     }
 
-    public Person create(Person person) {
+    public PersonDTO create(PersonDTO personDto) {
+        String encryptedPassword = new BCryptPasswordEncoder().encode(personDto.getPassword());
+        Person person =  PersonConverter.INSTANCE.toEntity(personDto);
+        person.setPassword(encryptedPassword);
         logger.info("Nova pessoa criada!");
         person.setAccountNonExpired(true);
         person.setAccountNonLocked(true);
         person.setCredentialsNonExpired(true);
         person.setEnabled(true);
         person.setPermissions(getDefaultPermission());
-        return personRepository.save(person);
+        return PersonConverter.INSTANCE.toDto(personRepository.save(person));
     }
 
     private List<Permission> getDefaultPermission(){
@@ -61,4 +70,16 @@ public class PersonService {
     public UserDetails getPersonUserDetails(String email) {
         return personRepository.findByEmail(email);
     }
+
+    public List<MinistryDTO> getMinistries(String personEmail) {
+        Person person = personRepository.getPersonByEmail(personEmail);
+        List<Ministry> ministryList = person.getMinistries();
+        if (ministryList != null && ministryList.size() != 0){
+            return  MinistryConverter.INSTANCE.toDto(ministryList);
+        }else{
+            throw new NotFoundException("Não foi encontrado ministerios pra esses usuario!");
+        }
+
+    }
+
 }

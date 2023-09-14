@@ -2,6 +2,7 @@ package br.com.louvor4.louvor4api.exceptions.handler;
 
 import br.com.louvor4.louvor4api.exceptions.ExceptionResponse;
 import br.com.louvor4.louvor4api.exceptions.NotFoundException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -27,4 +28,9 @@ public class CustomizedResponseEntityExceptionHandler extends ResponseEntityExce
         return  new ResponseEntity<>(exceptionResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(TokenExpiredException.class)
+    public final ResponseEntity<ExceptionResponse> tokenExpiredExceptions(Exception ex, WebRequest request){
+        ExceptionResponse exceptionResponse = new ExceptionResponse(new Date(), ex.getMessage(), request.getDescription(false));
+        return  new ResponseEntity<>(exceptionResponse, HttpStatus.FORBIDDEN);
+    }
 }

@@ -16,10 +16,10 @@ public class Ministry {
     @Column(name = "access_code")
     private String accessCode;
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "tb_ministry_member_permission", joinColumns = {@JoinColumn(name = "id_ministry")}
+    @JoinTable(name = "tb_ministry_member", joinColumns = {@JoinColumn(name = "id_ministry")}
             , inverseJoinColumns = {@JoinColumn(name = "id_member")})
-    private List<Person> member;
-//    private List<MemberRoles> memberRoles;
+    private List<Member> member;
+
     public Ministry(){}
     public UUID getId() {
         return id;
@@ -45,15 +45,11 @@ public class Ministry {
         this.accessCode = accessCode;
     }
 
-    public List<Person> getMember() {
+    public List<Member> getMember() {
         return member;
     }
 
-    public void setMember(List<Person> member) {
+    public void setMember(List<Member> member) {
         this.member = member;
-    }
-
-    public void addMember(Person member){
-        this.member.add(member);
     }
 }

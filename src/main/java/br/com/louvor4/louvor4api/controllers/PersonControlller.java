@@ -1,6 +1,7 @@
 package br.com.louvor4.louvor4api.controllers;
 
 import br.com.louvor4.louvor4api.converter.PersonConverter;
+import br.com.louvor4.louvor4api.dto.MinistryDTO;
 import br.com.louvor4.louvor4api.dto.PersonDTO;
 import br.com.louvor4.louvor4api.exceptions.NotFoundException;
 import br.com.louvor4.louvor4api.models.Person;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,26 +28,28 @@ public class PersonControlller {
         return personService.getAll();
     }
 
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/find/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Person getById(@PathVariable(value = "id") UUID id) {
         return personService.getById(id);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public PersonDTO create(@RequestBody @Valid PersonDTO persondto){
-        if(personService.findByLogin(persondto.getEmail())){
+    public PersonDTO create(@RequestBody @Valid PersonDTO personDto) {
+        if (personService.findByLogin(personDto.getEmail())) {
             throw new NotFoundException("Já existe um Usuario com este email!");
         }
-        String encryptedPassword = new BCryptPasswordEncoder().encode(persondto.getPassword());
-        Person person =  PersonConverter.INSTANCE.toEntity(persondto);
-        person.setPassword(encryptedPassword);
-        return PersonConverter.INSTANCE.toDto(personService.create(person));
+        return personService.create(personDto);
     }
 
-    @DeleteMapping(value = "/{id}")
+    @DeleteMapping(value = "/delete/{id}")
     public ResponseEntity<?> delete(@PathVariable(value = "id") UUID id) {
         personService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/ministries", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<MinistryDTO> getMinistryOfLoggedPerson(Authentication authentication) {
+        return personService.getMinistries(authentication.getName());
     }
 }
 

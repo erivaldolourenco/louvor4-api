@@ -1,5 +1,6 @@
 package br.com.louvor4.louvor4api.security;
 
+import br.com.louvor4.louvor4api.exceptions.TokenExpiredException;
 import br.com.louvor4.louvor4api.models.Person;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -22,6 +23,7 @@ public class TokenService {
             String token = JWT.create()
                     .withIssuer("louvor4-api")
                     .withSubject(person.getEmail())
+                    .withClaim("roles",person.getRoles())
                     .withExpiresAt(genExpirationDate())
                     .sign(algorithm);
             return token;
@@ -39,11 +41,17 @@ public class TokenService {
                     .verify(token)
                     .getSubject();
         } catch (JWTCreationException exception) {
-            return "";
+            throw new RuntimeException("Error na validacao do token", exception);
+//            return "";
         }
     }
 
     private Instant genExpirationDate() {
         return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
     }
+
+//    private String getEmailByToken(String token){
+//        String jwt = token.replace("Bearer ", "");
+//        String email = JWT.
+//    }
 }

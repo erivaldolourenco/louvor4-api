@@ -2,6 +2,7 @@ package br.com.louvor4.louvor4api.services;
 
 import br.com.louvor4.louvor4api.converter.MinistryConverter;
 import br.com.louvor4.louvor4api.dto.MinistryDTO;
+import br.com.louvor4.louvor4api.dto.MinistryPersonDTO;
 import br.com.louvor4.louvor4api.models.Member;
 import br.com.louvor4.louvor4api.models.Ministry;
 import br.com.louvor4.louvor4api.models.MinistryPermission;
@@ -13,7 +14,6 @@ import br.com.louvor4.louvor4api.repositories.PersonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -37,11 +37,12 @@ public class MinistryService {
     public MinistryDTO create(MinistryDTO ministryDto, String personEmail) {
         Ministry ministry = MinistryConverter.INSTANCE.toEntity(ministryDto);
         Member member = memberRepository.getMemberByPerson(personRepository.getPersonByEmail(personEmail));
-        if(member != null){
+        if (member != null) {
             ministry.getMember().add(member);
         }
         return MinistryConverter.INSTANCE.toDto(ministryRepository.save(ministry));
     }
+
 
     public void addMemberToMinistry(UUID ministeryId, UUID personId) {
         Ministry ministry = ministryRepository.findById(ministeryId).get();
@@ -62,7 +63,26 @@ public class MinistryService {
         return ministry.getMember();
     }
 
-    public List<MinistryDTO> getAll() {
+    public List<MinistryDTO> getAllMinistries() {
         return MinistryConverter.INSTANCE.toDto(ministryRepository.findAll());
+    }
+
+    public void newRole(MinistryPersonDTO ministryPersonDTO) throws IllegalAccessException {
+        Person person = personRepository.findById(ministryPersonDTO.idPerson()).get();
+
+        //TODO verificar interceptação no endpoint da sefaz numeropessoa filter.
+        if (isPersonMemberAndLeaderOfMinisterio(ministryPersonDTO.idPerson())) {
+            //implemtação
+        } else {
+            throw new IllegalAccessException("Usuario nao tem para esse ministério!");
+        }
+    }
+
+    public boolean isPersonMemberAndLeaderOfMinisterio(UUID userId) {
+        return true;
+    }
+
+    public MinistryDTO getMinistry(UUID idMinistry) {
+        return null;
     }
 }

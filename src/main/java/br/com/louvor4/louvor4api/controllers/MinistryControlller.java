@@ -11,23 +11,32 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/ministry")
+@RequestMapping("/ministries")
 public class MinistryControlller {
     @Autowired
     MinistryService ministryService;
 
-
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<MinistryDTO> getAll() {
-        return ministryService.getAll();
-    }
-
-//    @Secured({"LEADER", "ADMIN"})
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public MinistryDTO createMinistry(@RequestBody @Valid MinistryDTO ministryDTO, Authentication authentication){
         return ministryService.create(ministryDTO, authentication.getName());
+    }
+
+    @DeleteMapping(value="/{idMinistry}",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity deleteMinistry(@PathVariable(value = "idMinistry") UUID idMinistry){
+        return ResponseEntity.ok().body("O ministerio "+idMinistry+"foi deletado com sucesso!");
+    }
+
+    @GetMapping(value="/{idMinistry}",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public MinistryDTO getMinistry(@PathVariable(value = "idMinistry") UUID idMinistry) {
+        return ministryService.getMinistry(idMinistry);
+    }
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<MinistryDTO> getAllMinistries() {
+        return ministryService.getAllMinistries();
     }
 
     @PostMapping(value="/add-member",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -35,6 +44,13 @@ public class MinistryControlller {
         ministryService.addMemberToMinistry(ministryPersonDTO.idMinistry(),ministryPersonDTO.idPerson());
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping(value="/new-role",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity newRole(@RequestBody @Valid MinistryPersonDTO ministryPersonDTO) throws IllegalAccessException {
+        ministryService.newRole(ministryPersonDTO);
+        return ResponseEntity.ok().build();
+    }
+
 
 
 }

@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import static br.com.louvor4.louvor4api.shared.constants.Messages.MINISTERIO_NAO_ENCONTRADO;
+import static br.com.louvor4.louvor4api.shared.constants.Messages.PESSOA_NAO_ENCONTRADA;
+
 @Service
 public class PersonService {
     private Logger logger = Logger.getLogger(PersonService.class.getName());
@@ -30,18 +33,9 @@ public class PersonService {
     @Autowired
     PermissionRepository permissionRepository;
 
-    public List<Person> getAll() {
-        logger.info("Listando todas as pessoas!");
-        return personRepository.findAll();
-    }
-
-    public Person getById(UUID id) {
-        return personRepository.findById(id).orElseThrow(() -> new NotFoundException("Não foi encontrado pessoa come esse ID."));
-    }
-
-    public PersonDTO create(PersonDTO personDto) {
+    public PersonDTO createPerson(PersonDTO personDto) {
         String encryptedPassword = new BCryptPasswordEncoder().encode(personDto.getPassword());
-        Person person =  PersonConverter.INSTANCE.toEntity(personDto);
+        Person person = PersonConverter.INSTANCE.toEntity(personDto);
         person.setPassword(encryptedPassword);
         logger.info("Nova pessoa criada!");
         person.setAccountNonExpired(true);
@@ -52,21 +46,34 @@ public class PersonService {
         return PersonConverter.INSTANCE.toDto(personRepository.save(person));
     }
 
-    private List<Permission> getDefaultPermission(){
-        List<Permission> permissions =  new ArrayList<>();
+    public void deletePerson(UUID id) {
+        Person person = personRepository.findById(id).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
+        personRepository.delete(person);
+    }
+
+    public PersonDTO getPersonById(UUID id) {
+        Person person = personRepository.findById(id).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
+        return PersonConverter.INSTANCE.toDto(person);
+    }
+
+    public List<Person> getAllPeople() {
+        logger.info("Listando todas as pessoas!");
+        return personRepository.findAll();
+    }
+
+
+    private List<Permission> getDefaultPermission() {
+        List<Permission> permissions = new ArrayList<>();
         permissions.add(permissionRepository.findByDescription("MEMBER"));
         return permissions;
     }
 
-    public void delete(UUID id) {
-        Person person = personRepository.findById(id).orElseThrow(() -> new NotFoundException("Não foi encontrado pessoa come esse ID."));
-        personRepository.delete(person);
-    }
 
     public Boolean findByLogin(String email) {
         logger.info("Verificando se email existe na base!");
-        return personRepository.findByEmail(email) != null ? true: false;
+        return personRepository.findByEmail(email) != null ? true : false;
     }
+
     public UserDetails getPersonUserDetails(String email) {
         return personRepository.findByEmail(email);
     }
@@ -74,12 +81,11 @@ public class PersonService {
     public List<MinistryDTO> getMinistries(String personEmail) {
         Person person = personRepository.getPersonByEmail(personEmail);
         List<Ministry> ministryList = person.getMinistries();
-        if (ministryList != null && ministryList.size() != 0){
-            return  MinistryConverter.INSTANCE.toDto(ministryList);
-        }else{
-            throw new NotFoundException("Não foi encontrado ministerios pra esses usuario!");
+        if (ministryList != null && ministryList.size() != 0) {
+            return MinistryConverter.INSTANCE.toDto(ministryList);
+        } else {
+            throw new NotFoundException(MINISTERIO_NAO_ENCONTRADO);
         }
-
     }
 
 }

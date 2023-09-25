@@ -3,6 +3,7 @@ package br.com.louvor4.louvor4api.models;
 import jakarta.persistence.*;
 
 import java.util.List;
+
 @Entity
 @Table(name = "tb_member")
 public class Member {
@@ -20,7 +21,8 @@ public class Member {
 //    @Column
 //    private List<MemberRoles> memberRoles;
 
-    public Member() {}
+    public Member() {
+    }
 
     public void setId(Long id) {
         this.id = id;

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static br.com.louvor4.louvor4api.shared.constants.Messages.MINISTERIO_NAO_ENCONTRADO;
 import static br.com.louvor4.louvor4api.shared.constants.Messages.PESSOA_NAO_ENCONTRADA;
@@ -42,7 +43,7 @@ public class PersonService {
         person.setAccountNonLocked(true);
         person.setCredentialsNonExpired(true);
         person.setEnabled(true);
-        person.setPermissions(getDefaultPermission());
+        person.setAppPermissions(getDefaultPermission());
         return PersonConverter.INSTANCE.toDto(personRepository.save(person));
     }
 
@@ -52,9 +53,9 @@ public class PersonService {
         personRepository.delete(person);
     }
 
-    public PersonDTO getPersonById(UUID id) {
-        logger.info("Consultando pessoa com id: " + id.toString());
-        Person person = personRepository.findById(id).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
+    public PersonDTO getPersonById(UUID idPerson) {
+        logger.info("Consultando pessoa com id: " + idPerson.toString());
+        Person person = personRepository.findById(idPerson).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
         return PersonConverter.INSTANCE.toDto(person);
     }
 
@@ -78,9 +79,9 @@ public class PersonService {
         return personRepository.findByEmail(email);
     }
 
-    public List<MinistryDTO> getMinistries(String personEmail) {
-        Person person = personRepository.getPersonByEmail(personEmail);
-        List<Ministry> ministryList = person.getMinistries();
+    public List<MinistryDTO> getMinistries(UUID idPerson) {
+        Person person = personRepository.findById(idPerson).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
+        List<Ministry> ministryList = person.getMembers().stream().map(member -> member.getMinistry()).collect(Collectors.toList());
         if (ministryList != null && ministryList.size() != 0) {
             return MinistryConverter.INSTANCE.toDto(ministryList);
         } else {

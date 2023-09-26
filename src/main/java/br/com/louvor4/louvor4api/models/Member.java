@@ -14,10 +14,16 @@ public class Member {
     @ManyToOne
     @JoinColumn(name = "id_person")
     private Person person;
+
+    @ManyToOne
+    @JoinColumn(name = "id_ministry")
+    private Ministry ministry;
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "tb_member_permission", joinColumns = {@JoinColumn(name = "id_member")}
             , inverseJoinColumns = {@JoinColumn(name = "id_ministry_permission")})
     private List<MinistryPermission> ministryPermissions;
+
+
 //    @Column
 //    private List<MemberRoles> memberRoles;
 
@@ -48,5 +54,11 @@ public class Member {
         this.ministryPermissions = ministryPermissions;
     }
 
+    public Ministry getMinistry() {
+        return ministry;
+    }
 
+    public void setMinistry(Ministry ministry) {
+        this.ministry = ministry;
+    }
 }

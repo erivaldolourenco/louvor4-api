@@ -15,12 +15,14 @@ public class Ministry {
     private String name;
     @Column(name = "access_code")
     private String accessCode;
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "tb_ministry_member", joinColumns = {@JoinColumn(name = "id_ministry")}
-            , inverseJoinColumns = {@JoinColumn(name = "id_member")})
-    private List<Member> member;
 
-    public Ministry(){}
+    @OneToMany(mappedBy = "ministry", cascade = CascadeType.ALL)
+    private List<Member> members;
+
+
+    public Ministry() {
+    }
+
     public UUID getId() {
         return id;
     }
@@ -45,11 +47,11 @@ public class Ministry {
         this.accessCode = accessCode;
     }
 
-    public List<Member> getMember() {
-        return member;
+    public List<Member> getMembers() {
+        return members;
     }
 
-    public void setMember(List<Member> member) {
-        this.member = member;
+    public void setMembers(List<Member> member) {
+        this.members = member;
     }
 }

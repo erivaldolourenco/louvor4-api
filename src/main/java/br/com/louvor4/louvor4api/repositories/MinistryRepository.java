@@ -10,5 +10,5 @@ import java.util.UUID;
 
 @Repository
 public interface MinistryRepository extends JpaRepository<Ministry, UUID> {
-    List<Ministry> findAllByMember(Member member);
+//    List<Ministry> findAllByMember(Member member);
 }

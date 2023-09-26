@@ -5,7 +5,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,23 +36,20 @@ public class Person implements UserDetails {
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "tb_person_app_permission", joinColumns = {@JoinColumn(name = "id_person")}
             , inverseJoinColumns = {@JoinColumn(name = "id_permission")})
-    private List<Permission> permissions;
-
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "tb_ministry_member", joinColumns = {@JoinColumn(name = "id_member")}
-            , inverseJoinColumns = {@JoinColumn(name = "id_ministry")})
-    private List<Ministry> ministries;
+    private List<Permission> appPermissions;
+    @OneToMany(mappedBy = "person", cascade = CascadeType.ALL)
+    private List<Member> members;
 
     public Person() {}
 
     public List<String> getRoles() {
-        return permissions.stream().map(permission -> permission.getDescription()).collect(Collectors.toList());
+        return appPermissions.stream().map(permission -> permission.getDescription()).collect(Collectors.toList());
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        for (Permission perission: this.permissions) {
+        for (Permission perission: this.appPermissions) {
             authorities.add(new SimpleGrantedAuthority(perission.getDescription()));
         }
         return authorities;
@@ -165,19 +161,19 @@ public class Person implements UserDetails {
         this.birthday = birthday;
     }
 
-    public List<Permission> getPermissions() {
-        return permissions;
+    public List<Permission> getAppPermissions() {
+        return appPermissions;
     }
 
-    public void setPermissions(List<Permission> permissions) {
-        this.permissions = permissions;
+    public void setAppPermissions(List<Permission> permissions) {
+        this.appPermissions = permissions;
     }
 
-    public List<Ministry> getMinistries() {
-        return ministries;
+    public List<Member> getMembers() {
+        return members;
     }
 
-    public void setMinistries(List<Ministry> ministries) {
-        this.ministries = ministries;
+    public void setMembers(List<Member> members) {
+        this.members = members;
     }
 }

@@ -19,9 +19,10 @@ public class MinistryControlller {
     @Autowired
     MinistryService ministryService;
 
+//    @Secured({PERMISSION_MANAGER})
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public MinistryDTO createMinistry(@RequestBody @Valid MinistryDTO ministryDTO, Authentication authentication){
-        return ministryService.create(ministryDTO, authentication.getName());
+        return ministryService.createMinistry(ministryDTO, authentication.getName());
     }
 
     @DeleteMapping(value="/{idMinistry}",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

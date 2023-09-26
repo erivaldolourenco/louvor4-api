@@ -48,9 +48,9 @@ public class PersonControlller {
     }
 
 
-    @GetMapping(value = "/ministries", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<MinistryDTO> getMinistryOfLoggedPerson(Authentication authentication) {
-        return personService.getMinistries(authentication.getName());
+    @GetMapping(value = "/{idPerson}/ministries", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<MinistryDTO> getMinistryOfLoggedPerson(@PathVariable(value = "idPerson") UUID idPerson) {
+        return personService.getMinistries(idPerson);
     }
 }
 

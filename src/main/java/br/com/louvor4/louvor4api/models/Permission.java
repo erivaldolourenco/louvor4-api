@@ -6,7 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import java.io.Serializable;
 
 @Entity
-@Table(name = "tb_permission")
+@Table(name = "tb_app_permission")
 public class Permission implements GrantedAuthority, Serializable {
 
     private static final long serialVersionUID = 1L;

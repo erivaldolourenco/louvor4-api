@@ -34,13 +34,13 @@ public class MinistryService {
     @Autowired
     PersonRepository personRepository;
 
-    public MinistryDTO create(MinistryDTO ministryDto, String personEmail) {
+    public MinistryDTO createMinistry(MinistryDTO ministryDto, String personEmail) {
         Ministry ministry = MinistryConverter.INSTANCE.toEntity(ministryDto);
-        Member member = memberRepository.getMemberByPerson(personRepository.getPersonByEmail(personEmail));
-        if (member != null) {
-            ministry.getMember().add(member);
-        }
-        return MinistryConverter.INSTANCE.toDto(ministryRepository.save(ministry));
+        Member member = new Member();
+        member.setPerson(personRepository.getPersonByEmail(personEmail));
+        member.setMinistry(ministryRepository.save(ministry));
+        memberRepository.save(member);
+        return MinistryConverter.INSTANCE.toDto(ministry);
     }
 
 
@@ -54,13 +54,13 @@ public class MinistryService {
         member.setMinistryPermissions(Arrays.asList(leader));
         memberRepository.save(member);
 
-        ministry.getMember().add(member);
+        ministry.getMembers().add(member);
         ministryRepository.save(ministry);
     }
 
     private List<Member> getMemberOfMinistry(UUID idMinistry) {
         Ministry ministry = ministryRepository.findById(idMinistry).get();
-        return ministry.getMember();
+        return ministry.getMembers();
     }
 
     public List<MinistryDTO> getAllMinistries() {

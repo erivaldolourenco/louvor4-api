@@ -47,11 +47,13 @@ public class PersonService {
     }
 
     public void deletePerson(UUID id) {
+        logger.info("Deletando pessoa com id: " + id.toString());
         Person person = personRepository.findById(id).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
         personRepository.delete(person);
     }
 
     public PersonDTO getPersonById(UUID id) {
+        logger.info("Consultando pessoa com id: " + id.toString());
         Person person = personRepository.findById(id).orElseThrow(() -> new NotFoundException(PESSOA_NAO_ENCONTRADA));
         return PersonConverter.INSTANCE.toDto(person);
     }
@@ -61,13 +63,11 @@ public class PersonService {
         return personRepository.findAll();
     }
 
-
     private List<Permission> getDefaultPermission() {
         List<Permission> permissions = new ArrayList<>();
-        permissions.add(permissionRepository.findByDescription("MEMBER"));
+        permissions.add(permissionRepository.findByDescription("USER"));
         return permissions;
     }
-
 
     public Boolean findByLogin(String email) {
         logger.info("Verificando se email existe na base!");

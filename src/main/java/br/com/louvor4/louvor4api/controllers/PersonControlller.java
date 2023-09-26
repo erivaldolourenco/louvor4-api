@@ -23,8 +23,6 @@ public class PersonControlller {
     @Autowired
     PersonService personService;
 
-
-
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public PersonDTO createPerson(@RequestBody @Valid PersonDTO personDto) {
         if (personService.findByLogin(personDto.getEmail())) {
@@ -35,7 +33,7 @@ public class PersonControlller {
 
     @GetMapping(value = "/{idPerson}")
     public PersonDTO getPerson(@PathVariable(value = "idPerson") UUID idPerson) {
-        return  personService.getPersonById(idPerson);
+        return personService.getPersonById(idPerson);
     }
 
     @DeleteMapping(value = "/{idPerson}")
@@ -48,7 +46,6 @@ public class PersonControlller {
     public List<Person> getAllPeople() {
         return personService.getAllPeople();
     }
-
 
 
     @GetMapping(value = "/ministries", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

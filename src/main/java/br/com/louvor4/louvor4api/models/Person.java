@@ -35,7 +35,7 @@ public class Person implements UserDetails {
     @Column(name = "birthday")
     private Date birthday;
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "tb_person_permission", joinColumns = {@JoinColumn(name = "id_person")}
+    @JoinTable(name = "tb_person_app_permission", joinColumns = {@JoinColumn(name = "id_person")}
             , inverseJoinColumns = {@JoinColumn(name = "id_permission")})
     private List<Permission> permissions;
 

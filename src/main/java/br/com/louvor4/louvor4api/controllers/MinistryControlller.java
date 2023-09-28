@@ -1,8 +1,11 @@
 package br.com.louvor4.louvor4api.controllers;
 
-import br.com.louvor4.louvor4api.dto.MinistryDTO;
-import br.com.louvor4.louvor4api.dto.MinistryPersonDTO;
+import br.com.louvor4.louvor4api.shared.dto.MemberDTO;
+import br.com.louvor4.louvor4api.shared.dto.MinistryDTO;
+import br.com.louvor4.louvor4api.shared.dto.MinistryPersonDTO;
+import br.com.louvor4.louvor4api.models.Member;
 import br.com.louvor4.louvor4api.services.MinistryService;
+import br.com.louvor4.louvor4api.shared.projection.MemberProjection;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -10,8 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
+
+import static br.com.louvor4.louvor4api.util.ReturnUtil.convertOrThrow;
 
 @RestController
 @RequestMapping("/ministries")
@@ -40,8 +46,15 @@ public class MinistryControlller {
         return ministryService.getAllMinistries();
     }
 
+
+    @GetMapping(value="/{idMinistry}/members", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MemberProjection>> getMember(@PathVariable(value = "idMinistry") UUID idMinistry) {
+        List<MemberDTO> members = ministryService.getMemberOfMinistry(idMinistry);
+        return convertOrThrow(MemberProjection.class, members);
+    }
+
     @PostMapping(value="/add-member",consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity addMemberToMinistry(@RequestBody @Valid MinistryPersonDTO ministryPersonDTO, Authentication authentication){
+    public ResponseEntity addMemberToMinistry(@RequestBody @Valid MinistryPersonDTO ministryPersonDTO){
         ministryService.addMemberToMinistry(ministryPersonDTO.idMinistry(),ministryPersonDTO.idPerson());
         return ResponseEntity.ok().build();
     }

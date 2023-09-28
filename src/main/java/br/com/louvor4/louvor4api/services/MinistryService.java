@@ -1,8 +1,11 @@
 package br.com.louvor4.louvor4api.services;
 
+import br.com.louvor4.louvor4api.converter.MemberConverter;
 import br.com.louvor4.louvor4api.converter.MinistryConverter;
-import br.com.louvor4.louvor4api.dto.MinistryDTO;
-import br.com.louvor4.louvor4api.dto.MinistryPersonDTO;
+import br.com.louvor4.louvor4api.shared.dto.MemberDTO;
+import br.com.louvor4.louvor4api.shared.dto.MinistryDTO;
+import br.com.louvor4.louvor4api.shared.dto.MinistryPersonDTO;
+import br.com.louvor4.louvor4api.exceptions.NotFoundException;
 import br.com.louvor4.louvor4api.models.Member;
 import br.com.louvor4.louvor4api.models.Ministry;
 import br.com.louvor4.louvor4api.models.MinistryPermission;
@@ -18,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
+
+import static br.com.louvor4.louvor4api.shared.constants.Messages.MINISTERIO_NAO_ENCONTRADO;
 
 @Service
 public class MinistryService {
@@ -39,33 +44,39 @@ public class MinistryService {
         Member member = new Member();
         member.setPerson(personRepository.getPersonByEmail(personEmail));
         member.setMinistry(ministryRepository.save(ministry));
+        MinistryPermission leader = permissionRepository.getMinistryPermissionByDescription("LEADER");
+        member.setMinistryPermissions(Arrays.asList(leader));
         memberRepository.save(member);
         return MinistryConverter.INSTANCE.toDto(ministry);
     }
 
-
-    public void addMemberToMinistry(UUID ministeryId, UUID personId) {
-        Ministry ministry = ministryRepository.findById(ministeryId).get();
-        Person person = personRepository.findById(personId).get();
-
-        Member member = new Member();
-        member.setPerson(person);
-        MinistryPermission leader = permissionRepository.getMinistryPermissionByDescription("LEADER");
-        member.setMinistryPermissions(Arrays.asList(leader));
-        memberRepository.save(member);
-
-        ministry.getMembers().add(member);
-        ministryRepository.save(ministry);
-    }
-
-    private List<Member> getMemberOfMinistry(UUID idMinistry) {
-        Ministry ministry = ministryRepository.findById(idMinistry).get();
-        return ministry.getMembers();
+    public MinistryDTO getMinistry(UUID idMinistry) {
+        Ministry ministry = ministryRepository.findById(idMinistry)
+                .orElseThrow(() -> new NotFoundException(MINISTERIO_NAO_ENCONTRADO));
+        return MinistryConverter.INSTANCE.toDto(ministry);
     }
 
     public List<MinistryDTO> getAllMinistries() {
         return MinistryConverter.INSTANCE.toDto(ministryRepository.findAll());
     }
+
+    public void addMemberToMinistry(UUID ministeryId, UUID personId) {
+        Ministry ministry = ministryRepository.findById(ministeryId).get();
+        Person person = personRepository.findById(personId).get();
+        Member member = new Member();
+        member.setPerson(person);
+        member.setMinistry(ministry);
+        MinistryPermission memberPermission = permissionRepository.getMinistryPermissionByDescription("MEMBER");
+        member.setMinistryPermissions(Arrays.asList(memberPermission));
+        memberRepository.save(member);
+    }
+
+    public List<MemberDTO> getMemberOfMinistry(UUID idMinistry) {
+        Ministry ministry = ministryRepository.findById(idMinistry).get();
+        return MemberConverter.INSTANCE.toDto(ministry.getMembers());
+    }
+
+
 
     public void newRole(MinistryPersonDTO ministryPersonDTO) throws IllegalAccessException {
         Person person = personRepository.findById(ministryPersonDTO.idPerson()).get();
@@ -82,7 +93,5 @@ public class MinistryService {
         return true;
     }
 
-    public MinistryDTO getMinistry(UUID idMinistry) {
-        return null;
-    }
+
 }

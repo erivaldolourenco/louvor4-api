@@ -1,4 +1,4 @@
-package br.com.louvor4.louvor4api.dto;
+package br.com.louvor4.louvor4api.shared.dto;
 
 import java.util.UUID;
 

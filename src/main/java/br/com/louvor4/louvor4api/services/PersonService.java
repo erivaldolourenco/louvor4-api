@@ -2,8 +2,8 @@ package br.com.louvor4.louvor4api.services;
 
 import br.com.louvor4.louvor4api.converter.MinistryConverter;
 import br.com.louvor4.louvor4api.converter.PersonConverter;
-import br.com.louvor4.louvor4api.dto.MinistryDTO;
-import br.com.louvor4.louvor4api.dto.PersonDTO;
+import br.com.louvor4.louvor4api.shared.dto.MinistryDTO;
+import br.com.louvor4.louvor4api.shared.dto.PersonDTO;
 import br.com.louvor4.louvor4api.exceptions.NotFoundException;
 import br.com.louvor4.louvor4api.models.Ministry;
 import br.com.louvor4.louvor4api.models.Permission;
@@ -21,7 +21,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static br.com.louvor4.louvor4api.shared.constants.Messages.MINISTERIO_NAO_ENCONTRADO;
+import static br.com.louvor4.louvor4api.shared.constants.Messages.MINISTERIO_NAO_ENCONTRADO_PARA_PESSOA;
 import static br.com.louvor4.louvor4api.shared.constants.Messages.PESSOA_NAO_ENCONTRADA;
 
 @Service
@@ -35,7 +35,7 @@ public class PersonService {
     PermissionRepository permissionRepository;
 
     public PersonDTO createPerson(PersonDTO personDto) {
-        String encryptedPassword = new BCryptPasswordEncoder().encode(personDto.getPassword());
+        String encryptedPassword = new BCryptPasswordEncoder().encode(personDto.password());
         Person person = PersonConverter.INSTANCE.toEntity(personDto);
         person.setPassword(encryptedPassword);
         logger.info("Nova pessoa criada!");
@@ -59,9 +59,9 @@ public class PersonService {
         return PersonConverter.INSTANCE.toDto(person);
     }
 
-    public List<Person> getAllPeople() {
+    public List<PersonDTO> getAllPeople() {
         logger.info("Listando todas as pessoas!");
-        return personRepository.findAll();
+        return PersonConverter.INSTANCE.toDto(personRepository.findAll());
     }
 
     private List<Permission> getDefaultPermission() {
@@ -85,7 +85,7 @@ public class PersonService {
         if (ministryList != null && ministryList.size() != 0) {
             return MinistryConverter.INSTANCE.toDto(ministryList);
         } else {
-            throw new NotFoundException(MINISTERIO_NAO_ENCONTRADO);
+            throw new NotFoundException(MINISTERIO_NAO_ENCONTRADO_PARA_PESSOA);
         }
     }
 

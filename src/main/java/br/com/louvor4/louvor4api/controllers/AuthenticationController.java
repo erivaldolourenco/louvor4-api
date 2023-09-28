@@ -1,7 +1,7 @@
 package br.com.louvor4.louvor4api.controllers;
 
-import br.com.louvor4.louvor4api.dto.AuthenticationDTO;
-import br.com.louvor4.louvor4api.dto.LoginResponseDTO;
+import br.com.louvor4.louvor4api.shared.dto.AuthenticationDTO;
+import br.com.louvor4.louvor4api.shared.dto.LoginResponseDTO;
 import br.com.louvor4.louvor4api.models.Person;
 import br.com.louvor4.louvor4api.security.TokenService;
 import jakarta.validation.Valid;

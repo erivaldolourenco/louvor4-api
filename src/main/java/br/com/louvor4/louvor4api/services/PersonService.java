@@ -6,7 +6,7 @@ import br.com.louvor4.louvor4api.shared.dto.MinistryDTO;
 import br.com.louvor4.louvor4api.shared.dto.PersonDTO;
 import br.com.louvor4.louvor4api.exceptions.NotFoundException;
 import br.com.louvor4.louvor4api.models.Ministry;
-import br.com.louvor4.louvor4api.models.Permission;
+import br.com.louvor4.louvor4api.models.AppPermission;
 import br.com.louvor4.louvor4api.models.Person;
 import br.com.louvor4.louvor4api.repositories.PermissionRepository;
 import br.com.louvor4.louvor4api.repositories.PersonRepository;
@@ -43,7 +43,7 @@ public class PersonService {
         person.setAccountNonLocked(true);
         person.setCredentialsNonExpired(true);
         person.setEnabled(true);
-        person.setAppPermissions(getDefaultPermission());
+        person.setAppPermissions(getDefaultAppPermission());
         return PersonConverter.INSTANCE.toDto(personRepository.save(person));
     }
 
@@ -64,10 +64,10 @@ public class PersonService {
         return PersonConverter.INSTANCE.toDto(personRepository.findAll());
     }
 
-    private List<Permission> getDefaultPermission() {
-        List<Permission> permissions = new ArrayList<>();
-        permissions.add(permissionRepository.findByDescription("USER"));
-        return permissions;
+    private List<AppPermission> getDefaultAppPermission() {
+        List<AppPermission> appPermissions = new ArrayList<>();
+        appPermissions.add(permissionRepository.findByDescription("USER"));
+        return appPermissions;
     }
 
     public Boolean findByLogin(String email) {

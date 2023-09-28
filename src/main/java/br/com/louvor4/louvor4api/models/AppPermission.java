@@ -7,7 +7,7 @@ import java.io.Serializable;
 
 @Entity
 @Table(name = "tb_app_permission")
-public class Permission implements GrantedAuthority, Serializable {
+public class AppPermission implements GrantedAuthority, Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -17,7 +17,7 @@ public class Permission implements GrantedAuthority, Serializable {
     @Column
     private String description;
 
-    public Permission() {}
+    public AppPermission() {}
 
 
     @Override

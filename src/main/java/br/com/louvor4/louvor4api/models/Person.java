@@ -36,7 +36,7 @@ public class Person implements UserDetails {
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "tb_person_app_permission", joinColumns = {@JoinColumn(name = "id_person")}
             , inverseJoinColumns = {@JoinColumn(name = "id_permission")})
-    private List<Permission> appPermissions;
+    private List<AppPermission> appPermissions;
     @OneToMany(mappedBy = "person", cascade = CascadeType.ALL)
     private List<Member> members;
 
@@ -49,8 +49,8 @@ public class Person implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        for (Permission perission: this.appPermissions) {
-            authorities.add(new SimpleGrantedAuthority(perission.getDescription()));
+        for (AppPermission appPermission: this.appPermissions) {
+            authorities.add(new SimpleGrantedAuthority(appPermission.getDescription()));
         }
         return authorities;
     }
@@ -161,11 +161,11 @@ public class Person implements UserDetails {
         this.birthday = birthday;
     }
 
-    public List<Permission> getAppPermissions() {
+    public List<AppPermission> getAppPermissions() {
         return appPermissions;
     }
 
-    public void setAppPermissions(List<Permission> permissions) {
+    public void setAppPermissions(List<AppPermission> permissions) {
         this.appPermissions = permissions;
     }
 

@@ -1,4 +1,4 @@
 package br.com.louvor4.api.shared.dto;
 
-public record UserDTO(String id, String firstName, String lastName) {
+public record UserDTO(String id, String firstName, String lastName, String email) {
 }

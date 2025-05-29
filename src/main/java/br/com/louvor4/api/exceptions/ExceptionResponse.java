@@ -1,30 +1,39 @@
 package br.com.louvor4.api.exceptions;
 
-import java.io.Serializable;
-import java.util.Date;
+import org.springframework.http.ProblemDetail;
 
-public class ExceptionResponse implements Serializable {
-    private static final long serialVersionUID = 1L;
+import java.net.URI;
 
-    private Date timestamp;
-    private String message;
+public class ExceptionResponse extends ProblemDetail{
+
     private String details;
 
-    public ExceptionResponse(Date timestamp, String message, String details) {
-        this.timestamp = timestamp;
-        this.message = message;
+    public ExceptionResponse(String details) {
         this.details = details;
+        this.setType(URI.create("https://datatracker.ietf.org/doc/html/rfc7231#section-6"));
+
     }
 
-    public Date getTimestamp() {
-        return timestamp;
+    public ExceptionResponse comStatus(int status) {
+        this.setStatus(status);
+        return this;
     }
 
-    public String getMessage() {
-        return message;
+    public ExceptionResponse comTitle(String title) {
+        this.setTitle(title);
+        return this;
+    }
+
+    public ExceptionResponse comDetail(String detail) {
+        this.setDetail(detail);
+        return this;
     }
 
     public String getDetails() {
         return details;
+    }
+
+    public void setDetails(String details) {
+        this.details = details;
     }
 }

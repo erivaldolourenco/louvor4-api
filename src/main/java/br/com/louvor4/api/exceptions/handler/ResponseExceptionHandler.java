@@ -1,0 +1,70 @@
+package br.com.louvor4.api.exceptions.handler;
+
+import br.com.louvor4.api.exceptions.ExceptionResponse;
+import br.com.louvor4.api.exceptions.NotFoundException;
+import br.com.louvor4.api.exceptions.TokenExpiredException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import static br.com.louvor4.api.exceptions.handler.Constants.*;
+
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@ControllerAdvice
+public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+                                                                  HttpHeaders headers, HttpStatusCode status,
+                                                                  WebRequest request) {
+        ExceptionResponse errorResponse = new ExceptionResponse(
+                ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage())
+                .comStatus(status.value())
+                .comTitle(ARGUMENTO_INVALIDO);
+        return ResponseEntity.status(status).body(errorResponse);
+    }
+
+
+
+    @ExceptionHandler(NotFoundException.class)
+    public final ResponseEntity<ExceptionResponse> notFoundExceptions(Exception ex, WebRequest request) {
+        ExceptionResponse errorResponse = new ExceptionResponse(ex.getMessage())
+                .comStatus(HttpStatus.NOT_FOUND.value())
+                .comTitle(RECURSO_NAO_ENCONTRADO);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(TokenExpiredException.class)
+    public final ResponseEntity<ExceptionResponse> tokenExpiredExceptions(Exception ex, WebRequest request){
+        ExceptionResponse exceptionResponse = new ExceptionResponse(ex.getMessage())
+                .comStatus(HttpStatus.FORBIDDEN.value())
+                .comTitle(TOKEN_EXPIRADO);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(exceptionResponse);
+
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public final ResponseEntity<ExceptionResponse> badCredentialsException(Exception ex, WebRequest request) {
+        ExceptionResponse errorResponse = new ExceptionResponse(ex.getMessage())
+                .comStatus(HttpStatus.UNAUTHORIZED.value())
+                .comTitle(ERRO_DE_PERMISSAO);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request){
+        ExceptionResponse exceptionResponse = new ExceptionResponse(ex.getMessage())
+                .comStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .comTitle(ERRO_INTERNO);
+        return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
+    }
+}

@@ -6,6 +6,7 @@ import br.com.louvor4.api.shared.dto.AuthenticationDTO;
 import br.com.louvor4.api.shared.dto.LoginResponseDTO;
 import br.com.louvor4.api.shared.dto.UserDTO;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,13 +25,13 @@ public class AuthenticationController {
 
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody @Valid AuthenticationDTO data){
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data){
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.username(), data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
         var userDetails = (UserDetailsImpl) auth.getPrincipal();
         var token = tokenService.generateToken(userDetails);
 
-        return ResponseEntity.ok(new LoginResponseDTO(token, new UserDTO(
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new LoginResponseDTO(token, new UserDTO(
                 userDetails.getUser().getId(),
                 userDetails.getUser().getFirstName(),
                 userDetails.getUser().getLastName(),

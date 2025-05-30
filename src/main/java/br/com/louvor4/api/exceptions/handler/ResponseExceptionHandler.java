@@ -26,45 +26,47 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
                                                                   HttpHeaders headers, HttpStatusCode status,
                                                                   WebRequest request) {
-        ExceptionResponse errorResponse = new ExceptionResponse(
-                ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage())
-                .comStatus(status.value())
-                .comTitle(ARGUMENTO_INVALIDO);
+        ExceptionResponse errorResponse = ExceptionResponse.create()
+                .withDetails(ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage())
+                .withStatus(status.value())
+                .withTitle(ARGUMENTO_INVALIDO);
         return ResponseEntity.status(status).body(errorResponse);
     }
 
-
-
     @ExceptionHandler(NotFoundException.class)
     public final ResponseEntity<ExceptionResponse> notFoundExceptions(Exception ex, WebRequest request) {
-        ExceptionResponse errorResponse = new ExceptionResponse(ex.getMessage())
-                .comStatus(HttpStatus.NOT_FOUND.value())
-                .comTitle(RECURSO_NAO_ENCONTRADO);
+        ExceptionResponse errorResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.NOT_FOUND.value())
+                .withTitle(RECURSO_NAO_ENCONTRADO);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(TokenExpiredException.class)
     public final ResponseEntity<ExceptionResponse> tokenExpiredExceptions(Exception ex, WebRequest request){
-        ExceptionResponse exceptionResponse = new ExceptionResponse(ex.getMessage())
-                .comStatus(HttpStatus.FORBIDDEN.value())
-                .comTitle(TOKEN_EXPIRADO);
+        ExceptionResponse exceptionResponse =  ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.FORBIDDEN.value())
+                .withTitle(TOKEN_EXPIRADO);
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(exceptionResponse);
 
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public final ResponseEntity<ExceptionResponse> badCredentialsException(Exception ex, WebRequest request) {
-        ExceptionResponse errorResponse = new ExceptionResponse(ex.getMessage())
-                .comStatus(HttpStatus.UNAUTHORIZED.value())
-                .comTitle(ERRO_DE_PERMISSAO);
+        ExceptionResponse errorResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.UNAUTHORIZED.value())
+                .withTitle(ERRO_DE_PERMISSAO);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request){
-        ExceptionResponse exceptionResponse = new ExceptionResponse(ex.getMessage())
-                .comStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .comTitle(ERRO_INTERNO);
+        ExceptionResponse exceptionResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .withTitle(ERRO_INTERNO);
         return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
     }
 }

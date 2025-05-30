@@ -1,6 +1,11 @@
 package br.com.louvor4.api.exceptions.handler;
 
 public class Constants {
+
+    private Constants() {
+        throw new UnsupportedOperationException("Esta é uma classe utilitária e não pode ser instanciada.");
+    }
+
     public static final String ARGUMENTO_INVALIDO = "Argumento Inválido";
     public static final String RECURSO_NAO_ENCONTRADO = "Recurso não Encontrado";
     public static final String TOKEN_EXPIRADO = "O token expirado";

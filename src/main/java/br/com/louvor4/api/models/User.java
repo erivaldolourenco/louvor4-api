@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -13,7 +14,7 @@ public class User {
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
     @Column(columnDefinition = "CHAR(36)")
-    private String id;
+    private UUID id;
 
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
@@ -37,11 +38,11 @@ public class User {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // Getters e setters
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

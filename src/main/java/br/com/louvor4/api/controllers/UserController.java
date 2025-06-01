@@ -1,17 +1,19 @@
 package br.com.louvor4.api.controllers;
 
+import br.com.louvor4.api.models.Ministry;
 import br.com.louvor4.api.models.User;
-import br.com.louvor4.api.repositories.UserRepository;
+import br.com.louvor4.api.services.MinistryService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.ApiResponse;
-import br.com.louvor4.api.shared.dto.CreateUserDTO;
+import br.com.louvor4.api.shared.dto.UserCreateDTO;
+import br.com.louvor4.api.shared.dto.UserMinistriesDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_MESSAGE;
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
@@ -20,13 +22,15 @@ import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
 @RequestMapping("users")
 public class UserController {
     private final UserService userService;
+    private final MinistryService ministryService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, MinistryService ministryService) {
         this.userService = userService;
+        this.ministryService = ministryService;
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<User>> create(@RequestBody @Valid CreateUserDTO userDTO){
+    public ResponseEntity<ApiResponse<User>> create(@RequestBody @Valid UserCreateDTO userDTO){
 
         User user = userService.create(userDTO);
 
@@ -36,5 +40,24 @@ public class UserController {
                 .withMessage(USER_CREATED_MESSAGE)
                 .withData(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/ministries")
+    public ResponseEntity<List<UserMinistriesDTO>> getMyMinistries(Authentication authentication) {
+        String username = authentication.getName(); // ou extrair de token
+        User user = userService.findByUsername(username);
+        List<Ministry> ministries = ministryService.getMinistriesByUser(user.getId());
+        // Converter List<Ministry> para List<UserMinistriesDTO>
+        List<UserMinistriesDTO> ministriesDto = ministries.stream()
+                .map(ministry -> new UserMinistriesDTO(
+                        ministry.getId(),
+                        ministry.getName(),
+                        ministry.getDescription(),
+                        (long) ministry.getMembers().size()
+                        )
+                )
+                .toList();
+
+        return ResponseEntity.ok(ministriesDto);
     }
 }

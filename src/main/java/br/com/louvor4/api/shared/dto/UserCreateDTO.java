@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public class CreateUserDTO {
+public class UserCreateDTO {
     @NotBlank(message = "O primeiro nome é obrigatório")
     @Size(max = 100, message = "O primeiro nome deve ter no máximo 100 caracteres")
     private String firstName;

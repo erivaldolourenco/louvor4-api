@@ -3,9 +3,12 @@ package br.com.louvor4.api.services.impl;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.UserService;
-import br.com.louvor4.api.shared.dto.CreateUserDTO;
+import br.com.louvor4.api.shared.dto.UserCreateDTO;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -17,7 +20,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User create(CreateUserDTO userDTO) {
+    public User create(UserCreateDTO userDTO) {
         String encryptedPassword = new BCryptPasswordEncoder().encode(userDTO.getPassword());
         User userEntity = new User();
         userEntity.setEmail(userDTO.getEmail());
@@ -27,5 +30,17 @@ public class UserServiceImpl implements UserService {
         userEntity.setUsername(userDTO.getUsername());
         userEntity.setPassword(encryptedPassword);
         return userRepository.save(userEntity);
+    }
+
+    @Override
+    public User getUserById(UUID idUser) {
+        return userRepository.findById(idUser)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado!"));
+    }
+
+    @Override
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado!"));
     }
 }

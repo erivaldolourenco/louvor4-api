@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -61,6 +62,15 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public final ResponseEntity<ExceptionResponse> usernameNotFoundException(Exception ex, WebRequest request){
+        ExceptionResponse exceptionResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.NOT_FOUND.value())
+                .withTitle(RECURSO_NAO_ENCONTRADO);
+        return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(exceptionResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request){
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
@@ -69,4 +79,6 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
                 .withTitle(ERRO_INTERNO);
         return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
     }
+
+
 }

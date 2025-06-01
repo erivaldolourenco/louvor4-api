@@ -21,7 +21,7 @@ public class TokenService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             String token = JWT.create()
                     .withIssuer("louvor4-api")
-                    .withSubject(userDetails.getUser().getId())
+                    .withSubject(userDetails.getUsername())
                     .withClaim("roles",userDetails.getRoles())
                     .withExpiresAt(genExpirationDate())
                     .sign(algorithm);

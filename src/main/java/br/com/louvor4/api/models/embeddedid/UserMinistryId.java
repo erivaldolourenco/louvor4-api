@@ -14,6 +14,16 @@ public class UserMinistryId implements Serializable {
     @Column(name = "ministry_id")
     private UUID ministryId;
 
+
+    public UserMinistryId(UUID userId, UUID ministryId) {
+        this.userId = userId;
+        this.ministryId = ministryId;
+    }
+
+    public UserMinistryId() {
+
+    }
+
     public UUID getUserId() {
         return userId;
     }

@@ -11,4 +11,5 @@ public interface UserService {
     User create(UserCreateDTO user);
     User getUserById(UUID idUser);
     User findByUsername(String username);
+    User findByEmail(String username);
 }

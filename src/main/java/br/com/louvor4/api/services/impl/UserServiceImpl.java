@@ -35,12 +35,18 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(UUID idUser) {
         return userRepository.findById(idUser)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado!"));
+                .orElseThrow(() -> new EntityNotFoundException(String.format("Usuário com id '%s' não encontrado.", idUser)));
     }
 
     @Override
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado!"));
+                .orElseThrow(() -> new EntityNotFoundException(String.format("Usuário com username '%s' não encontrado.", username)));
+    }
+
+    @Override
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException(String.format("Usuário com e-mail '%s' não encontrado.", email)));
     }
 }

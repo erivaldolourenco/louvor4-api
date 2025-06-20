@@ -7,5 +7,6 @@ public record MinistryDetailDTO(
         UUID id,
         String name,
         String description,
-        List<UserDTO> members
+        String profileImage,
+        List<UserDetailDTO> members
 ) {}

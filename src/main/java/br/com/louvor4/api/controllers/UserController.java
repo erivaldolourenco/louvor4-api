@@ -6,6 +6,7 @@ import br.com.louvor4.api.services.MinistryService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.ApiResponse;
 import br.com.louvor4.api.shared.dto.UserCreateDTO;
+import br.com.louvor4.api.shared.dto.UserDetailDTO;
 import br.com.louvor4.api.shared.dto.UserMinistriesDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,8 +30,22 @@ public class UserController {
         this.ministryService = ministryService;
     }
 
+    @GetMapping("/detail")
+    public ResponseEntity<UserDetailDTO> getUserDetail(Authentication authentication) {
+        String username = authentication.getName();
+        User user = userService.findByUsername(username);
+        UserDetailDTO userDetailDTO = new UserDetailDTO(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                user.getProfileImage());
+       return ResponseEntity.status(HttpStatus.CREATED).body(userDetailDTO);
+    }
+
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<User>> create(@RequestBody @Valid UserCreateDTO userDTO){
+    public ResponseEntity<ApiResponse<User>> create(@RequestBody @Valid UserCreateDTO userDTO) {
 
         User user = userService.create(userDTO);
 
@@ -50,10 +65,11 @@ public class UserController {
         // Converter List<Ministry> para List<UserMinistriesDTO>
         List<UserMinistriesDTO> ministriesDto = ministries.stream()
                 .map(ministry -> new UserMinistriesDTO(
-                        ministry.getId(),
-                        ministry.getName(),
-                        ministry.getDescription(),
-                        (long) ministry.getMembers().size()
+                                ministry.getId(),
+                                ministry.getName(),
+                                ministry.getDescription(),
+                                ministry.getProfileImage(),
+                                (long) ministry.getMembers().size()
                         )
                 )
                 .toList();

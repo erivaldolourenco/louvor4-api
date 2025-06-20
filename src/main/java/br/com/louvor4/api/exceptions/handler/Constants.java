@@ -12,4 +12,7 @@ public class Constants {
     public static final String ERRO_INTERNO = "Erro Interno servidor";
     public static final String ERRO_DE_PERMISSAO = "Erro de permissão";
 
+    public static final String ERRO_AO_SALVAR_ARQUIVO = "Erro ao salvar arquivo";
+
+
 }

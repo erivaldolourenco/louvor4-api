@@ -1,5 +1,6 @@
 package br.com.louvor4.api.models;
 
+import br.com.louvor4.api.enums.UserRole;
 import br.com.louvor4.api.models.embeddedid.UserMinistryId;
 import jakarta.persistence.*;
 
@@ -19,8 +20,9 @@ public class UserMinistry {
     @JoinColumn(name = "ministry_id")
     private Ministry ministry;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 50)
-    private String role;
+    private UserRole role;
 
     public User getUser() {
         return user;
@@ -38,11 +40,11 @@ public class UserMinistry {
         this.ministry = ministry;
     }
 
-    public String getRole() {
+    public UserRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
 

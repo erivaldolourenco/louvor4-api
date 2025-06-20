@@ -12,6 +12,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "ministries")
 public class Ministry {
+
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
@@ -23,6 +24,9 @@ public class Ministry {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "profile_image", length = 512)
+    private String profileImage;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
@@ -53,6 +57,14 @@ public class Ministry {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
     }
 
     public Set<UserMinistry> getMembers() {

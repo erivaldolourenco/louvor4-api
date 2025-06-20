@@ -33,8 +33,8 @@ api:
 cloud:
   aws:
     credentials:
-      access-key: AKIA3R5BTQIJFF7TNGG5
-      secret-key: 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
+      access-key:
+      secret-key:
     region:
       static: us-east-1
     s3:

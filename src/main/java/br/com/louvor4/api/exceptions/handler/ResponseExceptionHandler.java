@@ -6,6 +6,7 @@ import br.com.louvor4.api.exceptions.StorageException;
 import br.com.louvor4.api.exceptions.TokenExpiredException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -45,8 +46,8 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(TokenExpiredException.class)
-    public final ResponseEntity<ExceptionResponse> tokenExpiredExceptions(Exception ex, WebRequest request){
-        ExceptionResponse exceptionResponse =  ExceptionResponse.create()
+    public final ResponseEntity<ExceptionResponse> tokenExpiredExceptions(Exception ex, WebRequest request) {
+        ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.FORBIDDEN.value())
                 .withTitle(TOKEN_EXPIRADO);
@@ -64,33 +65,60 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public final ResponseEntity<ExceptionResponse> usernameNotFoundException(Exception ex, WebRequest request){
+    public final ResponseEntity<ExceptionResponse> usernameNotFoundException(Exception ex, WebRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.NOT_FOUND.value())
                 .withTitle(RECURSO_NAO_ENCONTRADO);
-        return  ResponseEntity.status(HttpStatus.NOT_FOUND).body(exceptionResponse);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exceptionResponse);
     }
 
     @ExceptionHandler(StorageException.class)
-    public final ResponseEntity<ExceptionResponse> storageException(Exception ex, WebRequest request){
+    public final ResponseEntity<ExceptionResponse> storageException(Exception ex, WebRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .withTitle(ERRO_AO_SALVAR_ARQUIVO);
-        return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public final ResponseEntity<ExceptionResponse> dataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
+
+        String msg = "Dados inválidos.";
+        String raw = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+
+        // Ajuste os nomes conforme suas constraints reais
+        if (raw != null && raw.contains("uq_users_email")) {
+            msg = "E-mail já cadastrado.";
+        } else if (raw != null && raw.contains("users.username")) {
+            msg = "Nome de usuário já cadastrado.";
+        }
+
+        ExceptionResponse response = ExceptionResponse.create()
+                .withDetails(msg)
+                .withStatus(HttpStatus.CONFLICT.value())
+                .withTitle("Conflito");
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    //    @ExceptionHandler(Exception.class)
+//    public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request){
+//        ExceptionResponse exceptionResponse = ExceptionResponse.create()
+//                .withDetails(ex.getMessage())
+//                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
+//                .withTitle(ERRO_INTERNO);
+//        return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
+//    }
     @ExceptionHandler(Exception.class)
-    public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request){
+    public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
-                .withDetails(ex.getMessage())
+                .withDetails("Ocorreu um erro inesperado. Tente novamente.")
                 .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .withTitle(ERRO_INTERNO);
-        return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
     }
-
-
 
 
 }

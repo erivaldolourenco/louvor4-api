@@ -13,4 +13,15 @@ public final class ObjectUtils {
     public static boolean isNotNullOrEmpty(MultipartFile file) {
         return file != null && !file.isEmpty();
     }
+    public static boolean isNotNullOrEmpty(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+    public static boolean isNotNull(String value) {
+        return value != null;
+    }
+
+    public static <E extends Enum<E>> boolean isNotNull(E value) {
+        return value != null;
+    }
+
 }

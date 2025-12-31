@@ -5,6 +5,7 @@ import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.models.UserMinistry;
 import br.com.louvor4.api.services.MinistryService;
 import br.com.louvor4.api.services.UserService;
+import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
 import br.com.louvor4.api.shared.dto.*;
 import jakarta.validation.Valid;

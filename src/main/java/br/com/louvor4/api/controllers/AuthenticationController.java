@@ -4,7 +4,7 @@ import br.com.louvor4.api.config.security.TokenService;
 import br.com.louvor4.api.config.security.UserDetailsImpl;
 import br.com.louvor4.api.shared.dto.AuthenticationDTO;
 import br.com.louvor4.api.shared.dto.LoginResponseDTO;
-import br.com.louvor4.api.shared.dto.UserDTO;
+import br.com.louvor4.api.shared.dto.User.UserDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

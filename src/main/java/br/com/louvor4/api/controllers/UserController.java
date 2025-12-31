@@ -1,16 +1,23 @@
 package br.com.louvor4.api.controllers;
 
-import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.models.Ministry;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.services.MinistryService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
+import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
+import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
+import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
+import br.com.louvor4.api.shared.dto.User.UserMinistriesDTO;
+import br.com.louvor4.api.shared.dto.User.UserUpdateDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +63,20 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/update")
+    public ResponseEntity<UserDetailDTO> update(@RequestBody @Valid UserUpdateDTO updateDto) {
+        UserDetailDTO userDetailDTO = userService.update(updateDto);
+        return ResponseEntity.ok(userDetailDTO);
+    }
+
+    @PutMapping(value = "/update/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> updateProfileImage(
+            @RequestPart("profileImage") MultipartFile profileImage
+    ) {
+        String url = userService.updateImage(profileImage);
+        return ResponseEntity.ok(url);
+    }
+
     @GetMapping("/ministries")
     public ResponseEntity<List<UserMinistriesDTO>> getMyMinistries(Authentication authentication) {
         String username = authentication.getName(); // ou extrair de token
@@ -79,23 +100,6 @@ public class UserController {
 
     @GetMapping("/music-projects")
     public ResponseEntity<List<MusicProjectDTO>> getMusicProjects(Authentication authentication) {
-
-
-        List<MusicProjectDTO> ministriesDto = List.of(
-                new MusicProjectDTO(
-                        UUID.randomUUID(),
-                        "Ministério Adoração Viva",
-                        MusicProjectType.MINISTRY,
-                        "https://picsum.photos/200?random=1"
-                ),
-                new MusicProjectDTO(
-                        UUID.randomUUID(),
-                        "Banda Areli",
-                        MusicProjectType.BAND,
-                        "https://picsum.photos/200?random=2"
-                )
-        );
-
-        return ResponseEntity.ok(ministriesDto);
+        return ResponseEntity.ok(userService.getMusicProjects());
     }
 }

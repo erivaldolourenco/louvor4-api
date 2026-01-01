@@ -2,13 +2,14 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
-import br.com.louvor4.api.models.MusicProject;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.MusicProjectService;
+import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
+import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
 import br.com.louvor4.api.shared.dto.User.UserUpdateDTO;
@@ -28,12 +29,14 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final MusicProjectService musicProjectService;
+    private final SongService songService;
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
 
-    public UserServiceImpl(UserRepository userRepository, MusicProjectService musicProjectService, CurrentUserProvider currentUserProvider, StorageService storageService) {
+    public UserServiceImpl(UserRepository userRepository, MusicProjectService musicProjectService, SongService songService, CurrentUserProvider currentUserProvider, StorageService storageService) {
         this.userRepository = userRepository;
         this.musicProjectService = musicProjectService;
+        this.songService = songService;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
     }
@@ -118,5 +121,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<MusicProjectDTO> getMusicProjects() {
         return musicProjectService.getMusicProjectFromUser();
+    }
+
+    @Override
+    public List<SongDTO> getSongs() {
+        return songService.getSongsFromUser();
     }
 }

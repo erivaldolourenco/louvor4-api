@@ -1,12 +1,10 @@
 package br.com.louvor4.api.controllers;
 
-import br.com.louvor4.api.models.Ministry;
 import br.com.louvor4.api.models.User;
-import br.com.louvor4.api.services.MinistryService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
+import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
 import br.com.louvor4.api.shared.dto.User.UserMinistriesDTO;
@@ -20,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_MESSAGE;
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
@@ -29,11 +26,9 @@ import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
 @RequestMapping("users")
 public class UserController {
     private final UserService userService;
-    private final MinistryService ministryService;
 
-    public UserController(UserService userService, MinistryService ministryService) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.ministryService = ministryService;
     }
 
     @GetMapping("/detail")
@@ -77,29 +72,14 @@ public class UserController {
         return ResponseEntity.ok(url);
     }
 
-    @GetMapping("/ministries")
-    public ResponseEntity<List<UserMinistriesDTO>> getMyMinistries(Authentication authentication) {
-        String username = authentication.getName(); // ou extrair de token
-        User user = userService.findByUsername(username);
-        List<Ministry> ministries = ministryService.getMinistriesByUser(user.getId());
-        // Converter List<Ministry> para List<UserMinistriesDTO>
-        List<UserMinistriesDTO> ministriesDto = ministries.stream()
-                .map(ministry -> new UserMinistriesDTO(
-                                ministry.getId(),
-                                ministry.getName(),
-                                ministry.getDescription(),
-                                ministry.getProfileImage(),
-                                (long) ministry.getMembers().size()
-                        )
-                )
-                .toList();
-
-        return ResponseEntity.ok(ministriesDto);
+    @GetMapping("/music-projects")
+    public ResponseEntity<List<MusicProjectDTO>> getMusicProjects() {
+        return ResponseEntity.ok(userService.getMusicProjects());
     }
 
-
-    @GetMapping("/music-projects")
-    public ResponseEntity<List<MusicProjectDTO>> getMusicProjects(Authentication authentication) {
-        return ResponseEntity.ok(userService.getMusicProjects());
+    @GetMapping("/songs")
+    public ResponseEntity<List<SongDTO>> getSongs() {
+        List<SongDTO> dtoList = userService.getSongs();
+        return ResponseEntity.ok(dtoList);
     }
 }

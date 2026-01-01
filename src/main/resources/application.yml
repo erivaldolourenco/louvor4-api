@@ -1,16 +1,20 @@
 spring:
   application:
     name: louvor4-api
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
   datasource:
-    url: jdbc:mysql://localhost:3306/louvor4db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
@@ -18,24 +22,34 @@ spring:
   output:
     ansi:
       enabled: ALWAYS
+
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
+
 server:
   port: 8080
 
 api:
   security:
     token:
-      secret: minhachavesecreta
+      secret: ${JWT_SECRET}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+
 cloud:
   aws:
     credentials:
-      access-key: AKIA3R5BTQIJFF7TNGG5
-      secret-key: 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
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
     region:
-      static: us-east-1
+      static: ${AWS_REGION}
     s3:
-      bucket: louvor4-files
+      bucket: ${AWS_S3_BUCKET}

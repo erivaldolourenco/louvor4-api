@@ -21,8 +21,8 @@ public interface UserService {
     User getUserById(UUID idUser);
     User findByUsername(String username);
     User findByEmail(String username);
-    List<MusicProjectDTO> getMusicProjects();
     List<SongDTO> getSongs();
+    boolean existsById(UUID userId);
 
 
 }

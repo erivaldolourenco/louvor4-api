@@ -2,11 +2,9 @@ package br.com.louvor4.api.controllers;
 
 
 import br.com.louvor4.api.services.MusicProjectService;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectCreateDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectUpdateDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.*;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,5 +49,11 @@ public class MusicProjectController {
     ) {
         String url = musicProjectService.updateImage(id, profileImage);
         return ResponseEntity.ok(url);
+    }
+
+    @PostMapping("/{projectId}/add-member")
+    public ResponseEntity<Void> addMember(@PathVariable UUID projectId, @RequestBody @Valid AddMemberDTO addDto) {
+        musicProjectService.addMember(projectId, addDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

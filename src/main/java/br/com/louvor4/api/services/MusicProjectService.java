@@ -1,9 +1,6 @@
 package br.com.louvor4.api.services;
 
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectCreateDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectUpdateDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -15,5 +12,5 @@ public interface MusicProjectService {
     String updateImage(UUID projecId, MultipartFile profileImage);
     MusicProjectDetailDTO getMusicProjectById(UUID projectId);
     List<MusicProjectDTO> getMusicProjectFromUser();
-
+    void addMember(UUID projectId, AddMemberDTO addDto);
 }

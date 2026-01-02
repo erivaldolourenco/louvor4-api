@@ -3,6 +3,7 @@ package br.com.louvor4.api.services.impl;
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.enums.ProjectMemberRole;
+import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.MusicProject;
 import br.com.louvor4.api.models.MusicProjectMember;
 import br.com.louvor4.api.models.User;
@@ -15,7 +16,6 @@ import br.com.louvor4.api.shared.dto.MusicProject.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -31,13 +31,15 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final MusicProjectMemberRepository musicProjectMemberRepository;
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
+    private final UserService userService;
 
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
+        this.userService = userService;
     }
 
     @Override
@@ -110,6 +112,25 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 .toList();
     }
 
+    @Override
+    public void addMember(UUID projectId, AddMemberDTO addDto) {
+
+        validIfUserExist(addDto.getUserId());
+
+        validIfMemberExistInProject(projectId, addDto.getUserId());
+
+        User creator = currentUserProvider.get();
+        User userMember = userService.getUserById(addDto.getUserId());
+        MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
+        MusicProjectMember musicProjectMember = new MusicProjectMember();
+        musicProjectMember.setUser(userMember);
+        musicProjectMember.setMusicProject(musicProject);
+        musicProjectMember.setAddedByUserId(creator.getId());
+        musicProjectMember.setRole(ProjectMemberRole.MEMBER);
+
+        musicProjectMemberRepository.save(musicProjectMember);
+    }
+
 
     private MusicProject buildProject(MusicProjectCreateDTO dto, User creator) {
         MusicProject project = new MusicProject();
@@ -122,12 +143,9 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     }
 
     private void addOwnerMember(MusicProject project, User creator) {
-        boolean alreadyMember = musicProjectMemberRepository
-                .existsByMusicProject_IdAndUser_Id(project.getId(), creator.getId());
 
-        if (alreadyMember) {
-            return;
-        }
+
+        validIfMemberExistInProject(project.getId(), creator.getId());
 
         MusicProjectMember ownerMember = new MusicProjectMember();
         ownerMember.setMusicProject(project);
@@ -140,6 +158,20 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
     }
 
+    private void validIfMemberExistInProject(UUID projectId, UUID userId){
+        boolean alreadyMember = musicProjectMemberRepository
+                .existsByMusicProject_IdAndUser_Id(projectId, userId);
+        if (alreadyMember) {
+            throw new ValidationException("Usuário já é membro deste projeto.");
+        }
+    }
+
+    private void validIfUserExist(UUID userId) {
+        boolean exists = userService.existsById(userId);
+        if (!exists) {
+            throw new ValidationException("Usuário não encontrado.");
+        }
+    }
 
     private MusicProjectDetailDTO toDetailDto(MusicProject project) {
         MusicProjectDetailDTO out = new MusicProjectDetailDTO();

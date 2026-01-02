@@ -1,6 +1,7 @@
 package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
@@ -26,9 +27,11 @@ import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
 @RequestMapping("users")
 public class UserController {
     private final UserService userService;
+    private final MusicProjectService musicProjectService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, MusicProjectService musicProjectService) {
         this.userService = userService;
+        this.musicProjectService = musicProjectService;
     }
 
     @GetMapping("/detail")
@@ -74,7 +77,7 @@ public class UserController {
 
     @GetMapping("/music-projects")
     public ResponseEntity<List<MusicProjectDTO>> getMusicProjects() {
-        return ResponseEntity.ok(userService.getMusicProjects());
+        return ResponseEntity.ok(musicProjectService.getMusicProjectFromUser());
     }
 
     @GetMapping("/songs")

@@ -12,6 +12,6 @@ import java.util.UUID;
 public interface MusicProjectMemberRepository extends JpaRepository<MusicProjectMember, UUID> {
     boolean existsByMusicProject_IdAndUser_Id(UUID pojectId, UUID userId);
     List<MusicProjectMember> getMusicProjectMembersByUser_Id(UUID userId);
-
+    List<MusicProjectMember> getMusicProjectMembersByMusicProject_Id(UUID projectId);
     UUID user(User user);
 }

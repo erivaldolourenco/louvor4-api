@@ -4,6 +4,7 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.mapper.MusicProjectMemberMapper;
 import br.com.louvor4.api.models.MusicProject;
 import br.com.louvor4.api.models.MusicProjectMember;
 import br.com.louvor4.api.models.User;
@@ -32,14 +33,16 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
     private final UserService userService;
+    private final MusicProjectMemberMapper musicProjectMemberMapper;
 
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
         this.userService = userService;
+        this.musicProjectMemberMapper = musicProjectMemberMapper;
     }
 
     @Override
@@ -129,6 +132,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         musicProjectMember.setRole(ProjectMemberRole.MEMBER);
 
         musicProjectMemberRepository.save(musicProjectMember);
+    }
+
+    @Override
+    public List<MemberDTO> getMembers(UUID projectId) {
+        List<MusicProjectMember> musicProjectMembers =  musicProjectMemberRepository.getMusicProjectMembersByMusicProject_Id(projectId);
+        return musicProjectMemberMapper.toDtoList(musicProjectMembers);
     }
 
 

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -55,5 +56,11 @@ public class MusicProjectController {
     public ResponseEntity<Void> addMember(@PathVariable UUID projectId, @RequestBody @Valid AddMemberDTO addDto) {
         musicProjectService.addMember(projectId, addDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/{id}/members")
+    public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID id) {
+        List<MemberDTO> members = musicProjectService.getMembers(id);
+        return ResponseEntity.ok(members);
     }
 }

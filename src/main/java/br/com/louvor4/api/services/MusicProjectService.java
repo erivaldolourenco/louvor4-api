@@ -13,4 +13,5 @@ public interface MusicProjectService {
     MusicProjectDetailDTO getMusicProjectById(UUID projectId);
     List<MusicProjectDTO> getMusicProjectFromUser();
     void addMember(UUID projectId, AddMemberDTO addDto);
+    List<MemberDTO> getMembers(UUID id);
 }

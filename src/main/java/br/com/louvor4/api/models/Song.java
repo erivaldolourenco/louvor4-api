@@ -16,7 +16,7 @@ public class Song {
     @Id
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @Column(columnDefinition = "CHAR(36)")
+    @Column(columnDefinition = "BINARY(16)")
     private UUID id;
 
     @NotNull

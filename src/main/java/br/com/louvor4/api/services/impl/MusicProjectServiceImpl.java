@@ -118,12 +118,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     @Override
     public void addMember(UUID projectId, AddMemberDTO addDto) {
 
-        validIfUserExist(addDto.getUserId());
+        User user = userService.findByUsername(addDto.getUsername());
 
-        validIfMemberExistInProject(projectId, addDto.getUserId());
+        validIfMemberExistInProject(projectId, user.getId());
 
         User creator = currentUserProvider.get();
-        User userMember = userService.getUserById(addDto.getUserId());
+        User userMember = userService.getUserById(user.getId());
         MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
         MusicProjectMember musicProjectMember = new MusicProjectMember();
         musicProjectMember.setUser(userMember);
@@ -175,12 +175,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         }
     }
 
-    private void validIfUserExist(UUID userId) {
-        boolean exists = userService.existsById(userId);
-        if (!exists) {
-            throw new ValidationException("Usuário não encontrado.");
-        }
-    }
+
 
     private MusicProjectDetailDTO toDetailDto(MusicProject project) {
         MusicProjectDetailDTO out = new MusicProjectDetailDTO();

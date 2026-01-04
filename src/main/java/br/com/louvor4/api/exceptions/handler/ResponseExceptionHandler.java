@@ -1,9 +1,7 @@
 package br.com.louvor4.api.exceptions.handler;
 
-import br.com.louvor4.api.exceptions.ExceptionResponse;
-import br.com.louvor4.api.exceptions.NotFoundException;
-import br.com.louvor4.api.exceptions.StorageException;
-import br.com.louvor4.api.exceptions.TokenExpiredException;
+import br.com.louvor4.api.exceptions.*;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -103,14 +101,6 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
-    //    @ExceptionHandler(Exception.class)
-//    public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request){
-//        ExceptionResponse exceptionResponse = ExceptionResponse.create()
-//                .withDetails(ex.getMessage())
-//                .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
-//                .withTitle(ERRO_INTERNO);
-//        return  ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
-//    }
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request) {
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
@@ -118,6 +108,25 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
                 .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .withTitle(ERRO_INTERNO);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public final ResponseEntity<ExceptionResponse> entityNotFoundException(EntityNotFoundException ex, WebRequest request) {
+        ExceptionResponse exceptionResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.NOT_FOUND.value())
+                .withTitle(RECURSO_NAO_ENCONTRADO);
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exceptionResponse);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public final ResponseEntity<ExceptionResponse> validationException(ValidationException ex, WebRequest request) {
+        ExceptionResponse response = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.CONFLICT.value())  // ou 400. Eu usaria 409 para "já existe"
+                .withTitle(ARGUMENTO_INVALIDO);           // ou "Validação"
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
 

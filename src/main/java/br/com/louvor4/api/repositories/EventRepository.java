@@ -1,0 +1,15 @@
+package br.com.louvor4.api.repositories;
+
+import br.com.louvor4.api.models.Event;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface EventRepository extends JpaRepository<Event, UUID> {
+    List<Event> findAllByMusicProject_Id(UUID projectId);
+    List<Event> findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(UUID projectId, LocalDateTime now);
+}

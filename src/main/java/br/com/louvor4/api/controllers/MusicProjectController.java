@@ -2,6 +2,8 @@ package br.com.louvor4.api.controllers;
 
 
 import br.com.louvor4.api.services.MusicProjectService;
+import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
+import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -12,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("music-project")
@@ -62,5 +63,16 @@ public class MusicProjectController {
     public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID id) {
         List<MemberDTO> members = musicProjectService.getMembers(id);
         return ResponseEntity.ok(members);
+    }
+
+    @PostMapping("/{projectId}/events")
+    public ResponseEntity<Void> createEvent(@PathVariable UUID projectId, @RequestBody @Valid CreateEventDto eventDto) {
+        CreateEventDto createEvent = musicProjectService.createEvent(projectId, eventDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/{projectId}/events")
+    public ResponseEntity<List<EventDetailDto>> getEventsByProject(@PathVariable UUID projectId) {
+        return ResponseEntity.ok(musicProjectService.getEventsByProject(projectId));
     }
 }

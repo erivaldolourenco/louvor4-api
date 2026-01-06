@@ -1,9 +1,11 @@
 package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
+import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_MESSAGE;
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
@@ -28,10 +31,12 @@ import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
 public class UserController {
     private final UserService userService;
     private final MusicProjectService musicProjectService;
+    private final EventService eventService;
 
-    public UserController(UserService userService, MusicProjectService musicProjectService) {
+    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService) {
         this.userService = userService;
         this.musicProjectService = musicProjectService;
+        this.eventService = eventService;
     }
 
     @GetMapping("/detail")
@@ -84,5 +89,10 @@ public class UserController {
     public ResponseEntity<List<SongDTO>> getSongs() {
         List<SongDTO> dtoList = userService.getSongs();
         return ResponseEntity.ok(dtoList);
+    }
+
+    @GetMapping("/events")
+    public ResponseEntity<List<EventDetailDto>> getEventsByUser() {
+        return ResponseEntity.ok(eventService.getEventsByUser());
     }
 }

@@ -4,23 +4,30 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.mapper.EventMapper;
 import br.com.louvor4.api.mapper.MusicProjectMemberMapper;
+import br.com.louvor4.api.models.Event;
 import br.com.louvor4.api.models.MusicProject;
 import br.com.louvor4.api.models.MusicProjectMember;
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.repositories.EventRepository;
 import br.com.louvor4.api.repositories.MusicProjectMemberRepository;
 import br.com.louvor4.api.repositories.MusicProjectRepository;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserService;
+import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
+import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static br.com.louvor4.api.shared.util.ObjectUtils.isNotNull;
@@ -34,15 +41,19 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final StorageService storageService;
     private final UserService userService;
     private final MusicProjectMemberMapper musicProjectMemberMapper;
+    private final EventMapper eventMapper;
+    private final EventRepository eventRepository;
 
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventRepository eventRepository) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
         this.userService = userService;
         this.musicProjectMemberMapper = musicProjectMemberMapper;
+        this.eventMapper = eventMapper;
+        this.eventRepository = eventRepository;
     }
 
     @Override
@@ -138,6 +149,36 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     public List<MemberDTO> getMembers(UUID projectId) {
         List<MusicProjectMember> musicProjectMembers =  musicProjectMemberRepository.getMusicProjectMembersByMusicProject_Id(projectId);
         return musicProjectMemberMapper.toDtoList(musicProjectMembers);
+    }
+
+    @Override
+    public CreateEventDto createEvent(UUID projectId, CreateEventDto eventDto) {
+        MusicProject project = musicProjectRepository.findById(projectId)
+                .orElseThrow(() -> new ValidationException("Projeto não encontrado."));
+        Event event = eventMapper.toEntity(eventDto);
+        event.setMusicProject(project);
+        Event saved = eventRepository.save(event);
+        return eventMapper.toDto(saved);
+    }
+
+    @Override
+    public List<EventDetailDto> getEventsByProject(UUID projectId) {
+        return eventRepository
+                .findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(projectId, LocalDateTime.now())
+                .stream()
+                .filter(Objects::nonNull)
+                .map(event -> new EventDetailDto(
+                        event.getId(),
+                        event.getMusicProject().getId(),
+                        event.getTitle(),
+                        event.getDescription(),
+                        event.getStartAt().toLocalDate(),
+                        Time.valueOf(event.getStartAt().toLocalTime()),
+                        event.getLocation(),
+                        event.getMusicProject().getName(),
+                        event.getMusicProject().getProfileImage()
+                ))
+                .toList();
     }
 
 

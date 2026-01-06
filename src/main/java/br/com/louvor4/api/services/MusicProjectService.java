@@ -1,6 +1,9 @@
 package br.com.louvor4.api.services;
 
+import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
+import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
+import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -14,4 +17,7 @@ public interface MusicProjectService {
     List<MusicProjectDTO> getMusicProjectFromUser();
     void addMember(UUID projectId, AddMemberDTO addDto);
     List<MemberDTO> getMembers(UUID id);
+
+    CreateEventDto createEvent(UUID projectId,CreateEventDto eventDto);
+    List<EventDetailDto> getEventsByProject(UUID projectId);
 }

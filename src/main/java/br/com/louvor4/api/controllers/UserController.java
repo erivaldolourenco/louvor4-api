@@ -10,7 +10,6 @@ import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
-import br.com.louvor4.api.shared.dto.User.UserMinistriesDTO;
 import br.com.louvor4.api.shared.dto.User.UserUpdateDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_MESSAGE;
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
@@ -82,7 +80,7 @@ public class UserController {
 
     @GetMapping("/music-projects")
     public ResponseEntity<List<MusicProjectDTO>> getMusicProjects() {
-        return ResponseEntity.ok(musicProjectService.getMusicProjectFromUser());
+        return ResponseEntity.ok(musicProjectService.getFromUser());
     }
 
     @GetMapping("/songs")

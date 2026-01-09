@@ -34,7 +34,7 @@ public class MusicProjectController {
 
     @GetMapping("/{id}")
     public ResponseEntity<MusicProjectDetailDTO> findById(@PathVariable UUID id) {
-        MusicProjectDetailDTO musicProjectDetailDTO = musicProjectService.getMusicProjectById(id);
+        MusicProjectDetailDTO musicProjectDetailDTO = musicProjectService.getById(id);
         return ResponseEntity.ok(musicProjectDetailDTO);
     }
 
@@ -53,15 +53,28 @@ public class MusicProjectController {
         return ResponseEntity.ok(url);
     }
 
-    @PostMapping("/{projectId}/add-member")
+    @PostMapping("/{projectId}/members")
     public ResponseEntity<Void> addMember(@PathVariable UUID projectId, @RequestBody @Valid AddMemberDTO addDto) {
         musicProjectService.addMember(projectId, addDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @GetMapping("/{id}/members")
-    public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID id) {
-        List<MemberDTO> members = musicProjectService.getMembers(id);
+    @GetMapping("/{projectId}/members")
+    public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID projectId) {
+        List<MemberDTO> members = musicProjectService.getMembers(projectId);
+        return ResponseEntity.ok(members);
+    }
+
+
+    @GetMapping("/{projectId}/members/{memberId}")
+    public ResponseEntity<MemberDTO> getMember(@PathVariable UUID projectId, @PathVariable UUID memberId) {
+        MemberDTO members = musicProjectService.getMember(projectId, memberId);
+        return ResponseEntity.ok(members);
+    }
+
+    @PutMapping("/{projectId}/members/{memberId}")
+    public ResponseEntity<MemberDTO> updateMember(@PathVariable UUID projectId, @PathVariable UUID memberId, @RequestBody UpdateMemberRequest request) {
+        MemberDTO members = musicProjectService.updateMember(projectId, memberId,request);
         return ResponseEntity.ok(members);
     }
 
@@ -74,5 +87,28 @@ public class MusicProjectController {
     @GetMapping("/{projectId}/events")
     public ResponseEntity<List<EventDetailDto>> getEventsByProject(@PathVariable UUID projectId) {
         return ResponseEntity.ok(musicProjectService.getEventsByProject(projectId));
+    }
+
+    @PostMapping("/{projectId}/skills")
+    public ResponseEntity<Void> addProjectSkill(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid ProjectSkillRequestDTO skillDto) {
+        musicProjectService.addProjectSkill(projectId, skillDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/{projectId}/skills")
+    public ResponseEntity<List<ProjectSkillDTO>> getProjectSkills(@PathVariable UUID projectId) {
+        List<ProjectSkillDTO> skills = musicProjectService.getProjectSkills(projectId);
+        return ResponseEntity.ok(skills);
+    }
+
+    @PostMapping("/{projectId}/members/{memberId}/skills")
+    public ResponseEntity<Void> assignSkillsToMember(
+            @PathVariable UUID projectId,
+            @PathVariable UUID memberId,
+            @RequestBody List<UUID> skillIds) {
+        musicProjectService.assignSkillsToMember(projectId, memberId, skillIds);
+        return ResponseEntity.ok().build();
     }
 }

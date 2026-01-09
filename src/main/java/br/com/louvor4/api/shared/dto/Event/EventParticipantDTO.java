@@ -9,7 +9,7 @@ import java.util.UUID;
 public class EventParticipantDTO {
     @NotNull
     private UUID userId;
-
+    private UUID skillId;
     private Set<EventPermission> permissions;
 
     public UUID getUserId() {
@@ -18,6 +18,14 @@ public class EventParticipantDTO {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public UUID getSkillId() {
+        return skillId;
+    }
+
+    public void setSkillId(UUID skillId) {
+        this.skillId = skillId;
     }
 
     public Set<EventPermission> getPermissions() {

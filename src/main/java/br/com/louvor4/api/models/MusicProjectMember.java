@@ -9,6 +9,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -36,11 +38,19 @@ public class MusicProjectMember {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
-    private ProjectMemberRole role = ProjectMemberRole.MEMBER;
+    private ProjectMemberRole projectRole = ProjectMemberRole.MEMBER;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ProjectMemberStatus status = ProjectMemberStatus.ACTIVE;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "member_skills",
+            joinColumns = @JoinColumn(name = "project_member_id"),
+            inverseJoinColumns = @JoinColumn(name = "project_skill_id")
+    )
+    private Set<ProjectSkill> projectSkills = new HashSet<>();
 
     @JdbcTypeCode(SqlTypes.BINARY)
     @Column(name = "added_by_user_id", columnDefinition = "BINARY(16)")
@@ -73,12 +83,12 @@ public class MusicProjectMember {
         this.user = user;
     }
 
-    public ProjectMemberRole getRole() {
-        return role;
+    public ProjectMemberRole getProjectRole() {
+        return projectRole;
     }
 
-    public void setRole(ProjectMemberRole role) {
-        this.role = role;
+    public void setProjectRole(ProjectMemberRole role) {
+        this.projectRole = role;
     }
 
     public ProjectMemberStatus getStatus() {
@@ -87,6 +97,14 @@ public class MusicProjectMember {
 
     public void setStatus(ProjectMemberStatus status) {
         this.status = status;
+    }
+
+    public Set<ProjectSkill> getProjectSkills() {
+        return projectSkills;
+    }
+
+    public void setProjectSkills(Set<ProjectSkill> projectSkills) {
+        this.projectSkills = projectSkills;
     }
 
     public UUID getAddedByUserId() {

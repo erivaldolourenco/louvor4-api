@@ -15,8 +15,8 @@ import java.util.UUID;
         name = "event_participants",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uq_event_user",
-                        columnNames = {"event_id", "user_id"}
+                        name = "uq_event_member_skill", // Mudou aqui!
+                        columnNames = {"event_id", "project_member_id", "project_skill_id"}
                 )
         }
 )
@@ -30,33 +30,25 @@ public class EventParticipant {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "event_id", nullable = false, columnDefinition = "BINARY(16)"
-    )
+    @JoinColumn(name = "event_id", nullable = false, columnDefinition = "BINARY(16)")
     private Event event;
 
+    // Alterado: Aponta para o Membro do Projeto, não para o User puro
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
-    private User user;
+    @JoinColumn(name = "project_member_id", nullable = false, columnDefinition = "BINARY(16)")
+    private MusicProjectMember member;
+
+    // NOVO: A Skill que ele vai exercer NESTE evento
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_skill_id", columnDefinition = "BINARY(16)")
+    private ProjectSkill skill;
 
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "event_participant_permissions", joinColumns = @JoinColumn(name = "event_participant_id", columnDefinition = "BINARY(16)"))
+    @CollectionTable(name = "event_participant_permissions",
+            joinColumns = @JoinColumn(name = "event_participant_id", columnDefinition = "BINARY(16)"))
     @Enumerated(EnumType.STRING)
     @Column(name = "permission", nullable = false, length = 50)
-    private Set<EventPermission> permissions =
-            EnumSet.noneOf(EventPermission.class);
-
-
-    public boolean hasPermission(EventPermission permission) {
-        return permissions.contains(permission);
-    }
-
-    public void grant(EventPermission permission) {
-        permissions.add(permission);
-    }
-
-    public void revoke(EventPermission permission) {
-        permissions.remove(permission);
-    }
+    private Set<EventPermission> permissions = EnumSet.noneOf(EventPermission.class);
 
     public UUID getId() {
         return id;
@@ -74,12 +66,20 @@ public class EventParticipant {
         this.event = event;
     }
 
-    public User getUser() {
-        return user;
+    public MusicProjectMember getMember() {
+        return member;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setMember(MusicProjectMember member) {
+        this.member = member;
+    }
+
+    public ProjectSkill getSkill() {
+        return skill;
+    }
+
+    public void setSkill(ProjectSkill skill) {
+        this.skill = skill;
     }
 
     public Set<EventPermission> getPermissions() {

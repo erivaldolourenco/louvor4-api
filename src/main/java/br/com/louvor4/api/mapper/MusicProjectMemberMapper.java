@@ -14,7 +14,7 @@ public interface MusicProjectMemberMapper {
     @Mapping(target = "firstName", source = "user.firstName")
     @Mapping(target = "lastName", source = "user.lastName")
     @Mapping(target = "profileImage", source = "user.profileImage")
-    @Mapping(target = "role", source = "role") // role do vínculo no projeto (MusicProjectMember)
+    @Mapping(target = "projectRole", source = "projectRole")
     MemberDTO toDto(MusicProjectMember entity);
 
     List<MemberDTO> toDtoList(List<MusicProjectMember> entities);

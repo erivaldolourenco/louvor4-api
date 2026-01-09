@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -14,4 +15,6 @@ public interface MusicProjectMemberRepository extends JpaRepository<MusicProject
     List<MusicProjectMember> getMusicProjectMembersByUser_Id(UUID userId);
     List<MusicProjectMember> getMusicProjectMembersByMusicProject_Id(UUID projectId);
     UUID user(User user);
+    Optional<MusicProjectMember> findByMusicProject_IdAndUser_Id(UUID projectId, UUID userId);
+    Optional<MusicProjectMember> findById(UUID meberId);
 }

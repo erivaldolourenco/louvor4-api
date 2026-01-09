@@ -5,14 +5,13 @@ import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
+import br.com.louvor4.api.mapper.MemberMapper;
 import br.com.louvor4.api.mapper.MusicProjectMemberMapper;
-import br.com.louvor4.api.models.Event;
-import br.com.louvor4.api.models.MusicProject;
-import br.com.louvor4.api.models.MusicProjectMember;
-import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.EventRepository;
 import br.com.louvor4.api.repositories.MusicProjectMemberRepository;
 import br.com.louvor4.api.repositories.MusicProjectRepository;
+import br.com.louvor4.api.repositories.ProjectSkillRepository;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserService;
@@ -26,9 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Time;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static br.com.louvor4.api.shared.util.ObjectUtils.isNotNull;
 import static br.com.louvor4.api.shared.util.ObjectUtils.isNotNullOrEmpty;
@@ -43,9 +40,11 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final MusicProjectMemberMapper musicProjectMemberMapper;
     private final EventMapper eventMapper;
     private final EventRepository eventRepository;
+    private final ProjectSkillRepository projectSkillRepository;
+    private final MemberMapper memberMapper;
 
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventRepository eventRepository) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -54,6 +53,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.musicProjectMemberMapper = musicProjectMemberMapper;
         this.eventMapper = eventMapper;
         this.eventRepository = eventRepository;
+        this.projectSkillRepository = projectSkillRepository;
+        this.memberMapper = memberMapper;
     }
 
     @Override
@@ -102,13 +103,13 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
 
     @Override
-    public MusicProjectDetailDTO getMusicProjectById(UUID projectId) {
+    public MusicProjectDetailDTO getById(UUID projectId) {
         MusicProject musicProject =  musicProjectRepository.getMusicProjectById(projectId);
         return toDetailDto(musicProject);
     }
 
     @Override
-    public List<MusicProjectDTO> getMusicProjectFromUser() {
+    public List<MusicProjectDTO> getFromUser() {
 
         List<MusicProjectMember> musicProjectMember = musicProjectMemberRepository.getMusicProjectMembersByUser_Id(currentUserProvider.get().getId());
 
@@ -140,7 +141,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         musicProjectMember.setUser(userMember);
         musicProjectMember.setMusicProject(musicProject);
         musicProjectMember.setAddedByUserId(creator.getId());
-        musicProjectMember.setRole(ProjectMemberRole.MEMBER);
+        musicProjectMember.setProjectRole(ProjectMemberRole.MEMBER);
 
         musicProjectMemberRepository.save(musicProjectMember);
     }
@@ -201,7 +202,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         ownerMember.setMusicProject(project);
         ownerMember.setUser(creator);
         ownerMember.setAddedByUserId(creator.getId());
-        ownerMember.setRole(ProjectMemberRole.OWNER);
+        ownerMember.setProjectRole(ProjectMemberRole.OWNER);
         ownerMember.setCreatedAt(LocalDateTime.now());
 
         musicProjectMemberRepository.save(ownerMember);
@@ -235,7 +236,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                     dto.setFirstName(user.getFirstName());
                     dto.setLastName(user.getLastName());
                     dto.setProfileImage(user.getProfileImage());
-                    dto.setRole(member.getRole());
+                    dto.setProjectRole(member.getProjectRole());
 
                     return dto;
                 })
@@ -243,6 +244,81 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
         out.setMembers(members);
         return out;
+    }
+
+    @Override
+    @Transactional
+    public void assignSkillsToMember(UUID projectId, UUID memberId, List<UUID> skillIds) {
+        MusicProjectMember member = musicProjectMemberRepository.findById(memberId)
+                .filter(m -> m.getMusicProject().getId().equals(projectId))
+                .orElseThrow(() -> new ValidationException("Membro não encontrado neste projeto."));
+
+        List<ProjectSkill> selectedSkills = projectSkillRepository.findAllById(skillIds);
+
+        boolean allSkillsFromProject = selectedSkills.stream()
+                .allMatch(s -> s.getMusicProject().getId().equals(projectId));
+
+        if (!allSkillsFromProject) {
+            throw new ValidationException("Uma ou mais funções selecionadas não pertencem a este projeto.");
+        }
+        member.getProjectSkills().clear();
+        member.getProjectSkills().addAll(selectedSkills);
+
+        musicProjectMemberRepository.save(member);
+    }
+
+    @Override
+    @Transactional
+    public void addProjectSkill(UUID projectId, ProjectSkillRequestDTO skillDto) {
+        MusicProject project = musicProjectRepository.findById(projectId)
+                .orElseThrow(() -> new ValidationException("Projeto musical não encontrado."));
+
+        ProjectSkill skill = new ProjectSkill();
+        skill.setName(skillDto.name());
+        skill.setMusicProject(project);
+
+        projectSkillRepository.save(skill);
+    }
+
+    @Override
+    public List<ProjectSkillDTO> getProjectSkills(UUID projectId) {
+        return projectSkillRepository.findByMusicProject_Id(projectId)
+                .stream()
+                .map(skill -> new ProjectSkillDTO(
+                        skill.getId(),
+                        skill.getName()
+                ))
+                .toList();
+    }
+
+    @Override
+    public MemberDTO getMember(UUID projectId, UUID memberId) {
+        MusicProjectMember member = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_Id(projectId, memberId)
+                .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
+
+        return memberMapper.toDto(member);
+    }
+
+    @Override
+    public MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request) {
+        MusicProjectMember member = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_Id(projectId, memberId)
+                .orElseThrow(() -> new ValidationException("Membro não encontrado"));
+
+        // 2. Atualiza o papel (Role)
+        member.setProjectRole(request.projectRole());
+
+        // 3. Atualiza as Skills
+        // Buscamos as entidades de Skill pelos IDs enviados no payload
+        Set<ProjectSkill> newSkills = new HashSet<>(
+                projectSkillRepository.findAllById(request.skillIds())
+        );
+
+        member.setProjectSkills(newSkills);
+
+        // 4. Salva e retorna o DTO atualizado
+        return memberMapper.toDto(musicProjectMemberRepository.save(member));
     }
 
 }

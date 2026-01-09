@@ -1,9 +1,6 @@
 package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.services.SongService;
-import br.com.louvor4.api.services.UserService;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectCreateDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

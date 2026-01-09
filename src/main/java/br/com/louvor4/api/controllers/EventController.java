@@ -4,6 +4,7 @@ import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
+import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,9 +30,14 @@ public class EventController {
         return ResponseEntity.ok(eventDetailDto);
     }
 
+    @GetMapping("/{eventId}/participants")
+    public ResponseEntity<List<EventParticipantResponseDTO>> getParticipants(@PathVariable UUID eventId) {
+        return ResponseEntity.ok(eventService.getParticipants(eventId));
+    }
+
     @PostMapping("/{eventId}/participants")
-    public ResponseEntity<Void> addParticipant(@PathVariable UUID eventId, @RequestBody @Valid EventParticipantDTO participantDto) {
-        eventService.addParticipantToEvent(eventId, participantDto);
+    public ResponseEntity<Void> addParticipant(@PathVariable UUID eventId, @RequestBody @Valid List<EventParticipantDTO> participantDto) {
+        eventService.addParticipantsToEvent(eventId, participantDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

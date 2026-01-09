@@ -294,7 +294,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     @Override
     public MemberDTO getMember(UUID projectId, UUID memberId) {
         MusicProjectMember member = musicProjectMemberRepository
-                .findByMusicProject_IdAndUser_Id(projectId, memberId)
+                .findById(memberId)
                 .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
 
         return memberMapper.toDto(member);
@@ -303,8 +303,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     @Override
     public MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request) {
         MusicProjectMember member = musicProjectMemberRepository
-                .findByMusicProject_IdAndUser_Id(projectId, memberId)
-                .orElseThrow(() -> new ValidationException("Membro não encontrado"));
+                .findById(memberId)
+                .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
 
         // 2. Atualiza o papel (Role)
         member.setProjectRole(request.projectRole());

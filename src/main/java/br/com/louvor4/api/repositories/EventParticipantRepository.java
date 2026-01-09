@@ -9,5 +9,7 @@ import java.util.UUID;
 public interface EventParticipantRepository extends JpaRepository<EventParticipant, UUID> {
 
     List<EventParticipant> findByMember_User_IdOrderByEvent_StartAtAsc(UUID userId);
+    List<EventParticipant> findByEventId(UUID eventId);
     boolean existsByEventIdAndMemberIdAndSkillId(UUID eventId, UUID memberId, UUID skillId);
+    void deleteByEventId(UUID eventId);
 }

@@ -9,16 +9,17 @@ import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
+import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Time;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class EventServiceImpl implements EventService {
     private final EventRepository eventRepository;
-    private final UserRepository userRepository;
     private final EventParticipantRepository eventParticipantRepository;
     private final MusicProjectMemberRepository musicProjectMemberRepository;
     private final EventMapper eventMapper;
@@ -28,12 +29,10 @@ public class EventServiceImpl implements EventService {
 
     public EventServiceImpl(
             EventRepository eventRepository,
-            UserRepository userRepository,
             EventParticipantRepository eventParticipantRepository,
             MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository
     ) {
         this.eventRepository = eventRepository;
-        this.userRepository = userRepository;
         this.eventParticipantRepository = eventParticipantRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.eventMapper = eventMapper;
@@ -43,25 +42,61 @@ public class EventServiceImpl implements EventService {
 
     @Transactional
     @Override
-    public void addParticipantToEvent(UUID eventId, EventParticipantDTO participantDto) {
+    public void addParticipantsToEvent(UUID eventId, List<EventParticipantDTO> participantsDto) {
         Event event = findEventOrThrow(eventId);
 
-        MusicProjectMember member = musicProjectMemberRepository
-                .findByMusicProject_IdAndUser_Id(event.getMusicProject().getId(), participantDto.getUserId())
-                .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
+        // 1. Busca os participantes que JÁ ESTÃO no banco para este evento
+        List<EventParticipant> currentParticipants = eventParticipantRepository.findByEventId(eventId);
 
-        // 3. Recuperar e Validar a Skill (se fornecida)
-        ProjectSkill skill = null;
-        if (participantDto.getSkillId() != null) {
-            skill = validateAndGetSkill(member, participantDto.getSkillId());
+        // 2. Preparamos uma lista para o que será salvo (novos ou atualizados)
+        List<EventParticipant> toSave = new ArrayList<>();
+
+        for (EventParticipantDTO dto : participantsDto) {
+            // Tenta encontrar se este membro já está na lista atual do banco
+            Optional<EventParticipant> existing = currentParticipants.stream()
+                    .filter(p -> p.getMember().getId().equals(dto.getMemberId()))
+                    .findFirst();
+
+            if (existing.isPresent()) {
+                // ATUALIZA: O membro já estava lá, então só atualizamos a Skill (função)
+                EventParticipant participant = existing.get();
+
+                ProjectSkill skill = null;
+                if (dto.getSkillId() != null) {
+                    skill = projectSkillRepository.findById(dto.getSkillId())
+                            .orElseThrow(() -> new ValidationException("Skill não encontrada"));
+                }
+
+                participant.setSkill(skill);
+                toSave.add(participant);
+
+                // Remove da lista temporária para não ser deletado depois
+                currentParticipants.remove(participant);
+            } else {
+                // CRIA NOVO: O membro não estava no evento ainda
+                MusicProjectMember member = musicProjectMemberRepository.findById(dto.getMemberId())
+                        .orElseThrow(() -> new ValidationException("Membro não encontrado"));
+
+                ProjectSkill skill = null;
+                if (dto.getSkillId() != null) {
+                    skill = projectSkillRepository.findById(dto.getSkillId()).orElse(null);
+                }
+
+                EventParticipant newParticipant = new EventParticipant();
+                newParticipant.setEvent(event);
+                newParticipant.setMember(member);
+                newParticipant.setSkill(skill);
+                toSave.add(newParticipant);
+            }
         }
 
-        // 4. Verificar Duplicidade (Agora considerando a Skill para permitir multi-instrumentismo no mesmo evento)
-        validateDuplicateParticipant(event.getId(), member.getId(), participantDto.getSkillId());
+        // 3. DELETA: Quem sobrou na 'currentParticipants' é porque foi removido no Angular
+        if (!currentParticipants.isEmpty()) {
+            eventParticipantRepository.deleteAll(currentParticipants);
+        }
 
-        // 5. Mapear e Salvar
-        EventParticipant participant = createParticipant(event, member, skill, participantDto.getPermissions());
-        eventParticipantRepository.save(participant);
+        // 4. PERSISTE: Salva os novos e as atualizações de uma vez
+        eventParticipantRepository.saveAll(toSave);
     }
 
 // --- Métodos Auxiliares (Clean Code) ---
@@ -132,5 +167,16 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ValidationException("Evento não encontrado."));
         return eventMapper.toDetailDto(event);
+    }
+
+    @Override
+    public List<EventParticipantResponseDTO> getParticipants(UUID eventId) {
+        List<EventParticipant> participants = eventParticipantRepository.findByEventId(eventId);
+        return participants.stream()
+                .map(p -> new EventParticipantResponseDTO(
+                        p.getMember().getId(),
+                        p.getSkill() != null ? p.getSkill().getId() : null
+                ))
+                .toList();
     }
 }

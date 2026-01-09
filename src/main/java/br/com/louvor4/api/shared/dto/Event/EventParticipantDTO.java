@@ -8,16 +8,16 @@ import java.util.UUID;
 
 public class EventParticipantDTO {
     @NotNull
-    private UUID userId;
+    private UUID memberId;
     private UUID skillId;
     private Set<EventPermission> permissions;
 
-    public UUID getUserId() {
-        return userId;
+    public UUID getMemberId() {
+        return memberId;
     }
 
-    public void setUserId(UUID userId) {
-        this.userId = userId;
+    public void setMemberId(UUID memberId) {
+        this.memberId = memberId;
     }
 
     public UUID getSkillId() {
@@ -35,4 +35,5 @@ public class EventParticipantDTO {
     public void setPermissions(Set<EventPermission> permissions) {
         this.permissions = permissions;
     }
+
 }

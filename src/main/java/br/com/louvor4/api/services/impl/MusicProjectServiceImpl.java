@@ -164,8 +164,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
     @Override
     public List<EventDetailDto> getEventsByProject(UUID projectId) {
+
         return eventRepository
-                .findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(projectId, LocalDateTime.now())
+                .findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(
+                        projectId,
+                        LocalDateTime.now()
+                )
                 .stream()
                 .filter(Objects::nonNull)
                 .map(event -> new EventDetailDto(
@@ -177,10 +181,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         Time.valueOf(event.getStartAt().toLocalTime()),
                         event.getLocation(),
                         event.getMusicProject().getName(),
-                        event.getMusicProject().getProfileImage()
+                        event.getMusicProject().getProfileImage(),
+                        eventRepository.countParticipantsByEventId(event.getId())
                 ))
                 .toList();
     }
+
 
 
     private MusicProject buildProject(MusicProjectCreateDTO dto, User creator) {

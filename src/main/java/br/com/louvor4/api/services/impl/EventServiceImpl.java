@@ -2,6 +2,7 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.EventPermission;
+import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
 import br.com.louvor4.api.models.*;
@@ -10,6 +11,8 @@ import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +28,14 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final CurrentUserProvider currentUserProvider;
     private final ProjectSkillRepository projectSkillRepository;
+    private final SongRepository songRepository;
+    private final EventSongRepository eventSongRepository;
 
 
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -38,91 +43,115 @@ public class EventServiceImpl implements EventService {
         this.eventMapper = eventMapper;
         this.currentUserProvider = currentUserProvider;
         this.projectSkillRepository = projectSkillRepository;
+        this.songRepository = songRepository;
+        this.eventSongRepository = eventSongRepository;
     }
 
     @Transactional
     @Override
-    public void addParticipantsToEvent(UUID eventId, List<EventParticipantDTO> participantsDto) {
+    public void addOrUpdateParticipantsToEvent(UUID eventId, List<EventParticipantDTO> participantsDto) {
         Event event = findEventOrThrow(eventId);
 
-        // 1. Busca os participantes que JÁ ESTÃO no banco para este evento
-        List<EventParticipant> currentParticipants = eventParticipantRepository.findByEventId(eventId);
+        // 1) Valida request
+        validateRequest(participantsDto);
 
-        // 2. Preparamos uma lista para o que será salvo (novos ou atualizados)
-        List<EventParticipant> toSave = new ArrayList<>();
+        // 2) Busca participantes atuais e indexa por memberId
+        List<EventParticipant> currentList = eventParticipantRepository.findByEventId(eventId);
+        Map<UUID, EventParticipant> currentByMemberId = currentList.stream()
+                .collect(Collectors.toMap(p -> p.getMember().getId(), p -> p));
+
+        // 3) Vamos montar quem deve ficar
+        List<EventParticipant> toSave = new ArrayList<>(participantsDto.size());
+        Set<UUID> incomingMemberIds = new HashSet<>(participantsDto.size());
 
         for (EventParticipantDTO dto : participantsDto) {
-            // Tenta encontrar se este membro já está na lista atual do banco
-            Optional<EventParticipant> existing = currentParticipants.stream()
-                    .filter(p -> p.getMember().getId().equals(dto.getMemberId()))
-                    .findFirst();
+            UUID memberId = dto.getMemberId();
+            incomingMemberIds.add(memberId);
 
-            if (existing.isPresent()) {
-                // ATUALIZA: O membro já estava lá, então só atualizamos a Skill (função)
-                EventParticipant participant = existing.get();
+            EventParticipant existing = currentByMemberId.get(memberId);
 
-                ProjectSkill skill = null;
-                if (dto.getSkillId() != null) {
-                    skill = projectSkillRepository.findById(dto.getSkillId())
-                            .orElseThrow(() -> new ValidationException("Skill não encontrada"));
-                }
+            // resolve member (se existe, usa do próprio participant; se não, busca)
+            MusicProjectMember member = (existing != null)
+                    ? existing.getMember()
+                    : findMemberOrThrow(memberId);
 
-                participant.setSkill(skill);
-                toSave.add(participant);
+            // resolve skill (com validação de aptidão)
+            ProjectSkill skill = null;
+            if (dto.getSkillId() != null) {
+                skill = validateAndGetSkill(member, dto.getSkillId());
+            }
 
-                // Remove da lista temporária para não ser deletado depois
-                currentParticipants.remove(participant);
+            // normaliza permissions
+            Set<EventPermission> perms = normalizePermissions(dto.getPermissions());
+
+            if (existing != null) {
+                existing.setSkill(skill);
+                existing.setPermissions(perms);
+                toSave.add(existing);
             } else {
-                // CRIA NOVO: O membro não estava no evento ainda
-                MusicProjectMember member = musicProjectMemberRepository.findById(dto.getMemberId())
-                        .orElseThrow(() -> new ValidationException("Membro não encontrado"));
-
-                ProjectSkill skill = null;
-                if (dto.getSkillId() != null) {
-                    skill = projectSkillRepository.findById(dto.getSkillId()).orElse(null);
-                }
-
-                EventParticipant newParticipant = new EventParticipant();
-                newParticipant.setEvent(event);
-                newParticipant.setMember(member);
-                newParticipant.setSkill(skill);
-                toSave.add(newParticipant);
+                toSave.add(createParticipant(event, member, skill, perms));
             }
         }
 
-        // 3. DELETA: Quem sobrou na 'currentParticipants' é porque foi removido no Angular
-        if (!currentParticipants.isEmpty()) {
-            eventParticipantRepository.deleteAll(currentParticipants);
+        // 4) Remove quem não veio no payload (sync real)
+        List<EventParticipant> toDelete = currentList.stream()
+                .filter(p -> !incomingMemberIds.contains(p.getMember().getId()))
+                .toList();
+
+        if (!toDelete.isEmpty()) {
+            eventParticipantRepository.deleteAllInBatch(toDelete);
         }
 
-        // 4. PERSISTE: Salva os novos e as atualizações de uma vez
         eventParticipantRepository.saveAll(toSave);
     }
-
-// --- Métodos Auxiliares (Clean Code) ---
-
     private Event findEventOrThrow(UUID eventId) {
+        if (eventId == null) {
+            throw new ValidationException("Id do evento é obrigatório.");
+        }
+
         return eventRepository.findById(eventId)
-                .orElseThrow(() -> new ValidationException("Evento não encontrado."));
+                .orElseThrow(() ->
+                        new ValidationException("Evento não encontrado.")
+                );
+    }
+
+
+    private void validateRequest(List<EventParticipantDTO> participantsDto) {
+        if (participantsDto == null) {
+            throw new ValidationException("Lista de participantes não pode ser nula.");
+        }
+
+        // memberId obrigatório + sem duplicados
+        Set<UUID> seen = new HashSet<>();
+        for (EventParticipantDTO dto : participantsDto) {
+            if (dto == null || dto.getMemberId() == null) {
+                throw new ValidationException("Participante inválido: memberId é obrigatório.");
+            }
+            if (!seen.add(dto.getMemberId())) {
+                throw new ValidationException("Participante duplicado no request: " + dto.getMemberId());
+            }
+        }
+    }
+
+    private MusicProjectMember findMemberOrThrow(UUID memberId) {
+        return musicProjectMemberRepository.findById(memberId)
+                .orElseThrow(() -> new ValidationException("Membro não encontrado"));
+    }
+
+    private Set<EventPermission> normalizePermissions(Set<EventPermission> permissions) {
+        return (permissions == null || permissions.isEmpty())
+                ? EnumSet.noneOf(EventPermission.class)
+                : EnumSet.copyOf(permissions);
     }
 
     private ProjectSkill validateAndGetSkill(MusicProjectMember member, UUID skillId) {
-        // Busca a skill e já valida se ela pertence ao projeto do membro
         ProjectSkill skill = projectSkillRepository.findById(skillId)
                 .orElseThrow(() -> new ValidationException("Função (Skill) não encontrada."));
 
-        // Regra de Ouro: O membro possui essa skill no perfil dele?
         if (!member.getProjectSkills().contains(skill)) {
             throw new ValidationException("O membro não possui aptidão para esta função.");
         }
         return skill;
-    }
-
-    private void validateDuplicateParticipant(UUID eventId, UUID memberId, UUID skillId) {
-        boolean exists = eventParticipantRepository.existsByEventIdAndMemberIdAndSkillId(eventId, memberId, skillId);
-        if (exists) {
-            throw new ValidationException("Este membro já está escalado para esta função neste evento.");
-        }
     }
 
     private EventParticipant createParticipant(Event event, MusicProjectMember member, ProjectSkill skill, Set<EventPermission> perms) {
@@ -130,11 +159,10 @@ public class EventServiceImpl implements EventService {
         participant.setEvent(event);
         participant.setMember(member);
         participant.setSkill(skill);
-        participant.setPermissions(perms == null || perms.isEmpty()
-                ? EnumSet.noneOf(EventPermission.class)
-                : EnumSet.copyOf(perms));
+        participant.setPermissions(normalizePermissions(perms));
         return participant;
     }
+
 
     @Override
     public List<EventDetailDto> getEventsByUser() {
@@ -157,7 +185,8 @@ public class EventServiceImpl implements EventService {
                         Time.valueOf(event.getStartAt().toLocalTime()),
                         event.getLocation(),
                         event.getMusicProject().getName(),
-                        event.getMusicProject().getProfileImage()
+                        event.getMusicProject().getProfileImage(),
+                        eventRepository.countParticipantsByEventId(event.getId())
                 ))
                 .toList();
     }
@@ -175,8 +204,44 @@ public class EventServiceImpl implements EventService {
         return participants.stream()
                 .map(p -> new EventParticipantResponseDTO(
                         p.getMember().getId(),
-                        p.getSkill() != null ? p.getSkill().getId() : null
+                        p.getMember().getUser().getFirstName(),
+                        p.getMember().getUser().getLastName(),
+                        p.getMember().getUser().getProfileImage(),
+                        p.getSkill() != null ? p.getSkill().getId() : null,
+                        p.getPermissions()
                 ))
                 .toList();
+    }
+
+    @Override
+    public void addSongToEvent(UUID eventId, AddEventSongDTO addEventSongDto) {
+        User user = currentUserProvider.get();
+
+        EventParticipant participant = eventParticipantRepository
+                .findByEventIdAndMemberUserId(eventId, user.getId())
+                .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
+
+        if (!participant.getPermissions().contains(EventPermission.ADD_SONG)) {
+            throw new ValidationException(
+                    "Você não tem permissão para adicionar músicas neste evento.");
+        }
+
+        Song song = songRepository.findById(addEventSongDto.songId())
+                .orElseThrow(() -> new NotFoundException( "Música não encontrada."));
+
+        //        Integer nextSequence = eventSongRepository.findMaxSequenceByEventId(eventId) + 1;
+
+        EventSong eventSong = new EventSong();
+        eventSong.setEvent(participant.getEvent());
+        eventSong.setSong(song);
+        eventSong.setAddedBy(participant); // Define quem vai ministrar/cantar
+//        eventSong.setSequenceOrder(nextSequence);
+
+        // Se o DTO trouxer um tom específico para o evento, setamos aqui
+//        if (addEventSongDto.musicalKey() != null) {
+//            eventSong.setMusicalKey(addEventSongDto.musicalKey());
+//        }
+
+        eventSongRepository.save(eventSong);
     }
 }

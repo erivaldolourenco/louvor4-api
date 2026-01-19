@@ -1,11 +1,10 @@
 package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.services.EventService;
-import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDetailDTO;
+import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,8 +35,14 @@ public class EventController {
     }
 
     @PostMapping("/{eventId}/participants")
-    public ResponseEntity<Void> addParticipant(@PathVariable UUID eventId, @RequestBody @Valid List<EventParticipantDTO> participantDto) {
-        eventService.addParticipantsToEvent(eventId, participantDto);
+    public ResponseEntity<Void> addOrUpdateParticipant(@PathVariable UUID eventId, @RequestBody @Valid List<EventParticipantDTO> participantDto) {
+        eventService.addOrUpdateParticipantsToEvent(eventId, participantDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/{eventId}/songs")
+    public ResponseEntity<Void> addSong(@PathVariable UUID eventId, @RequestBody @Valid AddEventSongDTO addEventSongDto) {
+        eventService.addSongToEvent(eventId, addEventSongDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

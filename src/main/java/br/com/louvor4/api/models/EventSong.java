@@ -2,8 +2,6 @@ package br.com.louvor4.api.models;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,9 +16,7 @@ import java.util.UUID;
 public class EventSong {
 
     @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @JdbcTypeCode(SqlTypes.BINARY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", columnDefinition = "BINARY(16)")
     private UUID id;
 
@@ -32,6 +28,13 @@ public class EventSong {
     @JoinColumn(name = "song_id", nullable = false, columnDefinition = "BINARY(16)")
     private Song song;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "added_by_participant_id", nullable = false, columnDefinition = "BINARY(16)")
+    private EventParticipant addedBy;
+
+    @Column(name = "sequence_order")
+    private Integer sequenceOrder;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -39,5 +42,52 @@ public class EventSong {
     void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
-}
 
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public void setEvent(Event event) {
+        this.event = event;
+    }
+
+    public Song getSong() {
+        return song;
+    }
+
+    public void setSong(Song song) {
+        this.song = song;
+    }
+
+    public EventParticipant getAddedBy() {
+        return addedBy;
+    }
+
+    public void setAddedBy(EventParticipant addedBy) {
+        this.addedBy = addedBy;
+    }
+
+    public Integer getSequenceOrder() {
+        return sequenceOrder;
+    }
+
+    public void setSequenceOrder(Integer sequenceOrder) {
+        this.sequenceOrder = sequenceOrder;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+}

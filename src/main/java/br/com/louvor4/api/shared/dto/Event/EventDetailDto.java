@@ -13,5 +13,6 @@ public record EventDetailDto(
     Time time,
     String location,
     String projectTitle,
-    String projectImageUrl
+    String projectImageUrl,
+    Integer participantsCount
 ){}

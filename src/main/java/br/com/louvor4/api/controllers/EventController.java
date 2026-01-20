@@ -5,6 +5,8 @@ import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
+import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
+import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,9 +43,15 @@ public class EventController {
     }
 
     @PostMapping("/{eventId}/songs")
-    public ResponseEntity<Void> addSong(@PathVariable UUID eventId, @RequestBody @Valid AddEventSongDTO addEventSongDto) {
-        eventService.addSongToEvent(eventId, addEventSongDto);
+    public ResponseEntity<Void> addEventSong(@PathVariable UUID eventId, @RequestBody @Valid List<AddEventSongDTO> addEventSongsDto) {
+        eventService.addSongToEvent(eventId, addEventSongsDto.get(0));
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/{eventId}/songs")
+    public ResponseEntity<List<EventSongDTO>> getEventSongs(@PathVariable UUID eventId) {
+        List<EventSongDTO> soungs =  eventService.getEventSongs(eventId);
+        return ResponseEntity.ok(soungs);
     }
 
 }

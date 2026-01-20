@@ -5,6 +5,7 @@ import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
+import br.com.louvor4.api.mapper.EventSongMapper;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.services.EventService;
@@ -12,6 +13,8 @@ import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
+import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
+import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ public class EventServiceImpl implements EventService {
     private final EventParticipantRepository eventParticipantRepository;
     private final MusicProjectMemberRepository musicProjectMemberRepository;
     private final EventMapper eventMapper;
+    private final EventSongMapper eventSongMapper;
     private final CurrentUserProvider currentUserProvider;
     private final ProjectSkillRepository projectSkillRepository;
     private final SongRepository songRepository;
@@ -35,12 +39,13 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.eventMapper = eventMapper;
+        this.eventSongMapper = eventSongMapper;
         this.currentUserProvider = currentUserProvider;
         this.projectSkillRepository = projectSkillRepository;
         this.songRepository = songRepository;
@@ -229,19 +234,17 @@ public class EventServiceImpl implements EventService {
         Song song = songRepository.findById(addEventSongDto.songId())
                 .orElseThrow(() -> new NotFoundException( "Música não encontrada."));
 
-        //        Integer nextSequence = eventSongRepository.findMaxSequenceByEventId(eventId) + 1;
-
         EventSong eventSong = new EventSong();
         eventSong.setEvent(participant.getEvent());
         eventSong.setSong(song);
-        eventSong.setAddedBy(participant); // Define quem vai ministrar/cantar
-//        eventSong.setSequenceOrder(nextSequence);
-
-        // Se o DTO trouxer um tom específico para o evento, setamos aqui
-//        if (addEventSongDto.musicalKey() != null) {
-//            eventSong.setMusicalKey(addEventSongDto.musicalKey());
-//        }
+        eventSong.setAddedBy(participant);
 
         eventSongRepository.save(eventSong);
+    }
+
+    @Override
+    public List<EventSongDTO> getEventSongs(UUID eventId) {
+        List<EventSong> eventSongs = eventSongRepository.getEventSongByEventId(eventId);
+        return eventSongMapper.toSongDtoList(eventSongs);
     }
 }

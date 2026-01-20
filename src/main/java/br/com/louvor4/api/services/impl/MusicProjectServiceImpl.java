@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Member;
 import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -311,20 +312,19 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         MusicProjectMember member = musicProjectMemberRepository
                 .findById(memberId)
                 .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
-
-        // 2. Atualiza o papel (Role)
         member.setProjectRole(request.projectRole());
-
-        // 3. Atualiza as Skills
-        // Buscamos as entidades de Skill pelos IDs enviados no payload
         Set<ProjectSkill> newSkills = new HashSet<>(
                 projectSkillRepository.findAllById(request.skillIds())
         );
-
         member.setProjectSkills(newSkills);
-
-        // 4. Salva e retorna o DTO atualizado
         return memberMapper.toDto(musicProjectMemberRepository.save(member));
+    }
+
+    @Override
+    public ProjectMemberRole getMemberRole(UUID projectId) {
+        User currentUser = currentUserProvider.get();
+        Optional<MusicProjectMember> member = musicProjectMemberRepository.findByMusicProject_IdAndUser_Id(projectId, currentUser.getId());
+        return member.get().getProjectRole();
     }
 
 }

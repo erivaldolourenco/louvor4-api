@@ -1,5 +1,6 @@
 package br.com.louvor4.api.services;
 
+import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
@@ -29,4 +30,6 @@ public interface MusicProjectService {
     MemberDTO getMember(UUID projectId, UUID memberId);
 
     MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request);
+
+    ProjectMemberRole getMemberRole(UUID projectId);
 }

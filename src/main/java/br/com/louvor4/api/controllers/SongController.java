@@ -23,4 +23,10 @@ public class SongController {
         return ResponseEntity.ok(dto);
     }
 
+    @PutMapping("/update")
+    public ResponseEntity<SongDTO> update(@RequestBody @Valid SongDTO updateDto) {
+        SongDTO dto = songService.update(updateDto);
+        return ResponseEntity.ok(dto);
+    }
+
 }

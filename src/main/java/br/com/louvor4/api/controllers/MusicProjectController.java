@@ -1,6 +1,7 @@
 package br.com.louvor4.api.controllers;
 
 
+import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
@@ -110,5 +111,11 @@ public class MusicProjectController {
             @RequestBody List<UUID> skillIds) {
         musicProjectService.assignSkillsToMember(projectId, memberId, skillIds);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{projectId}/member-role")
+    public ResponseEntity<ProjectMemberRole> getMemberRole(@PathVariable UUID projectId) {
+        ProjectMemberRole memberRole = musicProjectService.getMemberRole(projectId);
+        return ResponseEntity.ok(memberRole);
     }
 }

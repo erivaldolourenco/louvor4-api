@@ -46,6 +46,14 @@ jobs:
         with:
           name: java-app
           path: .
+
+      - name: Pick jar file
+        id: pickjar
+        run: |
+          set -e
+          JAR=$(ls -1 *.jar | head -n 1)
+          echo "Found jar: $JAR"
+          echo "jar=$JAR" >> $GITHUB_OUTPUT
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -61,4 +69,4 @@ jobs:
           app-name: 'louvor4-api'
           slot-name: 'Production'
 #          package: '*.jar'
-          package: 'louvor4-api-0.0.1-SNAPSHOT.jar'
+          package: ${{ steps.pickjar.outputs.jar }}

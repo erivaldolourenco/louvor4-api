@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class SongServiceImpl implements SongService {
@@ -60,5 +61,12 @@ public class SongServiceImpl implements SongService {
 
         Song saved = songRepository.save(song);
         return songMapper.toDto(saved);
+    }
+
+    @Override
+    public SongDTO get(UUID songId) {
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+        return songMapper.toDto(song);
     }
 }

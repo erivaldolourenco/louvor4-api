@@ -6,6 +6,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("songs")
 public class SongController {
@@ -15,6 +17,14 @@ public class SongController {
     public SongController(SongService songService) {
         this.songService = songService;
     }
+
+
+    @GetMapping("/{songId}")
+    public ResponseEntity<SongDTO> create(@PathVariable UUID songId) {
+        SongDTO dto = songService.get(songId);
+        return ResponseEntity.ok(dto);
+    }
+
 
 
     @PostMapping("/create")

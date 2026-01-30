@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface EventSongMapper {
 
-    @Mapping(target = "id", source = "song.id")
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "title", source = "song.title")
     @Mapping(target = "artist", source = "song.artist")
     @Mapping(target = "key", source = "song.key")

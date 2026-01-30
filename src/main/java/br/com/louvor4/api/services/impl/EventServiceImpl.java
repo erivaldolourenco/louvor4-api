@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Time;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -174,7 +175,7 @@ public class EventServiceImpl implements EventService {
         UUID userId = currentUserProvider.get().getId();
 
         List<EventParticipant> eventsParticipant = eventParticipantRepository
-                .findByMember_User_IdOrderByEvent_StartAtAsc(userId);
+                .findByMember_User_IdAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(userId, LocalDateTime.now());
 
         return eventsParticipant
                 .stream()
@@ -191,7 +192,8 @@ public class EventServiceImpl implements EventService {
                         event.getLocation(),
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
-                        eventRepository.countParticipantsByEventId(event.getId())
+                        eventRepository.countParticipantsByEventId(event.getId()),
+                        eventRepository.countSongsByEventId(event.getId())
                 ))
                 .toList();
     }
@@ -246,5 +248,33 @@ public class EventServiceImpl implements EventService {
     public List<EventSongDTO> getEventSongs(UUID eventId) {
         List<EventSong> eventSongs = eventSongRepository.getEventSongByEventId(eventId);
         return eventSongMapper.toSongDtoList(eventSongs);
+    }
+
+    @Override
+    @Transactional
+    public void removeSongFromEvent(UUID eventId, UUID eventSongId) {
+        if (eventId == null) {
+            throw new ValidationException("Id do evento é obrigatório.");
+        }
+        if (eventSongId == null) {
+            throw new ValidationException("Id da música do evento é obrigatório.");
+        }
+        User user = currentUserProvider.get();
+        EventParticipant participant = eventParticipantRepository
+                .findByEventIdAndMemberUserId(eventId, user.getId())
+                .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
+
+        if (!participant.getPermissions().contains(EventPermission.ADD_SONG)) {
+            throw new ValidationException("Você não tem permissão para remover músicas neste evento.");
+        }
+
+        EventSong eventSong = eventSongRepository.findById(eventSongId)
+                .orElseThrow(() -> new NotFoundException("Música não encontrada no evento."));
+
+        if (eventSong.getEvent() == null || !eventId.equals(eventSong.getEvent().getId())) {
+            throw new ValidationException("Esta música não pertence ao evento informado.");
+        }
+
+        eventSongRepository.delete(eventSong);
     }
 }

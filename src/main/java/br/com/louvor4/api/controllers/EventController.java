@@ -48,6 +48,14 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+
+    @DeleteMapping("/{eventId}/songs/{eventSongId}")
+    public ResponseEntity<Void> deleteSongFromEvent(@PathVariable UUID eventId, @PathVariable UUID eventSongId) {
+        eventService.removeSongFromEvent(eventId, eventSongId);
+        return ResponseEntity.noContent().build();
+    }
+
+
     @GetMapping("/{eventId}/songs")
     public ResponseEntity<List<EventSongDTO>> getEventSongs(@PathVariable UUID eventId) {
         List<EventSongDTO> soungs =  eventService.getEventSongs(eventId);

@@ -22,4 +22,6 @@ public interface EventService {
     void addSongToEvent(UUID eventId, @Valid AddEventSongDTO addEventSongDto);
 
     List<EventSongDTO> getEventSongs(UUID eventId);
+
+    void removeSongFromEvent(UUID eventId, UUID eventSongId);
 }

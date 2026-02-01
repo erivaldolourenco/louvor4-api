@@ -9,6 +9,7 @@ import java.util.UUID;
 public class MemberDTO {
     private UUID id;
     private UUID userId;
+    private String username;
     private String firstName;
     private String lastName;
     private String email;
@@ -31,6 +32,14 @@ public class MemberDTO {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getFirstName() {

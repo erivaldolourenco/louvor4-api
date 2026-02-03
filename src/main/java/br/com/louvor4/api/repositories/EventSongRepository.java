@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface EventSongRepository extends JpaRepository<EventSong, UUID> {
     List<EventSong> getEventSongByEventId(UUID eventId);
+    List<EventSong> findByEventIdIn(List<UUID> eventIds);
 }

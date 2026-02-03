@@ -1,7 +1,7 @@
 package br.com.louvor4.api.shared.dto.Event;
 
-import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 public record EventDetailDto(
@@ -10,7 +10,7 @@ public record EventDetailDto(
     String title,
     String description,
     LocalDate date,
-    Time time,
+    LocalTime time,
     String location,
     String projectTitle,
     String projectImageUrl,

@@ -4,6 +4,7 @@ import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
+import br.com.louvor4.api.shared.dto.eventOverview.MonthOverviewResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -32,4 +33,6 @@ public interface MusicProjectService {
     MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request);
 
     ProjectMemberRole getMemberRole(UUID projectId);
+
+    MonthOverviewResponse getMonthOverview(UUID projectId, String yearMonth);
 }

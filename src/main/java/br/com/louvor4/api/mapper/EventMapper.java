@@ -9,6 +9,7 @@ import org.mapstruct.Mapping;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Mapper(componentModel = "spring")
 public interface EventMapper {
@@ -25,7 +26,7 @@ public interface EventMapper {
     @Mapping(target = "projectTitle", source = "musicProject.name")
     @Mapping(target = "projectImageUrl", source = "musicProject.profileImage")
     @Mapping(target = "date", expression = "java(toLocalDate(entity.getStartAt()))")
-    @Mapping(target = "time", expression = "java(toTime(entity.getStartAt()))")
+    @Mapping(target = "time", expression = "java(toLocalTime(entity.getStartAt()))")
     EventDetailDto toDetailDto(Event entity);
 
 
@@ -39,7 +40,7 @@ public interface EventMapper {
         return dateTime != null ? dateTime.toLocalDate() : null;
     }
 
-    default Time toTime(LocalDateTime dateTime) {
-        return dateTime != null ? Time.valueOf(dateTime.toLocalTime()) : null;
+    default LocalTime toLocalTime(LocalDateTime dateTime) {
+        return dateTime != null ? dateTime.toLocalTime() : null;
     }
 }

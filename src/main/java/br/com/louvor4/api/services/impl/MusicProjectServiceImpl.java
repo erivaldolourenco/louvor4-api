@@ -4,20 +4,17 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.exceptions.ValidationException;
-import br.com.louvor4.api.mapper.EventMapper;
-import br.com.louvor4.api.mapper.MemberMapper;
-import br.com.louvor4.api.mapper.MusicProjectMemberMapper;
+import br.com.louvor4.api.mapper.*;
 import br.com.louvor4.api.models.*;
-import br.com.louvor4.api.repositories.EventRepository;
-import br.com.louvor4.api.repositories.MusicProjectMemberRepository;
-import br.com.louvor4.api.repositories.MusicProjectRepository;
-import br.com.louvor4.api.repositories.ProjectSkillRepository;
+import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
+import br.com.louvor4.api.shared.dto.eventOverview.MonthEventItem;
+import br.com.louvor4.api.shared.dto.eventOverview.MonthOverviewResponse;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +23,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.lang.reflect.Member;
 import java.sql.Time;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 import static br.com.louvor4.api.shared.util.ObjectUtils.isNotNull;
@@ -40,12 +39,17 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final UserService userService;
     private final MusicProjectMemberMapper musicProjectMemberMapper;
     private final EventMapper eventMapper;
+    private final EventSongMapper eventSongMapper;
+    private final EventParticipantMapper eventParticipantMapper;
+    private final EventOverviewMapper eventOverviewMapper;
     private final EventRepository eventRepository;
     private final ProjectSkillRepository projectSkillRepository;
     private final MemberMapper memberMapper;
+    private final EventParticipantRepository eventParticipantRepository;
+    private final EventSongRepository eventSongRepository;
 
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSongMapper eventSongMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSongRepository eventSongRepository) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -53,9 +57,14 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.userService = userService;
         this.musicProjectMemberMapper = musicProjectMemberMapper;
         this.eventMapper = eventMapper;
+        this.eventSongMapper = eventSongMapper;
+        this.eventParticipantMapper = eventParticipantMapper;
+        this.eventOverviewMapper = eventOverviewMapper;
         this.eventRepository = eventRepository;
         this.projectSkillRepository = projectSkillRepository;
         this.memberMapper = memberMapper;
+        this.eventParticipantRepository = eventParticipantRepository;
+        this.eventSongRepository = eventSongRepository;
     }
 
     @Override
@@ -179,7 +188,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         event.getTitle(),
                         event.getDescription(),
                         event.getStartAt().toLocalDate(),
-                        Time.valueOf(event.getStartAt().toLocalTime()),
+                        event.getStartAt().toLocalTime(),
                         event.getLocation(),
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
@@ -326,6 +335,72 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         User currentUser = currentUserProvider.get();
         Optional<MusicProjectMember> member = musicProjectMemberRepository.findByMusicProject_IdAndUser_Id(projectId, currentUser.getId());
         return member.get().getProjectRole();
+    }
+
+    @Override
+    public MonthOverviewResponse getMonthOverview(UUID projectId, String yearMonth) {
+
+        List<Event> events = getEventsOfMonth(projectId, yearMonth);
+
+        if (events.isEmpty()) {
+            return new MonthOverviewResponse(projectId, yearMonth, 0, List.of());
+        }
+
+        List<UUID> eventIds = events.stream().map(Event::getId).toList();
+
+
+        List<EventParticipant> allParticipants = eventParticipantRepository.findByEventIdIn(eventIds);
+        List<EventSong> allSongs = eventSongRepository.findByEventIdIn(eventIds);
+
+        Map<UUID, List<EventParticipant>> participantsByEvent = allParticipants.stream()
+                .collect(java.util.stream.Collectors.groupingBy(p -> p.getEvent().getId()));
+
+        Map<UUID, List<EventSong>> songsByEvent = allSongs.stream()
+                .collect(java.util.stream.Collectors.groupingBy(s -> s.getEvent().getId()));
+
+
+        List<MonthEventItem> items = events.stream().map(event -> {
+
+            MonthEventItem base = eventOverviewMapper.toMonthItem(event);
+
+            var participants = participantsByEvent
+                    .getOrDefault(event.getId(), List.of())
+                    .stream()
+                    .map(eventParticipantMapper::toMonthOverviewParticipant)
+                    .toList();
+
+            var songs = songsByEvent
+                    .getOrDefault(event.getId(), List.of())
+                    .stream()
+                    .map(eventSongMapper::toMonthOverviewSong)
+                    .toList();
+
+            return new MonthEventItem(
+                    base.eventId(),
+                    base.eventName(),
+                    base.day(),
+                    base.time(),
+                    participants,
+                    songs
+            );
+        }).toList();
+
+        return new MonthOverviewResponse(projectId, yearMonth, items.size(), items);
+    }
+
+    List<Event> getEventsOfMonth(UUID projectId, String yearMonth){
+        YearMonth ym;
+        try {
+            ym = YearMonth.parse(yearMonth);
+        } catch (DateTimeParseException e) {
+            throw new ValidationException("Formato inválido para yearMonth. Use YYYY-MM (ex: 2026-02)");
+        }
+
+        LocalDateTime start = ym.atDay(1).atStartOfDay();
+        LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
+
+        List<Event> events =  eventRepository.findAllByMusicProjectIdAndStartAtBetweenOrderByStartAtAsc(projectId, start, end);
+        return events;
     }
 
 }

@@ -6,6 +6,7 @@ import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
+import br.com.louvor4.api.shared.dto.eventOverview.MonthOverviewResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -117,5 +118,11 @@ public class MusicProjectController {
     public ResponseEntity<ProjectMemberRole> getMemberRole(@PathVariable UUID projectId) {
         ProjectMemberRole memberRole = musicProjectService.getMemberRole(projectId);
         return ResponseEntity.ok(memberRole);
+    }
+
+    @GetMapping("/{projectId}/months/{yearMonth}/overview")
+    public ResponseEntity<MonthOverviewResponse> getMonthOverview(  @PathVariable UUID projectId, @PathVariable String yearMonth) {
+        MonthOverviewResponse resp = musicProjectService.getMonthOverview(projectId, yearMonth);
+        return ResponseEntity.ok(resp);
     }
 }

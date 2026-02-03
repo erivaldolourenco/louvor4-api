@@ -12,8 +12,9 @@ import java.util.UUID;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, UUID> {
-    List<Event> findAllByMusicProject_Id(UUID projectId);
     List<Event> findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(UUID projectId, LocalDateTime now);
+
+    List<Event> findAllByMusicProjectIdAndStartAtBetweenOrderByStartAtAsc(UUID projectId, LocalDateTime start, LocalDateTime end);
 
     @Query("""
         select count(distinct ep.member.id)
@@ -28,4 +29,6 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
         where es.event.id = :eventId
     """)
     Integer countSongsByEventId(@Param("eventId") UUID eventId);
+
+
 }

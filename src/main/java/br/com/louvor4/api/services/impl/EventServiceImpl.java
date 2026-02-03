@@ -188,7 +188,7 @@ public class EventServiceImpl implements EventService {
                         event.getTitle(),
                         event.getDescription(),
                         event.getStartAt().toLocalDate(),
-                        Time.valueOf(event.getStartAt().toLocalTime()),
+                        event.getStartAt().toLocalTime(),
                         event.getLocation(),
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),

@@ -33,12 +33,10 @@ public class EventParticipant {
     @JoinColumn(name = "event_id", nullable = false, columnDefinition = "BINARY(16)")
     private Event event;
 
-    // Alterado: Aponta para o Membro do Projeto, não para o User puro
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_member_id", nullable = false, columnDefinition = "BINARY(16)")
     private MusicProjectMember member;
 
-    // NOVO: A Skill que ele vai exercer NESTE evento
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_skill_id", columnDefinition = "BINARY(16)")
     private ProjectSkill skill;

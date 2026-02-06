@@ -178,7 +178,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         return eventRepository
                 .findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(
                         projectId,
-                        LocalDateTime.now().plusDays(1)
+                        LocalDateTime.now().minusDays(1)
                 )
                 .stream()
                 .filter(Objects::nonNull)

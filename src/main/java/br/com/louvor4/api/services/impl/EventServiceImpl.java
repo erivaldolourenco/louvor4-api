@@ -175,7 +175,7 @@ public class EventServiceImpl implements EventService {
         UUID userId = currentUserProvider.get().getId();
 
         List<EventParticipant> eventsParticipant = eventParticipantRepository
-                .findByMember_User_IdAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(userId, LocalDateTime.now());
+                .findByMember_User_IdAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(userId, LocalDateTime.now().plusDays(1));
 
         return eventsParticipant
                 .stream()

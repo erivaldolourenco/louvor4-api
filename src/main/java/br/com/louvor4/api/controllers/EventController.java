@@ -31,6 +31,14 @@ public class EventController {
         return ResponseEntity.ok(eventDetailDto);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEventById(@PathVariable UUID id) {
+        eventService.deleteEventById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
+
     @GetMapping("/{eventId}/participants")
     public ResponseEntity<List<EventParticipantResponseDTO>> getParticipants(@PathVariable UUID eventId) {
         return ResponseEntity.ok(eventService.getParticipants(eventId));

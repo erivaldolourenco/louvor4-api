@@ -24,4 +24,6 @@ public interface EventService {
     List<EventSongDTO> getEventSongs(UUID eventId);
 
     void removeSongFromEvent(UUID eventId, UUID eventSongId);
+
+    void deleteEventById(UUID id);
 }

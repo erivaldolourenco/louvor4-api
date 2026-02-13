@@ -31,27 +31,20 @@ public class PushSenderServiceImpl implements PushSenderService {
 
         MulticastMessage multicastMessage = MulticastMessage.builder()
                 .addAllTokens(tokens)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(message)
-                        .build())
-                .setWebpushConfig(WebpushConfig.builder()
-                        .setNotification(WebpushNotification.builder()
-                                .setIcon("https://app.louvor4.com.br/images/logo/logo-icon.svg")
-                                .setVibrate(new int[]{200, 100, 200})
-                                .build())
-                        .build())
-                .putData("screen", "events")
+                .putData("title", title)
+                .putData("body", message)
+                .putData("url", "/")
+                .putData("screen", "home")
                 .build();
 
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(multicastMessage);
             handleFailedTokens(response, devices);
         } catch (FirebaseMessagingException e) {
-            // Logar o erro adequadamente
             System.err.println("Erro ao enviar push: " + e.getMessage());
         }
     }
+
 
     private void handleFailedTokens(BatchResponse response, List<NotificationDevice> devices) {
         if (response.getFailureCount() > 0) {

@@ -60,3 +60,6 @@ cloud:
       static: ${AWS_REGION}
     s3:
       bucket: ${AWS_S3_BUCKET}
+
+firebase:
+  credentials: ${FIREBASE_JSON}

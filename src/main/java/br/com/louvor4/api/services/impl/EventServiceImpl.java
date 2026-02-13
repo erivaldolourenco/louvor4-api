@@ -9,6 +9,7 @@ import br.com.louvor4.api.mapper.EventSongMapper;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.services.EventService;
+import br.com.louvor4.api.services.PushSenderService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
@@ -35,12 +36,14 @@ public class EventServiceImpl implements EventService {
     private final ProjectSkillRepository projectSkillRepository;
     private final SongRepository songRepository;
     private final EventSongRepository eventSongRepository;
+    private final PushSenderService senderService;
+
 
 
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository, PushSenderService senderService
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -51,25 +54,20 @@ public class EventServiceImpl implements EventService {
         this.projectSkillRepository = projectSkillRepository;
         this.songRepository = songRepository;
         this.eventSongRepository = eventSongRepository;
+        this.senderService = senderService;
     }
 
     @Transactional
     @Override
     public void addOrUpdateParticipantsToEvent(UUID eventId, List<EventParticipantDTO> participantsDto) {
         Event event = findEventOrThrow(eventId);
-
-        List<EventParticipantDTO> incoming = (participantsDto == null)
-                ? List.of()
-                : participantsDto;
+        List<EventParticipantDTO> incoming = (participantsDto == null) ? List.of() : participantsDto;
 
         validateRequestAllowEmpty(incoming);
-
         List<EventParticipant> currentList = eventParticipantRepository.findByEventId(eventId);
 
         if (incoming.isEmpty()) {
-            if (!currentList.isEmpty()) {
-                eventParticipantRepository.deleteAllInBatch(currentList);
-            }
+            if (!currentList.isEmpty()) eventParticipantRepository.deleteAllInBatch(currentList);
             return;
         }
 
@@ -79,21 +77,16 @@ public class EventServiceImpl implements EventService {
         List<EventParticipant> toSave = new ArrayList<>(incoming.size());
         Set<UUID> incomingMemberIds = new HashSet<>(incoming.size());
 
+        // Lista para rastrear quem deve receber a notificação (apenas os novos)
+        List<EventParticipant> newParticipants = new ArrayList<>();
+
         for (EventParticipantDTO dto : incoming) {
             UUID memberId = dto.getMemberId();
             incomingMemberIds.add(memberId);
-
             EventParticipant existing = currentByMemberId.get(memberId);
 
-            MusicProjectMember member = (existing != null)
-                    ? existing.getMember()
-                    : findMemberOrThrow(memberId);
-
-            ProjectSkill skill = null;
-            if (dto.getSkillId() != null) {
-                skill = validateAndGetSkill(member, dto.getSkillId());
-            }
-
+            MusicProjectMember member = (existing != null) ? existing.getMember() : findMemberOrThrow(memberId);
+            ProjectSkill skill = (dto.getSkillId() != null) ? validateAndGetSkill(member, dto.getSkillId()) : null;
             Set<EventPermission> perms = normalizePermissions(dto.getPermissions());
 
             if (existing != null) {
@@ -101,18 +94,39 @@ public class EventServiceImpl implements EventService {
                 existing.setPermissions(perms);
                 toSave.add(existing);
             } else {
-                toSave.add(createParticipant(event, member, skill, perms));
+                EventParticipant newParticipant = createParticipant(event, member, skill, perms);
+                toSave.add(newParticipant);
+                newParticipants.add(newParticipant); // Guardamos para notificar depois
             }
         }
+
+        // Limpeza de removidos
         List<EventParticipant> toDelete = currentList.stream()
                 .filter(p -> !incomingMemberIds.contains(p.getMember().getId()))
                 .toList();
+        if (!toDelete.isEmpty()) eventParticipantRepository.deleteAllInBatch(toDelete);
 
-        if (!toDelete.isEmpty()) {
-            eventParticipantRepository.deleteAllInBatch(toDelete);
-        }
-
+        // Salva no banco primeiro
         eventParticipantRepository.saveAll(toSave);
+
+        // Envia as notificações para os novos integrantes
+        notifyNewParticipants(event, newParticipants);
+    }
+
+    private void notifyNewParticipants(Event event, List<EventParticipant> newParticipants) {
+        String title = "Nova Escala: " + event.getTitle();
+        String message = "Você foi escalado para o evento do dia " + event.getStartAt().toString();
+
+        for (EventParticipant participant : newParticipants) {
+            try {
+                // Supondo que o MusicProjectMember tenha um vínculo com o User (UUID userId)
+                UUID userId = participant.getMember().getUser().getId();
+                senderService.sendToUser(userId, title, message);
+            } catch (Exception e) {
+                // Logar o erro mas não travar a execução principal
+                System.err.println("Falha ao enviar push para usuário: " + e.getMessage());
+            }
+        }
     }
 
     private void validateRequestAllowEmpty(List<EventParticipantDTO> participants) {

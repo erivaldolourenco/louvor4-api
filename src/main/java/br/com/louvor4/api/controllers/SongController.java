@@ -18,14 +18,11 @@ public class SongController {
         this.songService = songService;
     }
 
-
     @GetMapping("/{songId}")
     public ResponseEntity<SongDTO> create(@PathVariable UUID songId) {
         SongDTO dto = songService.get(songId);
         return ResponseEntity.ok(dto);
     }
-
-
 
     @PostMapping("/create")
     public ResponseEntity<SongDTO> create(@RequestBody @Valid SongDTO createDto) {
@@ -38,5 +35,4 @@ public class SongController {
         SongDTO dto = songService.update(updateDto);
         return ResponseEntity.ok(dto);
     }
-
 }

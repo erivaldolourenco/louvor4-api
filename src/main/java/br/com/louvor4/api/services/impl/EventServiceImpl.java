@@ -15,12 +15,10 @@ import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
-import br.com.louvor4.api.shared.dto.Song.SongDTO;
-import org.springframework.http.HttpStatus;
+import br.com.louvor4.api.validations.EventValidation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Time;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,6 +35,8 @@ public class EventServiceImpl implements EventService {
     private final SongRepository songRepository;
     private final EventSongRepository eventSongRepository;
     private final PushSenderService senderService;
+
+    private final EventValidation eventValidation = new EventValidation();
 
 
 
@@ -63,7 +63,8 @@ public class EventServiceImpl implements EventService {
         Event event = findEventOrThrow(eventId);
         List<EventParticipantDTO> incoming = (participantsDto == null) ? List.of() : participantsDto;
 
-        validateRequestAllowEmpty(incoming);
+        eventValidation.validateRequestAllowEmpty(incoming);
+
         List<EventParticipant> currentList = eventParticipantRepository.findByEventId(eventId);
 
         if (incoming.isEmpty()) {
@@ -77,7 +78,6 @@ public class EventServiceImpl implements EventService {
         List<EventParticipant> toSave = new ArrayList<>(incoming.size());
         Set<UUID> incomingMemberIds = new HashSet<>(incoming.size());
 
-        // Lista para rastrear quem deve receber a notificação (apenas os novos)
         List<EventParticipant> newParticipants = new ArrayList<>();
 
         for (EventParticipantDTO dto : incoming) {
@@ -96,20 +96,17 @@ public class EventServiceImpl implements EventService {
             } else {
                 EventParticipant newParticipant = createParticipant(event, member, skill, perms);
                 toSave.add(newParticipant);
-                newParticipants.add(newParticipant); // Guardamos para notificar depois
+                newParticipants.add(newParticipant);
             }
         }
 
-        // Limpeza de removidos
         List<EventParticipant> toDelete = currentList.stream()
                 .filter(p -> !incomingMemberIds.contains(p.getMember().getId()))
                 .toList();
         if (!toDelete.isEmpty()) eventParticipantRepository.deleteAllInBatch(toDelete);
 
-        // Salva no banco primeiro
         eventParticipantRepository.saveAll(toSave);
 
-        // Envia as notificações para os novos integrantes
         notifyNewParticipants(event, newParticipants);
     }
 
@@ -119,57 +116,19 @@ public class EventServiceImpl implements EventService {
 
         for (EventParticipant participant : newParticipants) {
             try {
-                // Supondo que o MusicProjectMember tenha um vínculo com o User (UUID userId)
                 UUID userId = participant.getMember().getUser().getId();
                 senderService.sendToUser(userId, title, message);
             } catch (Exception e) {
-                // Logar o erro mas não travar a execução principal
                 System.err.println("Falha ao enviar push para usuário: " + e.getMessage());
             }
         }
     }
 
-    private void validateRequestAllowEmpty(List<EventParticipantDTO> participants) {
-        if (participants == null) return; // vai virar vazio antes, mas ok
-
-        if (participants.isEmpty()) return;
-
-        Set<UUID> seen = new HashSet<>();
-        for (EventParticipantDTO dto : participants) {
-            if (dto.getMemberId() == null) {
-                throw new ValidationException("memberId é obrigatório.");
-            }
-            if (!seen.add(dto.getMemberId())) {
-                throw new ValidationException("Participante duplicado no payload: " + dto.getMemberId());
-            }
-        }
-    }
     private Event findEventOrThrow(UUID eventId) {
         if (eventId == null) {
             throw new ValidationException("Id do evento é obrigatório.");
         }
-
-        return eventRepository.findById(eventId)
-                .orElseThrow(() ->
-                        new ValidationException("Evento não encontrado.")
-                );
-    }
-
-
-    private void validateRequest(List<EventParticipantDTO> participantsDto) {
-        if (participantsDto == null) {
-            throw new ValidationException("Lista de participantes não pode ser nula.");
-        }
-
-        Set<UUID> seen = new HashSet<>();
-        for (EventParticipantDTO dto : participantsDto) {
-            if (dto == null || dto.getMemberId() == null) {
-                throw new ValidationException("Participante inválido: memberId é obrigatório.");
-            }
-            if (!seen.add(dto.getMemberId())) {
-                throw new ValidationException("Participante duplicado no request: " + dto.getMemberId());
-            }
-        }
+        return eventRepository.findById(eventId) .orElseThrow(() -> new ValidationException("Evento não encontrado.") );
     }
 
     private MusicProjectMember findMemberOrThrow(UUID memberId) {
@@ -261,10 +220,7 @@ public class EventServiceImpl implements EventService {
                 .findByEventIdAndMemberUserId(eventId, user.getId())
                 .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
 
-        if (!participant.getPermissions().contains(EventPermission.ADD_SONG)) {
-            throw new ValidationException(
-                    "Você não tem permissão para adicionar músicas neste evento.");
-        }
+        eventValidation.canAddSong(participant);
 
         Song song = songRepository.findById(addEventSongDto.songId())
                 .orElseThrow(() -> new NotFoundException( "Música não encontrada."));
@@ -286,45 +242,29 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public void removeSongFromEvent(UUID eventId, UUID eventSongId) {
-        if (eventId == null) {
-            throw new ValidationException("Id do evento é obrigatório.");
-        }
-        if (eventSongId == null) {
-            throw new ValidationException("Id da música do evento é obrigatório.");
-        }
+
         User user = currentUserProvider.get();
+
         EventParticipant participant = eventParticipantRepository
                 .findByEventIdAndMemberUserId(eventId, user.getId())
                 .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
 
-        if (!participant.getPermissions().contains(EventPermission.ADD_SONG)) {
-            throw new ValidationException("Você não tem permissão para remover músicas neste evento.");
-        }
-
+        eventValidation.canAddSong(participant);
         EventSong eventSong = eventSongRepository.findById(eventSongId)
                 .orElseThrow(() -> new NotFoundException("Música não encontrada no evento."));
 
-        if (eventSong.getEvent() == null || !eventId.equals(eventSong.getEvent().getId())) {
-            throw new ValidationException("Esta música não pertence ao evento informado.");
-        }
-
+        eventValidation.validateSongBelongsToEvent(eventSong, eventId);
         eventSongRepository.delete(eventSong);
     }
 
     @Override
-    public void deleteEventById(UUID id) {
+    public void deleteEventById(UUID eventId) {
 
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ValidationException("Evento não encontrado."));
-        Integer participants = eventRepository.countParticipantsByEventId(id);
-        if (participants != null && participants > 0) {
-            throw new ValidationException("Não é possível excluir o evento: existem participantes associados.");
-        }
-
-        Integer songs = eventRepository.countSongsByEventId(id);
-        if (songs != null && songs > 0) {
-            throw new ValidationException("Não é possível excluir o evento: existem músicas associadas.");
-        }
+        Integer participants = eventRepository.countParticipantsByEventId(eventId);
+        Integer songs = eventRepository.countSongsByEventId(eventId);
+        eventValidation.validateDeletionRules(participants, songs);
 
         eventRepository.delete(event);
     }

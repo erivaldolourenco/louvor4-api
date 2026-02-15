@@ -2,6 +2,7 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
+import br.com.louvor4.api.mapper.UserMapper;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.MusicProjectService;
@@ -31,12 +32,14 @@ public class UserServiceImpl implements UserService {
     private final SongService songService;
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
+    private final UserMapper userMapper;
 
-    public UserServiceImpl(UserRepository userRepository, SongService songService, CurrentUserProvider currentUserProvider, StorageService storageService) {
+    public UserServiceImpl(UserRepository userRepository, SongService songService, CurrentUserProvider currentUserProvider, StorageService storageService, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.songService = songService;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -70,7 +73,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User saved = userRepository.save(user);
-        return toDetailDto(saved);
+        return userMapper.toDto(saved);
     }
 
     @Override
@@ -81,24 +84,11 @@ public class UserServiceImpl implements UserService {
             user.setProfileImage(fileUrl);
         }
         User saved = userRepository.save(user);
-
         return saved.getProfileImage();
     }
 
-    private UserDetailDTO toDetailDto(User user) {
-        UserDetailDTO userDetailDTO = new UserDetailDTO(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getProfileImage());
-        return userDetailDTO;
-    }
-
-
     @Override
-    public User getUserById(UUID idUser) {
+    public User findUserById(UUID idUser) {
         return userRepository.findById(idUser)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Usuário com id '%s' não encontrado.", idUser)));
     }
@@ -110,19 +100,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException(String.format("Usuário com e-mail '%s' não encontrado.", email)));
-    }
-
-
-    @Override
     public List<SongDTO> getSongs() {
         return songService.getSongsFromUser();
     }
 
-    @Override
-    public boolean existsById(UUID userId) {
-        return userRepository.existsById(userId);
-    }
 }

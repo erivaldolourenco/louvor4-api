@@ -1,5 +1,6 @@
 package br.com.louvor4.api.controllers;
 
+import br.com.louvor4.api.mapper.UserMapper;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.MusicProjectService;
@@ -30,25 +31,20 @@ public class UserController {
     private final UserService userService;
     private final MusicProjectService musicProjectService;
     private final EventService eventService;
+    private final UserMapper userMapper;
 
-    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService) {
+    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService, UserMapper userMapper) {
         this.userService = userService;
         this.musicProjectService = musicProjectService;
         this.eventService = eventService;
+        this.userMapper = userMapper;
     }
 
     @GetMapping("/detail")
     public ResponseEntity<UserDetailDTO> getUserDetail(Authentication authentication) {
         String username = authentication.getName();
         User user = userService.findByUsername(username);
-        UserDetailDTO userDetailDTO = new UserDetailDTO(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getProfileImage());
-       return ResponseEntity.status(HttpStatus.OK).body(userDetailDTO);
+       return ResponseEntity.status(HttpStatus.OK).body(userMapper.toDto(user));
     }
 
     @PostMapping("/create")

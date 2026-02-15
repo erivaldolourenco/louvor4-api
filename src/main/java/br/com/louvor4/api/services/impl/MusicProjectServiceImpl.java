@@ -20,8 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.lang.reflect.Member;
-import java.sql.Time;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
@@ -145,7 +143,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         validIfMemberExistInProject(projectId, user.getId());
 
         User creator = currentUserProvider.get();
-        User userMember = userService.getUserById(user.getId());
+        User userMember = userService.findUserById(user.getId());
         MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
         MusicProjectMember musicProjectMember = new MusicProjectMember();
         musicProjectMember.setUser(userMember);

@@ -9,6 +9,5 @@ import org.mapstruct.Mapping;
 public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "user", ignore = true)
     UserDetailDTO toDto(User entity);
 }

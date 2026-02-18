@@ -12,14 +12,14 @@ public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", columnDefinition = "BINARY(16)")
+    @Column(name = "id", columnDefinition = "uuid")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "music_project_id",
             nullable = false,
-            columnDefinition = "BINARY(16)"
+            columnDefinition = "uuid"
     )
     private MusicProject musicProject;
 

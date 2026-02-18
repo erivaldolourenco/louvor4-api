@@ -16,12 +16,12 @@ public class Song {
     @Id
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @Column(columnDefinition = "BINARY(16)")
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "owner_id", nullable = false, columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "owner_id", nullable = false, columnDefinition = "uuid")
     private User user;
 
     @NotBlank

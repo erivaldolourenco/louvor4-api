@@ -17,19 +17,19 @@ public class EventSong {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", columnDefinition = "BINARY(16)")
+    @Column(name = "id", columnDefinition = "uuid")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "event_id", nullable = false, columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "event_id", nullable = false, columnDefinition = "uuid")
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "song_id", nullable = false, columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "song_id", nullable = false, columnDefinition = "uuid")
     private Song song;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "added_by_participant_id", nullable = false, columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "added_by_participant_id", nullable = false, columnDefinition = "uuid")
     private EventParticipant addedBy;
 
     @Column(name = "sequence_order")

@@ -11,14 +11,14 @@ import java.util.UUID;
 public class NotificationMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", columnDefinition = "BINARY(16)")
+    @Column(name = "id", columnDefinition = "uuid")
     private UUID id;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 60)
     private NotificationType type;
 
-    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
+    @Column(name = "user_id", nullable = false, columnDefinition = "uuid")
     private UUID userId;
 
     @Column(name = "title", nullable = false, length = 120)

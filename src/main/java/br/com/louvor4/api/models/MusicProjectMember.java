@@ -25,7 +25,7 @@ public class MusicProjectMember {
     @Id
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @Column(columnDefinition = "BINARY(16)")
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -52,8 +52,8 @@ public class MusicProjectMember {
     )
     private Set<ProjectSkill> projectSkills = new HashSet<>();
 
-    @JdbcTypeCode(SqlTypes.BINARY)
-    @Column(name = "added_by_user_id", columnDefinition = "BINARY(16)")
+    @JdbcTypeCode(SqlTypes.UUID)
+    @Column(name = "added_by_user_id", columnDefinition = "uuid")
     private UUID addedByUserId;
 
     @Column(name = "created_at", nullable = false)

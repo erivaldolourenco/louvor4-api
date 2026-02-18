@@ -17,7 +17,7 @@ public class MusicProject {
     @Id
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @Column(columnDefinition = "BINARY(16)")
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
     @Column(name = "name", nullable = false, length = 150)
@@ -30,7 +30,7 @@ public class MusicProject {
     @Column(name = "profile_image", length = 500)
     private String profileImage;
 
-    @Column(name = "created_by_user_id", nullable = false, columnDefinition = "BINARY(16)")
+    @Column(name = "created_by_user_id", nullable = false, columnDefinition = "uuid")
     private UUID createdByUserId;
 
     @Column(name = "created_at", nullable = false)

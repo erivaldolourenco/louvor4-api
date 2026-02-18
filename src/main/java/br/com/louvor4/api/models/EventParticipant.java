@@ -25,25 +25,25 @@ public class EventParticipant {
     @Id
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @JdbcTypeCode(SqlTypes.BINARY)
-    @Column(name = "id", columnDefinition = "BINARY(16)")
+    @JdbcTypeCode(SqlTypes.UUID)
+    @Column(name = "id", columnDefinition = "uuid")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "event_id", nullable = false, columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "event_id", nullable = false, columnDefinition = "uuid")
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "project_member_id", nullable = false, columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "project_member_id", nullable = false, columnDefinition = "uuid")
     private MusicProjectMember member;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_skill_id", columnDefinition = "BINARY(16)")
+    @JoinColumn(name = "project_skill_id", columnDefinition = "uuid")
     private ProjectSkill skill;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "event_participant_permissions",
-            joinColumns = @JoinColumn(name = "event_participant_id", columnDefinition = "BINARY(16)"))
+            joinColumns = @JoinColumn(name = "event_participant_id", columnDefinition = "uuid"))
     @Enumerated(EnumType.STRING)
     @Column(name = "permission", nullable = false, length = 50)
     private Set<EventPermission> permissions = EnumSet.noneOf(EventPermission.class);

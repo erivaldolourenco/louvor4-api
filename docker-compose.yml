@@ -1,15 +1,17 @@
 version: '3.8'
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: louvar4_mysql_db
+  postgres:
+    image: postgres:16
+    container_name: louvor4_postgres_db
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
+      POSTGRES_USER: louvor4
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: louvor4db
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  mysql_data:
+  postgres_data:

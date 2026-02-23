@@ -32,6 +32,8 @@ public interface MusicProjectService {
 
     MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request);
 
+    void deleteMember(UUID projectId, UUID memberId);
+
     ProjectMemberRole getMemberRole(UUID projectId);
 
     MonthOverviewResponse getMonthOverview(UUID projectId, String yearMonth);

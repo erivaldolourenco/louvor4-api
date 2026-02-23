@@ -3,6 +3,7 @@ package br.com.louvor4.api.services;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
@@ -26,4 +27,6 @@ public interface EventService {
     void removeSongFromEvent(UUID eventId, UUID eventSongId);
 
     void deleteEventById(UUID id);
+
+    void updateEventBy(UUID eventId, @Valid UpdateEventDto eventDto);
 }

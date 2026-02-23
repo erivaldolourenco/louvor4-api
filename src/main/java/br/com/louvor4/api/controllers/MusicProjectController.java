@@ -80,6 +80,12 @@ public class MusicProjectController {
         return ResponseEntity.ok(members);
     }
 
+    @DeleteMapping("/{projectId}/members/{memberId}")
+    public ResponseEntity<Void> deleteMember(@PathVariable UUID projectId, @PathVariable UUID memberId) {
+        musicProjectService.deleteMember(projectId, memberId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{projectId}/events")
     public ResponseEntity<Void> createEvent(@PathVariable UUID projectId, @RequestBody @Valid CreateEventDto eventDto) {
         CreateEventDto createEvent = musicProjectService.createEvent(projectId, eventDto);

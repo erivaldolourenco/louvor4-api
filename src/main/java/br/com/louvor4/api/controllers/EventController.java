@@ -1,9 +1,7 @@
 package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.services.EventService;
-import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
-import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
-import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.*;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
@@ -34,6 +32,11 @@ public class EventController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEventById(@PathVariable UUID id) {
         eventService.deleteEventById(id);
+        return ResponseEntity.noContent().build();
+    }
+    @PutMapping("/{eventId}")
+    public ResponseEntity<Void> updateEvent(@PathVariable UUID eventId, @RequestBody @Valid UpdateEventDto eventDto) {
+        eventService.updateEventBy(eventId, eventDto);
         return ResponseEntity.noContent().build();
     }
 

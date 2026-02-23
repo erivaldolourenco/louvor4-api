@@ -13,6 +13,7 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
     List<EventParticipant> findByMember_User_IdAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(UUID userId, LocalDateTime now);
     List<EventParticipant> findByEventId(UUID eventId);
     List<EventParticipant> findByEventIdIn(List<UUID> eventIds);
+    List<EventParticipant> findByMember_Id(UUID memberId);
     boolean existsByEventIdAndMemberIdAndSkillId(UUID eventId, UUID memberId, UUID skillId);
     void deleteByEventId(UUID eventId);
     Optional<EventParticipant> findByEventIdAndMemberUserId(UUID eventId, UUID userId);

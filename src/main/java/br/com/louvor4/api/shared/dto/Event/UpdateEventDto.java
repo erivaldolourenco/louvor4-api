@@ -1,13 +1,10 @@
 package br.com.louvor4.api.shared.dto.Event;
 
-import java.util.UUID;
-
-public record CreateEventDto(
-        UUID id,
-        UUID projectId,
+public record UpdateEventDto(
         String title,
         String description,
         String startDate,
         String startTime,
         String location
-) {}
+) {
+}

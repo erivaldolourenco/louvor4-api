@@ -329,6 +329,33 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     }
 
     @Override
+    @Transactional
+    public void deleteMember(UUID projectId, UUID memberId) {
+        MusicProjectMember member = musicProjectMemberRepository.findById(memberId)
+                .filter(m -> m.getMusicProject().getId().equals(projectId))
+                .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
+
+        ProjectMemberRole currentRole = getMemberRole(projectId);
+        if (currentRole == ProjectMemberRole.MEMBER) {
+            throw new ValidationException("Você não tem permissão para remover membros.");
+        }
+        if (member.getProjectRole() == ProjectMemberRole.OWNER) {
+            throw new ValidationException("Não é possível remover o proprietário do projeto.");
+        }
+
+        List<EventParticipant> participants = eventParticipantRepository.findByMember_Id(memberId);
+        if (!participants.isEmpty()) {
+            List<UUID> participantIds = participants.stream()
+                    .map(EventParticipant::getId)
+                    .toList();
+            eventSongRepository.deleteByAddedBy_IdIn(participantIds);
+            eventParticipantRepository.deleteAllInBatch(participants);
+        }
+
+        musicProjectMemberRepository.delete(member);
+    }
+
+    @Override
     public ProjectMemberRole getMemberRole(UUID projectId) {
         User currentUser = currentUserProvider.get();
         Optional<MusicProjectMember> member = musicProjectMemberRepository.findByMusicProject_IdAndUser_Id(projectId, currentUser.getId());

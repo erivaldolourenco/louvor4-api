@@ -13,6 +13,7 @@ import br.com.louvor4.api.services.PushSenderService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
 import br.com.louvor4.api.validations.EventValidation;
@@ -267,5 +268,12 @@ public class EventServiceImpl implements EventService {
         eventValidation.validateDeletionRules(participants, songs);
 
         eventRepository.delete(event);
+    }
+
+    @Override
+    public void updateEventBy(UUID eventId, UpdateEventDto eventDto) {
+        Event event = findEventOrThrow(eventId);
+        eventMapper.updateEntityFromDto(eventDto, event);
+        eventRepository.save(event);
     }
 }

@@ -206,13 +206,22 @@ public class EventServiceImpl implements EventService {
                 .stream()
                 .map(p -> Map.entry(
                         p.getEvent().getId(),
-                        p.getMember().getUser().getProfileImage()
+                        resolveProfileImage(p)
                 ))
-                .filter(e -> e.getValue() != null && !e.getValue().isBlank())
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())
                 ));
+    }
+
+    private String resolveProfileImage(EventParticipant participant) {
+        if (participant == null) return "";
+        MusicProjectMember member = participant.getMember();
+        if (member == null) return "";
+        User user = member.getUser();
+        if (user == null) return "";
+        String image = user.getProfileImage();
+        return (image == null) ? "" : image;
     }
 
     @Override

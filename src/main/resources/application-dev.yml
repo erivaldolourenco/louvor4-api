@@ -16,6 +16,6 @@ app:
   cors:
     allowed-origins:
       - http://localhost:4200
-      - http://192.168.0.108:4200
+      - http://192.168.0.101:4200
       - https://app-dev.louvor4.com.br
     allow-credentials: true

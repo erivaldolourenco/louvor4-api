@@ -170,11 +170,16 @@ public class EventServiceImpl implements EventService {
         List<EventParticipant> eventsParticipant = eventParticipantRepository
                 .findByMember_User_IdAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(userId, LocalDateTime.now().minusDays(1));
 
-        return eventsParticipant
+        List<Event> events = eventsParticipant
                 .stream()
                 .map(EventParticipant::getEvent)
                 .filter(Objects::nonNull)
                 .distinct()
+                .toList();
+
+        Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(events);
+
+        return events.stream()
                 .map(event -> new EventDetailDto(
                         event.getId(),
                         event.getMusicProject().getId(),
@@ -186,9 +191,28 @@ public class EventServiceImpl implements EventService {
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
-                        eventRepository.countSongsByEventId(event.getId())
+                        eventRepository.countSongsByEventId(event.getId()),
+                        participantsImagesByEvent.getOrDefault(event.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    private Map<UUID, List<String>> buildParticipantsImagesByEvent(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> eventIds = events.stream().map(Event::getId).toList();
+        return eventParticipantRepository.findByEventIdIn(eventIds)
+                .stream()
+                .map(p -> Map.entry(
+                        p.getEvent().getId(),
+                        p.getMember().getUser().getProfileImage()
+                ))
+                .filter(e -> e.getValue() != null && !e.getValue().isBlank())
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                ));
     }
 
     @Override

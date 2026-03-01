@@ -30,6 +30,7 @@ public interface EventMapper {
     @Mapping(target = "projectImageUrl", source = "musicProject.profileImage")
     @Mapping(target = "date", expression = "java(toLocalDate(entity.getStartAt()))")
     @Mapping(target = "time", expression = "java(toLocalTime(entity.getStartAt()))")
+    @Mapping(target = "participantsProfileImages", expression = "java(java.util.Collections.emptyList())")
     EventDetailDto toDetailDto(Event entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

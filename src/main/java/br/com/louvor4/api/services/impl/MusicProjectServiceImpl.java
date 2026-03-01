@@ -191,7 +191,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
-                        eventRepository.countSongsByEventId(event.getId())
+                        eventRepository.countSongsByEventId(event.getId()),
+                        List.of()
                 ))
                 .toList();
     }

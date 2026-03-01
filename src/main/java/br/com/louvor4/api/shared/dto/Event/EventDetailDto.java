@@ -2,6 +2,7 @@ package br.com.louvor4.api.shared.dto.Event;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 public record EventDetailDto(
@@ -15,5 +16,6 @@ public record EventDetailDto(
     String projectTitle,
     String projectImageUrl,
     Integer participantsCount,
-    Integer repertoireCount
+    Integer repertoireCount,
+    List<String> participantsProfileImages
 ){}

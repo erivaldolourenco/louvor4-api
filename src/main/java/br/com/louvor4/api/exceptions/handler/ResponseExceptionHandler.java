@@ -2,6 +2,8 @@ package br.com.louvor4.api.exceptions.handler;
 
 import br.com.louvor4.api.exceptions.*;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,10 +25,13 @@ import static br.com.louvor4.api.exceptions.handler.Constants.*;
 @ControllerAdvice
 public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(ResponseExceptionHandler.class);
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
                                                                   HttpHeaders headers, HttpStatusCode status,
                                                                   WebRequest request) {
+        logger.warn("Validation error: {}", ex.getMessage(), ex);
         ExceptionResponse errorResponse = ExceptionResponse.create()
                 .withDetails(ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage())
                 .withStatus(status.value())
@@ -36,6 +41,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     public final ResponseEntity<ExceptionResponse> notFoundExceptions(Exception ex, WebRequest request) {
+        logger.warn("NotFoundException: {}", ex.getMessage(), ex);
         ExceptionResponse errorResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.NOT_FOUND.value())
@@ -45,6 +51,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(TokenExpiredException.class)
     public final ResponseEntity<ExceptionResponse> tokenExpiredExceptions(Exception ex, WebRequest request) {
+        logger.warn("TokenExpiredException: {}", ex.getMessage(), ex);
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.FORBIDDEN.value())
@@ -55,6 +62,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public final ResponseEntity<ExceptionResponse> badCredentialsException(Exception ex, WebRequest request) {
+        logger.warn("BadCredentialsException: {}", ex.getMessage(), ex);
         ExceptionResponse errorResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.UNAUTHORIZED.value())
@@ -64,6 +72,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public final ResponseEntity<ExceptionResponse> usernameNotFoundException(Exception ex, WebRequest request) {
+        logger.warn("UsernameNotFoundException: {}", ex.getMessage(), ex);
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.NOT_FOUND.value())
@@ -73,6 +82,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(StorageException.class)
     public final ResponseEntity<ExceptionResponse> storageException(Exception ex, WebRequest request) {
+        logger.error("StorageException: {}", ex.getMessage(), ex);
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -82,6 +92,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public final ResponseEntity<ExceptionResponse> dataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
+        logger.error("DataIntegrityViolationException: {}", ex.getMessage(), ex);
 
         String msg = "Dados inválidos.";
         String raw = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
@@ -103,6 +114,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request) {
+        logger.error("Unhandled exception: {}", ex.getMessage(), ex);
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails("Ocorreu um erro inesperado. Tente novamente.")
                 .withStatus(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -112,6 +124,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public final ResponseEntity<ExceptionResponse> entityNotFoundException(EntityNotFoundException ex, WebRequest request) {
+        logger.warn("EntityNotFoundException: {}", ex.getMessage(), ex);
         ExceptionResponse exceptionResponse = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.NOT_FOUND.value())
@@ -122,6 +135,7 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
     public final ResponseEntity<ExceptionResponse> validationException(ValidationException ex, WebRequest request) {
+        logger.warn("ValidationException: {}", ex.getMessage(), ex);
         ExceptionResponse response = ExceptionResponse.create()
                 .withDetails(ex.getMessage())
                 .withStatus(HttpStatus.CONFLICT.value())  // ou 400. Eu usaria 409 para "já existe"

@@ -2,6 +2,9 @@ package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.config.security.TokenService;
 import br.com.louvor4.api.config.security.UserDetailsImpl;
+import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.models.RefreshToken;
+import br.com.louvor4.api.repositories.RefreshTokenRepository;
 import br.com.louvor4.api.services.PasswordResetService;
 import br.com.louvor4.api.shared.dto.AuthenticationDTO;
 import br.com.louvor4.api.shared.dto.LoginResponseDTO;
@@ -15,17 +18,21 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("auth")
 public class AuthenticationController {
     private final TokenService tokenService;
     private final AuthenticationManager authenticationManager;
     private final PasswordResetService passwordResetService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    public AuthenticationController(TokenService tokenService, AuthenticationManager authenticationManager, PasswordResetService passwordResetService) {
+    public AuthenticationController(TokenService tokenService, AuthenticationManager authenticationManager, PasswordResetService passwordResetService, RefreshTokenRepository refreshTokenRepository) {
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
         this.passwordResetService = passwordResetService;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
 
@@ -34,14 +41,69 @@ public class AuthenticationController {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.username(), data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
         var userDetails = (UserDetailsImpl) auth.getPrincipal();
-        var token = tokenService.generateToken(userDetails);
+        var accessToken = tokenService.generateToken(userDetails);
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new LoginResponseDTO(token, new UserDTO(
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUser(userDetails.getUser());
+        refreshToken.setToken(tokenService.generateRefreshToken());
+        refreshToken.setExpiresAt(tokenService.genRefreshExpirationDate());
+        RefreshToken savedRefresh = refreshTokenRepository.save(refreshToken);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new LoginResponseDTO(
+                accessToken,
+                savedRefresh.getToken(),
+                savedRefresh.getExpiresAt(),
+                new UserDTO(
                 userDetails.getUser().getId(),
                 userDetails.getUser().getFirstName(),
                 userDetails.getUser().getLastName(),
                 userDetails.getUser().getEmail()
-                ) ));
+                )
+        ));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponseDTO> refresh(@RequestBody String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new ValidationException("Refresh token é obrigatório.");
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue.trim())
+                .orElseThrow(() -> new ValidationException("Refresh token inválido."));
+
+        if (refreshToken.getRevokedAt() != null) {
+            throw new ValidationException("Refresh token revogado.");
+        }
+        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ValidationException("Refresh token expirado.");
+        }
+
+        UserDetailsImpl userDetails = new UserDetailsImpl(refreshToken.getUser());
+        String newAccessToken = tokenService.generateToken(userDetails);
+        return ResponseEntity.ok(new LoginResponseDTO(
+                newAccessToken,
+                refreshToken.getToken(),
+                refreshToken.getExpiresAt(),
+                new UserDTO(
+                        userDetails.getUser().getId(),
+                        userDetails.getUser().getFirstName(),
+                        userDetails.getUser().getLastName(),
+                        userDetails.getUser().getEmail()
+                )
+        ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            return ResponseEntity.noContent().build();
+        }
+        refreshTokenRepository.findByToken(refreshTokenValue.trim())
+                .ifPresent(token -> {
+                    token.setRevokedAt(LocalDateTime.now());
+                    refreshTokenRepository.save(token);
+                });
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/forgot-password")

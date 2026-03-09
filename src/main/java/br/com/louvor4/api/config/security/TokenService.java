@@ -4,17 +4,20 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Base64;
 
 @Service
 public class TokenService {
     @Value("${api.security.token.secret}")
     private String secret;
+
+    private static final int REFRESH_TOKEN_BYTES = 64;
 
     public String generateToken(UserDetailsImpl userDetails) {
         try {
@@ -31,6 +34,12 @@ public class TokenService {
         }
     }
 
+    public String generateRefreshToken() {
+        byte[] randomBytes = new byte[REFRESH_TOKEN_BYTES];
+        new SecureRandom().nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
     public String validateToken(String token) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
@@ -45,6 +54,10 @@ public class TokenService {
     }
 
     private Instant genExpirationDate() {
-        return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
+        return LocalDateTime.now().plusMinutes(30).toInstant(ZoneOffset.of("-03:00"));
+    }
+
+    public LocalDateTime genRefreshExpirationDate() {
+        return LocalDateTime.now().plusDays(30);
     }
 }

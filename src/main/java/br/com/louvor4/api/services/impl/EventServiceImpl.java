@@ -112,8 +112,8 @@ public class EventServiceImpl implements EventService {
     }
 
     private void notifyNewParticipants(Event event, List<EventParticipant> newParticipants) {
-        String title = "Nova Escala: " + event.getTitle();
-        String message = "Você foi escalado para o evento do dia " + event.getStartAt().toString();
+        String title = "Nova escala: " + event.getTitle();
+        String message = buildParticipantNotificationMessage(event);
 
         for (EventParticipant participant : newParticipants) {
             try {
@@ -123,6 +123,21 @@ public class EventServiceImpl implements EventService {
                 System.err.println("Falha ao enviar push para usuário: " + e.getMessage());
             }
         }
+    }
+
+    private String buildParticipantNotificationMessage(Event event) {
+        String when = formatEventDateTime(event.getStartAt());
+        String location = (event.getLocation() == null || event.getLocation().isBlank())
+                ? ""
+                : " Local: " + event.getLocation().trim() + ".";
+        return "Você foi escalado para o evento em " + when + "." + location;
+    }
+
+    private String formatEventDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return "data/horário a definir";
+        var dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        var timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+        return dateTime.format(dateFormatter) + " às " + dateTime.format(timeFormatter);
     }
 
     private Event findEventOrThrow(UUID eventId) {

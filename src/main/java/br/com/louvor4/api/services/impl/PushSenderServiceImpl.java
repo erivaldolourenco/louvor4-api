@@ -31,10 +31,15 @@ public class PushSenderServiceImpl implements PushSenderService {
 
         MulticastMessage multicastMessage = MulticastMessage.builder()
                 .addAllTokens(tokens)
-                .putData("title", title)
-                .putData("body", message)
-                .putData("url", "/")
+                .setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(message)
+                        .build())
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .build())
                 .putData("screen", "home")
+                .putData("url", "/")
                 .build();
 
         try {

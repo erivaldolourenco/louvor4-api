@@ -49,6 +49,8 @@ app:
     brevo:
       api-key: ${BREVO_API_KEY}
       url: ${BREVO_API_URL}
+    verify-url: ${VERIFY_URL}
+
 
 
 cloud:

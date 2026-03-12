@@ -4,7 +4,10 @@ import br.com.louvor4.api.config.security.TokenService;
 import br.com.louvor4.api.config.security.UserDetailsImpl;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.RefreshToken;
+import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.RefreshTokenRepository;
+import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.PasswordResetService;
 import br.com.louvor4.api.shared.dto.AuthenticationDTO;
 import br.com.louvor4.api.shared.dto.LoginResponseDTO;
@@ -27,12 +30,23 @@ public class AuthenticationController {
     private final AuthenticationManager authenticationManager;
     private final PasswordResetService passwordResetService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final UserRepository userRepository;
 
-    public AuthenticationController(TokenService tokenService, AuthenticationManager authenticationManager, PasswordResetService passwordResetService, RefreshTokenRepository refreshTokenRepository) {
+    public AuthenticationController(
+            TokenService tokenService,
+            AuthenticationManager authenticationManager,
+            PasswordResetService passwordResetService,
+            RefreshTokenRepository refreshTokenRepository,
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
+            UserRepository userRepository
+    ) {
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
         this.passwordResetService = passwordResetService;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.userRepository = userRepository;
     }
 
 
@@ -41,6 +55,10 @@ public class AuthenticationController {
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.username(), data.password());
         var auth = this.authenticationManager.authenticate(usernamePassword);
         var userDetails = (UserDetailsImpl) auth.getPrincipal();
+        Boolean verified = userDetails.getUser().getEmailVerified();
+        if (verified == null || !verified) {
+            throw new ValidationException("necessarioa validar seu email");
+        }
         var accessToken = tokenService.generateToken(userDetails);
 
         RefreshToken refreshToken = new RefreshToken();
@@ -116,5 +134,25 @@ public class AuthenticationController {
     public ResponseEntity<String> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
         passwordResetService.validateAndResetPassword(request);
         return ResponseEntity.ok("Senha alterada com sucesso! Você já pode fazer login.");
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<String> verifyEmailByToken(@RequestParam("token") String tokenValue) {
+        if (tokenValue == null || tokenValue.isBlank()) {
+            throw new ValidationException("Token inválido.");
+        }
+        var token = emailVerificationTokenRepository.findByToken(tokenValue.trim())
+                .orElseThrow(() -> new ValidationException("Token inválido ou inexistente."));
+
+        if (token.isExpired()) {
+            emailVerificationTokenRepository.delete(token);
+            throw new ValidationException("O link expirou. Solicite um novo.");
+        }
+
+        User user = token.getUser();
+        user.setEmailVerified(true);
+        userRepository.save(user);
+        emailVerificationTokenRepository.delete(token);
+        return ResponseEntity.ok("E-mail verificado com sucesso.");
     }
 }

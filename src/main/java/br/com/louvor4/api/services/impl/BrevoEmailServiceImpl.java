@@ -25,6 +25,9 @@ public class BrevoEmailServiceImpl implements EmailService {
     @Value("${app.email.brevo.url}")
     private String apiUrl;
 
+    @Value("${app.email.verify-url}")
+    private String verifyUrl;
+
     private final EmailConfig emailConfig;
     private final RestTemplate restTemplate;
 
@@ -56,6 +59,42 @@ public class BrevoEmailServiceImpl implements EmailService {
             }
         } catch (Exception e) {
             System.err.println("Erro ao enviar e-mail via Brevo: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendEmailVerificationCode(String to, String code) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", apiKey);
+
+        String link = verifyUrl + "?token=" + code;
+        Map<String, Object> body = Map.of(
+                "sender", Map.of("email", emailConfig.getFromEmail(), "name", "Louvor4"),
+                "to", List.of(Map.of("email", to)),
+                "subject", "Verificação de E-mail - Louvor4",
+                "htmlContent", "<html><body>" +
+                        "<h1>Confirme seu e-mail</h1>" +
+                        "<p>Clique no botão abaixo para validar seu e-mail.</p>" +
+                        "<p><a href=\"" + link + "\" " +
+                        "style=\"display:inline-block;padding:12px 18px;background:#1e88e5;color:#fff;text-decoration:none;border-radius:6px;\">" +
+                        "Validar e-mail</a></p>" +
+                        "<p>Se não conseguir clicar, copie e cole este link:</p>" +
+                        "<p>" + link + "</p>" +
+                        "<p>O link expira em 48 horas.</p>" +
+                        "</body></html>"
+        );
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                System.out.println("E-mail de verificação enviado via Brevo para: " + to);
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao enviar e-mail de verificação via Brevo: " + e.getMessage());
         }
     }
 }

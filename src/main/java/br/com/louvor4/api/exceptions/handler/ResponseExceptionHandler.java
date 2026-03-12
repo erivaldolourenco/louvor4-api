@@ -100,8 +100,14 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
         // Ajuste os nomes conforme suas constraints reais
         if (raw != null && raw.contains("uq_users_email")) {
             msg = "E-mail já cadastrado.";
-        } else if (raw != null && raw.contains("users.username")) {
+        } else if (raw != null && (raw.contains("users.username") || raw.contains("ukr43af9ap4edm43mmtq01oddj6"))) {
             msg = "Nome de usuário já cadastrado.";
+        } else if (raw != null && raw.contains("uq_project_user")) {
+            msg = "Usuário já é membro deste projeto.";
+        } else if (raw != null && raw.contains("uq_event_song")) {
+            msg = "Música já adicionada ao evento.";
+        } else if (raw != null && raw.contains("uq_event_member_skill")) {
+            msg = "Membro já está escalado com esta função.";
         }
 
         ExceptionResponse response = ExceptionResponse.create()

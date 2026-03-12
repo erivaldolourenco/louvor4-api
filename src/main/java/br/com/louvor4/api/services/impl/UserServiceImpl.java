@@ -3,8 +3,11 @@ package br.com.louvor4.api.services.impl;
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.mapper.UserMapper;
+import br.com.louvor4.api.models.EmailVerificationToken;
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.UserRepository;
+import br.com.louvor4.api.services.EmailService;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.services.StorageService;
@@ -14,6 +17,7 @@ import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
 import br.com.louvor4.api.shared.dto.User.UserUpdateDTO;
+import br.com.louvor4.api.exceptions.ValidationException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,26 +37,60 @@ public class UserServiceImpl implements UserService {
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
     private final UserMapper userMapper;
+    private final EmailService emailService;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
-    public UserServiceImpl(UserRepository userRepository, SongService songService, CurrentUserProvider currentUserProvider, StorageService storageService, UserMapper userMapper) {
+    public UserServiceImpl(
+            UserRepository userRepository,
+            SongService songService,
+            CurrentUserProvider currentUserProvider,
+            StorageService storageService,
+            UserMapper userMapper,
+            EmailService emailService,
+            EmailVerificationTokenRepository emailVerificationTokenRepository
+    ) {
         this.userRepository = userRepository;
         this.songService = songService;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
         this.userMapper = userMapper;
+        this.emailService = emailService;
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
     }
 
     @Override
     public User create(UserCreateDTO userDTO) {
+        if (userRepository.existsByUsername(userDTO.getUsername())) {
+            throw new ValidationException("o usuario " + userDTO.getUsername() + " ja existe");
+        }
+        if (userDTO.getEmail() != null && userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new ValidationException("o email " + userDTO.getEmail() + " ja existe");
+        }
         String encryptedPassword = new BCryptPasswordEncoder().encode(userDTO.getPassword());
         User userEntity = new User();
         userEntity.setEmail(userDTO.getEmail());
-        userEntity.setPassword(userDTO.getPassword());
         userEntity.setFirstName(userDTO.getFirstName());
         userEntity.setLastName(userDTO.getLastName());
         userEntity.setUsername(userDTO.getUsername());
         userEntity.setPassword(encryptedPassword);
-        return userRepository.save(userEntity);
+        userEntity.setEmailVerified(false);
+        User saved = userRepository.save(userEntity);
+        sendEmailVerification(saved);
+        return saved;
+    }
+
+    private void sendEmailVerification(User user) {
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            return;
+        }
+        emailVerificationTokenRepository.deleteByUser(user);
+        String code = java.util.UUID.randomUUID().toString().replace("-", "");
+        EmailVerificationToken token = new EmailVerificationToken();
+        token.setToken(code);
+        token.setUser(user);
+        token.setExpiryDate(java.time.LocalDateTime.now().plusDays(2));
+        emailVerificationTokenRepository.save(token);
+        emailService.sendEmailVerificationCode(user.getEmail(), code);
     }
 
     @Override

@@ -37,6 +37,9 @@ public class User {
     @Column(length = 255)
     private String email;
 
+    @Column(name = "email_verified")
+    private Boolean emailVerified;
+
     @Column(nullable = false)
     private Boolean enabled = true;
 
@@ -123,5 +126,13 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Boolean getEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 }

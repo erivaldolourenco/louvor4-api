@@ -57,7 +57,7 @@ public class AuthenticationController {
         var userDetails = (UserDetailsImpl) auth.getPrincipal();
         Boolean verified = userDetails.getUser().getEmailVerified();
         if (verified == null || !verified) {
-            throw new ValidationException("necessarioa validar seu email");
+            throw new ValidationException("Você precisa validar seu e-mail para continuar. Verifique sua caixa de entrada.");
         }
         var accessToken = tokenService.generateToken(userDetails);
 

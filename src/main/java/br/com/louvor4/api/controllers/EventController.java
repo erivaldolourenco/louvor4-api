@@ -53,7 +53,7 @@ public class EventController {
 
     @PostMapping("/{eventId}/songs")
     public ResponseEntity<Void> addEventSong(@PathVariable UUID eventId, @RequestBody @Valid List<AddEventSongDTO> addEventSongsDto) {
-        eventService.addSongToEvent(eventId, addEventSongsDto.get(0));
+        eventService.addSongsToEvent(eventId, addEventSongsDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

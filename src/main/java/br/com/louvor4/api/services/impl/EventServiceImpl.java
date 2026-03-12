@@ -262,7 +262,11 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public void addSongToEvent(UUID eventId, AddEventSongDTO addEventSongDto) {
+    public void addSongsToEvent(UUID eventId, List<AddEventSongDTO> addEventSongsDto) {
+        if (addEventSongsDto == null || addEventSongsDto.isEmpty()) {
+            throw new ValidationException("A lista de músicas é obrigatória.");
+        }
+
         User user = currentUserProvider.get();
 
         EventParticipant participant = eventParticipantRepository
@@ -271,15 +275,47 @@ public class EventServiceImpl implements EventService {
 
         eventValidation.canAddSong(participant);
 
-        Song song = songRepository.findById(addEventSongDto.songId())
-                .orElseThrow(() -> new NotFoundException( "Música não encontrada."));
+        Set<UUID> songIds = new HashSet<>();
+        for (AddEventSongDTO dto : addEventSongsDto) {
+            if (dto == null || dto.songId() == null) {
+                throw new ValidationException("songId é obrigatório.");
+            }
+            if (!songIds.add(dto.songId())) {
+                throw new ValidationException("Música duplicada no payload: " + dto.songId());
+            }
+        }
 
-        EventSong eventSong = new EventSong();
-        eventSong.setEvent(participant.getEvent());
-        eventSong.setSong(song);
-        eventSong.setAddedBy(participant);
+        Set<UUID> existingSongIds = eventSongRepository.getEventSongByEventId(eventId)
+                .stream()
+                .map(es -> es.getSong().getId())
+                .collect(Collectors.toSet());
 
-        eventSongRepository.save(eventSong);
+        for (UUID songId : songIds) {
+            if (existingSongIds.contains(songId)) {
+                throw new ValidationException("Música já adicionada ao evento: " + songId);
+            }
+        }
+
+        Map<UUID, Song> songsById = songRepository.findAllById(songIds)
+                .stream()
+                .collect(Collectors.toMap(Song::getId, s -> s));
+
+        if (songsById.size() != songIds.size()) {
+            Set<UUID> missing = new HashSet<>(songIds);
+            missing.removeAll(songsById.keySet());
+            throw new NotFoundException("Música(s) não encontrada(s): " + missing);
+        }
+
+        List<EventSong> toSave = new ArrayList<>(songIds.size());
+        for (UUID songId : songIds) {
+            EventSong eventSong = new EventSong();
+            eventSong.setEvent(participant.getEvent());
+            eventSong.setSong(songsById.get(songId));
+            eventSong.setAddedBy(participant);
+            toSave.add(eventSong);
+        }
+
+        eventSongRepository.saveAll(toSave);
     }
 
     @Override

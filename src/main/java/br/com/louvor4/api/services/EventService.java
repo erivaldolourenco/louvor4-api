@@ -20,7 +20,7 @@ public interface EventService {
 
     List<EventParticipantResponseDTO> getParticipants(UUID eventId);
 
-    void addSongToEvent(UUID eventId, @Valid AddEventSongDTO addEventSongDto);
+    void addSongsToEvent(UUID eventId, @Valid List<AddEventSongDTO> addEventSongsDto);
 
     List<EventSongDTO> getEventSongs(UUID eventId);
 

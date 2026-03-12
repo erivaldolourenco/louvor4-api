@@ -70,6 +70,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     public MusicProjectDetailDTO
     create(MusicProjectCreateDTO dto) {
         User creator = currentUserProvider.get();
+        ensureUserCanCreateProject(creator);
 
         MusicProject project = buildProject(dto, creator);
         project = musicProjectRepository.save(project);
@@ -77,6 +78,17 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         addOwnerMember(project, creator);
 
         return toDetailDto(project);
+    }
+
+    private void ensureUserCanCreateProject(User user) {
+        Plan plan = user.getPlan();
+        int maxProjects = (plan == null || plan.getMaxProjects() == null) ? 0 : plan.getMaxProjects();
+        long ownedProjects = musicProjectMemberRepository.countByUser_IdAndProjectRole(
+                user.getId(), ProjectMemberRole.OWNER
+        );
+        if (ownedProjects >= maxProjects) {
+            throw new ValidationException("Seu plano não permite criar mais projetos.");
+        }
     }
 
     @Override

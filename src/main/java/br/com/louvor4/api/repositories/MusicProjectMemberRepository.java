@@ -17,4 +17,5 @@ public interface MusicProjectMemberRepository extends JpaRepository<MusicProject
     UUID user(User user);
     Optional<MusicProjectMember> findByMusicProject_IdAndUser_Id(UUID projectId, UUID userId);
     Optional<MusicProjectMember> findById(UUID meberId);
+    long countByUser_IdAndProjectRole(UUID userId, br.com.louvor4.api.enums.ProjectMemberRole projectRole);
 }

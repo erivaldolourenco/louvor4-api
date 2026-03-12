@@ -4,8 +4,10 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.mapper.UserMapper;
 import br.com.louvor4.api.models.EmailVerificationToken;
+import br.com.louvor4.api.models.Plan;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
+import br.com.louvor4.api.repositories.PlanRepository;
 import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.EmailService;
 import br.com.louvor4.api.services.MusicProjectService;
@@ -39,6 +41,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final EmailService emailService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PlanRepository planRepository;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -47,7 +50,8 @@ public class UserServiceImpl implements UserService {
             StorageService storageService,
             UserMapper userMapper,
             EmailService emailService,
-            EmailVerificationTokenRepository emailVerificationTokenRepository
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
+            PlanRepository planRepository
     ) {
         this.userRepository = userRepository;
         this.songService = songService;
@@ -56,6 +60,7 @@ public class UserServiceImpl implements UserService {
         this.userMapper = userMapper;
         this.emailService = emailService;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.planRepository = planRepository;
     }
 
     @Override
@@ -74,9 +79,15 @@ public class UserServiceImpl implements UserService {
         userEntity.setUsername(userDTO.getUsername());
         userEntity.setPassword(encryptedPassword);
         userEntity.setEmailVerified(false);
+        userEntity.setPlan(getDefaultPlan());
         User saved = userRepository.save(userEntity);
         sendEmailVerification(saved);
         return saved;
+    }
+
+    private Plan getDefaultPlan() {
+        return planRepository.findByName("FREE")
+                .orElseThrow(() -> new ValidationException("Plano padrão não encontrado."));
     }
 
     private void sendEmailVerification(User user) {

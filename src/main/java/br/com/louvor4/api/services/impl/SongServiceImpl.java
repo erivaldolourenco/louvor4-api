@@ -58,6 +58,7 @@ public class SongServiceImpl implements SongService {
         song.setKey(updateDto.key());
         song.setBpm(updateDto.bpm());
         song.setYouTubeUrl(updateDto.youTubeUrl());
+        song.setNotes(updateDto.notes());
 
         Song saved = songRepository.save(song);
         return songMapper.toDto(saved);

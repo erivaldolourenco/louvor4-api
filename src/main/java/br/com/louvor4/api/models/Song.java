@@ -47,6 +47,9 @@ public class Song {
     @Column(name = "youtube_url", nullable = false, length = 255)
     private String youTubeUrl;
 
+    @Column(name = "notes", length = 1000)
+    private String notes;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -117,5 +120,13 @@ public class Song {
 
     public void setYouTubeUrl(String youTubeUrl) {
         this.youTubeUrl = youTubeUrl;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

@@ -28,6 +28,9 @@ public class User {
     @Column(name = "profile_image", length = 500)
     private String profileImage;
 
+    @Column(name = "profile_image_hash", length = 64)
+    private String profileImageHash;
+
     @Column(nullable = false, unique = true, length = 255)
     private String username;
 
@@ -98,6 +101,14 @@ public class User {
 
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+
+    public String getProfileImageHash() {
+        return profileImageHash;
+    }
+
+    public void setProfileImageHash(String profileImageHash) {
+        this.profileImageHash = profileImageHash;
     }
 
     public String getPassword() {

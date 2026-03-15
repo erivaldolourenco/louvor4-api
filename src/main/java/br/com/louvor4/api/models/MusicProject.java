@@ -30,6 +30,9 @@ public class MusicProject {
     @Column(name = "profile_image", length = 500)
     private String profileImage;
 
+    @Column(name = "profile_image_hash", length = 64)
+    private String profileImageHash;
+
     @Column(name = "created_by_user_id", nullable = false, columnDefinition = "uuid")
     private UUID createdByUserId;
 
@@ -79,6 +82,14 @@ public class MusicProject {
 
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+
+    public String getProfileImageHash() {
+        return profileImageHash;
+    }
+
+    public void setProfileImageHash(String profileImageHash) {
+        this.profileImageHash = profileImageHash;
     }
 
     public UUID getCreatedByUserId() {

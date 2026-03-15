@@ -129,11 +129,30 @@ public class UserServiceImpl implements UserService {
     public String updateImage(MultipartFile profileImage) {
         User user = currentUserProvider.get();
         if (isNotNullOrEmpty(profileImage)) {
-            String fileUrl = storageService.uploadFile(profileImage, FileCategory.PROJECT_PROFILE);
+            String fileUrl = storageService.uploadFileWithPrefix(
+                    profileImage,
+                    FileCategory.USER_PROFILE,
+                    "user-profile-" + user.getId()
+            );
             user.setProfileImage(fileUrl);
+            user.setProfileImageHash(extractHashFromUrl(fileUrl));
         }
         User saved = userRepository.save(user);
         return saved.getProfileImage();
+    }
+
+    private String extractHashFromUrl(String url) {
+        if (url == null || url.isBlank()) return null;
+        int lastSlash = url.lastIndexOf('/');
+        if (lastSlash < 0 || lastSlash == url.length() - 1) return null;
+        String filename = url.substring(lastSlash + 1);
+        int lastDash = filename.lastIndexOf('-');
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDash <= 0) return null;
+        if (lastDot > lastDash) {
+            return filename.substring(lastDash + 1, lastDot);
+        }
+        return filename.substring(lastDash + 1);
     }
 
     @Override

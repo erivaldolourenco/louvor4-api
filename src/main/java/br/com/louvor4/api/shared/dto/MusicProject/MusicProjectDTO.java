@@ -10,6 +10,7 @@ public class MusicProjectDTO {
     private String name;
     private MusicProjectType type;
     private String profileImage;
+    private String profileImageHash;
 
     public UUID getId() {
         return id;
@@ -42,5 +43,12 @@ public class MusicProjectDTO {
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
     }
-}
 
+    public String getProfileImageHash() {
+        return profileImageHash;
+    }
+
+    public void setProfileImageHash(String profileImageHash) {
+        this.profileImageHash = profileImageHash;
+    }
+}

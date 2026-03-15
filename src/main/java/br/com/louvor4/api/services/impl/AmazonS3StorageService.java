@@ -50,7 +50,20 @@ public class AmazonS3StorageService implements StorageService {
     public String uploadFile(MultipartFile file, FileCategory fileCategory) {
         try {
             String sanitizedFilename = sanitizeFilename(file.getOriginalFilename());
-            String s3Key = buildS3Key(fileCategory, sanitizedFilename);
+            String contentHash = sha256Hex(file);
+            String s3Key = buildS3Key(fileCategory, sanitizedFilename, contentHash, null);
+            return uploadToS3(file, s3Key);
+        } catch (IOException e) {
+            throw new StorageException("Failed to upload file to S3", e);
+        }
+    }
+
+    @Override
+    public String uploadFileWithPrefix(MultipartFile file, FileCategory fileCategory, String filenamePrefix) {
+        try {
+            String sanitizedFilename = sanitizeFilename(file.getOriginalFilename());
+            String contentHash = sha256Hex(file);
+            String s3Key = buildS3Key(fileCategory, sanitizedFilename, contentHash, filenamePrefix);
             return uploadToS3(file, s3Key);
         } catch (IOException e) {
             throw new StorageException("Failed to upload file to S3", e);
@@ -62,9 +75,40 @@ public class AmazonS3StorageService implements StorageService {
         return filename.replaceAll("[^a-zA-Z0-9\\.\\-_]", "_");
     }
 
-    private String buildS3Key(FileCategory fileCategory, String sanitizedFilename) {
+    private String buildS3Key(FileCategory fileCategory, String sanitizedFilename, String hash, String filenamePrefix) {
         String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        return String.format("%s/%s/%s_%s", fileCategory, datePath, UUID.randomUUID(), sanitizedFilename);
+        String extension = extractExtension(sanitizedFilename);
+        String baseName = (filenamePrefix == null || filenamePrefix.isBlank())
+                ? hash
+                : filenamePrefix + "-" + hash;
+        return String.format("%s/%s/%s%s", fileCategory, datePath, baseName, extension);
+    }
+
+    private String extractExtension(String filename) {
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDot <= 0 || lastDot == filename.length() - 1) return "";
+        return filename.substring(lastDot);
+    }
+
+    private String sha256Hex(MultipartFile file) throws IOException {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            try (InputStream inputStream = file.getInputStream()) {
+                while ((read = inputStream.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            byte[] hash = digest.digest();
+            StringBuilder sb = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new StorageException("SHA-256 not available", e);
+        }
     }
 
     private String uploadToS3(MultipartFile file, String s3Key) throws IOException {

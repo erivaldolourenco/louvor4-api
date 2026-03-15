@@ -113,12 +113,31 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         MusicProject musicProject = musicProjectRepository.findById(projecId)
                 .orElseThrow(() -> new EntityNotFoundException("MusicProject não encontrado: " + projecId));
         if (isNotNullOrEmpty(profileImage)) {
-            String fileUrl = storageService.uploadFile(profileImage, FileCategory.PROJECT_PROFILE);
+            String fileUrl = storageService.uploadFileWithPrefix(
+                    profileImage,
+                    FileCategory.PROJECT_PROFILE,
+                    "project-profile-" + projecId
+            );
             musicProject.setProfileImage(fileUrl);
+            musicProject.setProfileImageHash(extractHashFromUrl(fileUrl));
         }
         MusicProject saved = musicProjectRepository.save(musicProject);
 
         return saved.getProfileImage();
+    }
+
+    private String extractHashFromUrl(String url) {
+        if (url == null || url.isBlank()) return null;
+        int lastSlash = url.lastIndexOf('/');
+        if (lastSlash < 0 || lastSlash == url.length() - 1) return null;
+        String filename = url.substring(lastSlash + 1);
+        int lastDash = filename.lastIndexOf('-');
+        int lastDot = filename.lastIndexOf('.');
+        if (lastDash <= 0) return null;
+        if (lastDot > lastDash) {
+            return filename.substring(lastDash + 1, lastDot);
+        }
+        return filename.substring(lastDash + 1);
     }
 
 
@@ -142,6 +161,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                     dto.setName(project.getName());
                     dto.setType(project.getType());
                     dto.setProfileImage(project.getProfileImage());
+                    dto.setProfileImageHash(project.getProfileImageHash());
                     return dto;
                 })
                 .toList();
@@ -253,6 +273,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         out.setName(project.getName());
         out.setType(project.getType());
         out.setProfileImage(project.getProfileImage());
+        out.setProfileImageHash(project.getProfileImageHash());
 
         List<MemberDTO> members = project.getMembers()
                 .stream()

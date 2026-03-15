@@ -10,6 +10,7 @@ public record UserDetailDTO(
         String username,
         String phoneNumber,
         String profileImage,
+        String profileImageHash,
         String planName
 ) {
 }

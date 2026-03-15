@@ -76,7 +76,9 @@ public class AuthenticationController {
                 userDetails.getUser().getFirstName(),
                 userDetails.getUser().getLastName(),
                 userDetails.getUser().getEmail(),
-                userDetails.getUser().getPlan() != null ? userDetails.getUser().getPlan().getName() : null
+                userDetails.getUser().getPlan() != null ? userDetails.getUser().getPlan().getName() : null,
+                userDetails.getUser().getProfileImage(),
+                userDetails.getUser().getProfileImageHash()
                 )
         ));
     }
@@ -108,7 +110,9 @@ public class AuthenticationController {
                         userDetails.getUser().getFirstName(),
                         userDetails.getUser().getLastName(),
                         userDetails.getUser().getEmail(),
-                        userDetails.getUser().getPlan() != null ? userDetails.getUser().getPlan().getName() : null
+                        userDetails.getUser().getPlan() != null ? userDetails.getUser().getPlan().getName() : null,
+                        userDetails.getUser().getProfileImage(),
+                        userDetails.getUser().getProfileImageHash()
                 )
         ));
     }

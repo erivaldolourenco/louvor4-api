@@ -11,6 +11,7 @@ public class MusicProjectDetailDTO implements Serializable {
     private String name;
     private MusicProjectType type;
     private String profileImage;
+    private String profileImageHash;
     private List<MemberDTO> members;
 
     public UUID getId() {
@@ -43,6 +44,14 @@ public class MusicProjectDetailDTO implements Serializable {
 
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+
+    public String getProfileImageHash() {
+        return profileImageHash;
+    }
+
+    public void setProfileImageHash(String profileImageHash) {
+        this.profileImageHash = profileImageHash;
     }
 
     public List<MemberDTO> getMembers() {

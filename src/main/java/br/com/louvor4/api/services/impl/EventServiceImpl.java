@@ -2,6 +2,8 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.EventPermission;
+import br.com.louvor4.api.enums.EventParticipantStatus;
+import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
@@ -10,12 +12,15 @@ import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.PushSenderService;
+import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
+import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
+import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
 import br.com.louvor4.api.validations.EventValidation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +41,7 @@ public class EventServiceImpl implements EventService {
     private final SongRepository songRepository;
     private final EventSongRepository eventSongRepository;
     private final PushSenderService senderService;
+    private final UserNotificationService userNotificationService;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -44,7 +50,7 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository, PushSenderService senderService
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository, PushSenderService senderService, UserNotificationService userNotificationService
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -56,6 +62,7 @@ public class EventServiceImpl implements EventService {
         this.songRepository = songRepository;
         this.eventSongRepository = eventSongRepository;
         this.senderService = senderService;
+        this.userNotificationService = userNotificationService;
     }
 
     @Transactional
@@ -111,17 +118,105 @@ public class EventServiceImpl implements EventService {
         notifyNewParticipants(event, newParticipants);
     }
 
+    @Override
+    @Transactional
+    public void acceptParticipation(UUID participantId) {
+        updateParticipationStatus(participantId, EventParticipantStatus.ACCEPTED);
+    }
+
+    @Override
+    @Transactional
+    public void declineParticipation(UUID participantId) {
+        updateParticipationStatus(participantId, EventParticipantStatus.DECLINED);
+    }
+
     private void notifyNewParticipants(Event event, List<EventParticipant> newParticipants) {
         String title = "Nova escala: " + event.getTitle();
         String message = buildParticipantNotificationMessage(event);
 
         for (EventParticipant participant : newParticipants) {
+            UUID userId = participant.getMember().getUser().getId();
+            userNotificationService.createNotification(new CreateUserNotificationRequest(
+                    NotificationType.EVENT_INVITE,
+                    userId,
+                    title,
+                    message,
+                    participant.getId(),
+                    null
+            ));
+
             try {
-                UUID userId = participant.getMember().getUser().getId();
                 senderService.sendToUser(userId, title, message);
             } catch (Exception e) {
                 System.err.println("Falha ao enviar push para usuário: " + e.getMessage());
             }
+        }
+    }
+
+    private void updateParticipationStatus(UUID participantId, EventParticipantStatus status) {
+        if (participantId == null) {
+            throw new ValidationException("Id do participante é obrigatório.");
+        }
+
+        UUID userId = currentUserProvider.get().getId();
+        EventParticipant participant = eventParticipantRepository.findByIdAndMemberUserId(participantId, userId)
+                .orElseThrow(() -> new NotFoundException("Participação no evento não encontrada."));
+
+        if (participant.getEvent() != null && participant.getEvent().getStartAt() != null
+                && !participant.getEvent().getStartAt().isAfter(LocalDateTime.now())) {
+            throw new ValidationException("Não é possível responder a participação após o início do evento.");
+        }
+
+        if (participant.getStatus() == status) {
+            userNotificationService.markInviteAsReadByEventParticipantId(userId, participant.getId());
+            return;
+        }
+
+        if (participant.getStatus() != EventParticipantStatus.PENDING) {
+            throw new ValidationException("A participação já foi respondida.");
+        }
+
+        participant.setStatus(status);
+        eventParticipantRepository.save(participant);
+        userNotificationService.markInviteAsReadByEventParticipantId(userId, participant.getId());
+        notifyProjectOwnerAboutParticipantDecision(participant, status);
+    }
+
+    private void notifyProjectOwnerAboutParticipantDecision(EventParticipant participant, EventParticipantStatus status) {
+        Event event = participant.getEvent();
+        UUID ownerUserId = event.getMusicProject().getCreatedByUserId();
+        UUID participantUserId = participant.getMember().getUser().getId();
+
+        if (ownerUserId == null || ownerUserId.equals(participantUserId)) {
+            return;
+        }
+
+        String participantName = buildParticipantName(participant.getMember().getUser());
+        String title = "Resposta de participação: " + event.getTitle();
+        String message = switch (status) {
+            case ACCEPTED -> participantName + " aceitou participar do evento.";
+            case DECLINED -> participantName + " recusou participar do evento.";
+            default -> participantName + " atualizou a participação no evento.";
+        };
+        NotificationType notificationType = switch (status) {
+            case ACCEPTED -> NotificationType.EVENT_PARTICIPANT_ACCEPTED;
+            case DECLINED -> NotificationType.EVENT_PARTICIPANT_DECLINED;
+            default -> NotificationType.SYSTEM_NOTIFICATION;
+        };
+
+        userNotificationService.createNotification(new CreateUserNotificationRequest(
+                notificationType,
+                ownerUserId,
+                title,
+                message,
+                participant.getId(),
+                null
+        ));
+
+        try {
+            senderService.sendToUser(ownerUserId, title, message);
+        } catch (Exception e) {
+            System.err.println("Falha ao enviar push para o responsável do projeto: " + e.getMessage());
         }
     }
 
@@ -174,28 +269,53 @@ public class EventServiceImpl implements EventService {
         participant.setMember(member);
         participant.setSkill(skill);
         participant.setPermissions(normalizePermissions(perms));
+        participant.setStatus(EventParticipantStatus.PENDING);
         return participant;
+    }
+
+    private String buildParticipantName(User user) {
+        if (user == null) {
+            return "O participante";
+        }
+
+        String firstName = user.getFirstName() == null ? "" : user.getFirstName().trim();
+        String lastName = user.getLastName() == null ? "" : user.getLastName().trim();
+        String fullName = (firstName + " " + lastName).trim();
+        return fullName.isBlank() ? "O participante" : fullName;
     }
 
 
     @Override
-    public List<EventDetailDto> getEventsByUser() {
+    public List<UserEventDetailDto> getEventsByUser() {
         UUID userId = currentUserProvider.get().getId();
 
         List<EventParticipant> eventsParticipant = eventParticipantRepository
-                .findByMember_User_IdAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(userId, LocalDateTime.now().minusDays(1));
+                .findByMember_User_IdAndStatusAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(
+                        userId,
+                        EventParticipantStatus.ACCEPTED,
+                        LocalDateTime.now().minusDays(1)
+                );
 
-        List<Event> events = eventsParticipant
-                .stream()
+        List<Event> events = eventsParticipant.stream()
                 .map(EventParticipant::getEvent)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
 
+        Map<UUID, EventParticipant> acceptedParticipantByEventId = eventsParticipant.stream()
+                .filter(participant -> participant.getEvent() != null)
+                .collect(Collectors.toMap(
+                        participant -> participant.getEvent().getId(),
+                        participant -> participant,
+                        (left, right) -> left
+                ));
+
         Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(events);
 
         return events.stream()
-                .map(event -> new EventDetailDto(
+                .map(event -> {
+                    EventParticipant participant = acceptedParticipantByEventId.get(event.getId());
+                    return new UserEventDetailDto(
                         event.getId(),
                         event.getMusicProject().getId(),
                         event.getTitle(),
@@ -207,8 +327,11 @@ public class EventServiceImpl implements EventService {
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
                         eventRepository.countSongsByEventId(event.getId()),
-                        participantsImagesByEvent.getOrDefault(event.getId(), List.of())
-                ))
+                        participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
+                        participant != null ? participant.getId() : null,
+                        participant != null ? participant.getStatus() : null
+                    );
+                })
                 .toList();
     }
 
@@ -251,12 +374,14 @@ public class EventServiceImpl implements EventService {
         List<EventParticipant> participants = eventParticipantRepository.findByEventId(eventId);
         return participants.stream()
                 .map(p -> new EventParticipantResponseDTO(
+                        p.getId(),
                         p.getMember().getId(),
                         p.getMember().getUser().getFirstName(),
                         p.getMember().getUser().getLastName(),
                         p.getMember().getUser().getProfileImage(),
                         p.getSkill() != null ? p.getSkill().getId() : null,
-                        p.getPermissions()
+                        p.getPermissions(),
+                        p.getStatus()
                 ))
                 .toList();
     }

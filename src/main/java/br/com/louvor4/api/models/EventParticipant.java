@@ -1,6 +1,7 @@
 package br.com.louvor4.api.models;
 
 import br.com.louvor4.api.enums.EventPermission;
+import br.com.louvor4.api.enums.EventParticipantStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -48,6 +49,17 @@ public class EventParticipant {
     @Column(name = "permission", nullable = false, length = 50)
     private Set<EventPermission> permissions = EnumSet.noneOf(EventPermission.class);
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private EventParticipantStatus status = EventParticipantStatus.PENDING;
+
+    @PrePersist
+    public void prePersist() {
+        if (status == null) {
+            status = EventParticipantStatus.PENDING;
+        }
+    }
+
     public UUID getId() {
         return id;
     }
@@ -86,5 +98,13 @@ public class EventParticipant {
 
     public void setPermissions(Set<EventPermission> permissions) {
         this.permissions = permissions;
+    }
+
+    public EventParticipantStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventParticipantStatus status) {
+        this.status = status;
     }
 }

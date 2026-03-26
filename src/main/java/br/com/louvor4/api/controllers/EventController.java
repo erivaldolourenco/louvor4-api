@@ -51,6 +51,18 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PatchMapping("/participants/{participantId}/accept")
+    public ResponseEntity<Void> acceptParticipation(@PathVariable UUID participantId) {
+        eventService.acceptParticipation(participantId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/participants/{participantId}/decline")
+    public ResponseEntity<Void> declineParticipation(@PathVariable UUID participantId) {
+        eventService.declineParticipation(participantId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{eventId}/songs")
     public ResponseEntity<Void> addEventSong(@PathVariable UUID eventId, @RequestBody @Valid List<AddEventSongDTO> addEventSongsDto) {
         eventService.addSongsToEvent(eventId, addEventSongsDto);

@@ -42,6 +42,7 @@ public class EventServiceImpl implements EventService {
     private final EventSongRepository eventSongRepository;
     private final PushSenderService senderService;
     private final UserNotificationService userNotificationService;
+    private final UserUnavailabilityRepository userUnavailabilityRepository;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -50,7 +51,7 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository, PushSenderService senderService, UserNotificationService userNotificationService
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -63,6 +64,7 @@ public class EventServiceImpl implements EventService {
         this.eventSongRepository = eventSongRepository;
         this.senderService = senderService;
         this.userNotificationService = userNotificationService;
+        this.userUnavailabilityRepository = userUnavailabilityRepository;
     }
 
     @Transactional
@@ -102,6 +104,7 @@ public class EventServiceImpl implements EventService {
                 existing.setPermissions(perms);
                 toSave.add(existing);
             } else {
+                validateMemberAvailabilityForEvent(event, member);
                 EventParticipant newParticipant = createParticipant(event, member, skill, perms);
                 toSave.add(newParticipant);
                 newParticipants.add(newParticipant);
@@ -271,6 +274,34 @@ public class EventServiceImpl implements EventService {
         participant.setPermissions(normalizePermissions(perms));
         participant.setStatus(EventParticipantStatus.PENDING);
         return participant;
+    }
+
+    private void validateMemberAvailabilityForEvent(Event event, MusicProjectMember member) {
+        if (event == null || event.getStartAt() == null || member == null || member.getUser() == null) {
+            return;
+        }
+
+        UUID userId = member.getUser().getId();
+        UUID projectId = event.getMusicProject() != null ? event.getMusicProject().getId() : null;
+        var eventDate = event.getStartAt().toLocalDate();
+
+        List<UserUnavailability> unavailabilities = userUnavailabilityRepository.findActiveByUserIdAndEventDate(
+                userId,
+                eventDate
+        );
+
+        boolean unavailable = unavailabilities.stream().anyMatch(unavailability ->
+                Boolean.TRUE.equals(unavailability.getAppliesToAllProjects()) ||
+                        unavailability.getProjects().stream()
+                                .map(UserUnavailabilityProject::getProject)
+                                .filter(Objects::nonNull)
+                                .map(MusicProject::getId)
+                                .anyMatch(candidateProjectId -> Objects.equals(candidateProjectId, projectId))
+        );
+
+        if (unavailable) {
+            throw new ValidationException("O "+member.getUser().getFirstName()+" "+member.getUser().getLastName()+" está indisponível na data do evento.");
+        }
     }
 
     private String buildParticipantName(User user) {

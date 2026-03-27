@@ -5,6 +5,7 @@ import br.com.louvor4.api.mapper.UserMapper;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.MusicProjectService;
+import br.com.louvor4.api.services.UserUnavailabilityService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
@@ -12,6 +13,8 @@ import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
+import br.com.louvor4.api.shared.dto.UserUnavailability.CreateUserUnavailabilityRequest;
+import br.com.louvor4.api.shared.dto.UserUnavailability.UserUnavailabilityResponse;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
 import br.com.louvor4.api.shared.dto.User.UserUpdateDTO;
@@ -40,14 +43,16 @@ public class UserController {
     private final EventService eventService;
     private final UserMapper userMapper;
     private final UserNotificationService userNotificationService;
+    private final UserUnavailabilityService userUnavailabilityService;
     private final CurrentUserProvider currentUserProvider;
 
-    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService, UserMapper userMapper, UserNotificationService userNotificationService, CurrentUserProvider currentUserProvider) {
+    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService, UserMapper userMapper, UserNotificationService userNotificationService, UserUnavailabilityService userUnavailabilityService, CurrentUserProvider currentUserProvider) {
         this.userService = userService;
         this.musicProjectService = musicProjectService;
         this.eventService = eventService;
         this.userMapper = userMapper;
         this.userNotificationService = userNotificationService;
+        this.userUnavailabilityService = userUnavailabilityService;
         this.currentUserProvider = currentUserProvider;
     }
 
@@ -118,5 +123,11 @@ public class UserController {
     public ResponseEntity<UserNotificationItemResponse> markNotificationAsRead(@PathVariable java.util.UUID notificationId) {
         User user = currentUserProvider.get();
         return ResponseEntity.ok(userNotificationService.markAsRead(user.getId(), notificationId));
+    }
+
+    @PostMapping("/unavailabilities")
+    public ResponseEntity<UserUnavailabilityResponse> createUnavailability(@RequestBody @Valid CreateUserUnavailabilityRequest request) {
+        UserUnavailabilityResponse response = userUnavailabilityService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

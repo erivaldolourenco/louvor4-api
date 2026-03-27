@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_MESSAGE;
 import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
@@ -129,5 +130,16 @@ public class UserController {
     public ResponseEntity<UserUnavailabilityResponse> createUnavailability(@RequestBody @Valid CreateUserUnavailabilityRequest request) {
         UserUnavailabilityResponse response = userUnavailabilityService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/unavailabilities")
+    public ResponseEntity<List<UserUnavailabilityResponse>> listUnavailabilities() {
+        return ResponseEntity.ok(userUnavailabilityService.listFromCurrentUser());
+    }
+
+    @DeleteMapping("/unavailabilities/{unavailabilityId}")
+    public ResponseEntity<Void> deleteUnavailability(@PathVariable UUID unavailabilityId) {
+        userUnavailabilityService.deleteFromCurrentUser(unavailabilityId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -8,10 +8,34 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface UserUnavailabilityRepository extends JpaRepository<UserUnavailability, UUID> {
+    @Query("""
+            select distinct uu
+            from UserUnavailability uu
+            left join fetch uu.projects uup
+            left join fetch uup.project p
+            where uu.user.id = :userId
+            order by uu.startDate desc, uu.createdAt desc
+            """)
+    List<UserUnavailability> findAllByUserId(@Param("userId") UUID userId);
+
+    @Query("""
+            select distinct uu
+            from UserUnavailability uu
+            left join fetch uu.projects uup
+            left join fetch uup.project p
+            where uu.id = :unavailabilityId
+              and uu.user.id = :userId
+            """)
+    Optional<UserUnavailability> findByIdAndUserId(
+            @Param("unavailabilityId") UUID unavailabilityId,
+            @Param("userId") UUID userId
+    );
+
     @Query("""
             select distinct uu
             from UserUnavailability uu

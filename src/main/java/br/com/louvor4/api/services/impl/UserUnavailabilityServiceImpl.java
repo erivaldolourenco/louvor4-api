@@ -1,6 +1,7 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
+import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.UserUnavailabilityMapper;
 import br.com.louvor4.api.models.MusicProject;
@@ -76,6 +77,30 @@ public class UserUnavailabilityServiceImpl implements UserUnavailabilityService 
 
         UserUnavailability saved = userUnavailabilityRepository.save(unavailability);
         return userUnavailabilityMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserUnavailabilityResponse> listFromCurrentUser() {
+        User currentUser = currentUserProvider.get();
+        return userUnavailabilityRepository.findAllByUserId(currentUser.getId()).stream()
+                .map(userUnavailabilityMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void deleteFromCurrentUser(UUID unavailabilityId) {
+        if (unavailabilityId == null) {
+            throw new ValidationException("Id da indisponibilidade é obrigatório.");
+        }
+
+        User currentUser = currentUserProvider.get();
+        UserUnavailability unavailability = userUnavailabilityRepository
+                .findByIdAndUserId(unavailabilityId, currentUser.getId())
+                .orElseThrow(() -> new NotFoundException("Indisponibilidade não encontrada."));
+
+        userUnavailabilityRepository.delete(unavailability);
     }
 
     private void validateDateRange(CreateUserUnavailabilityRequest request) {

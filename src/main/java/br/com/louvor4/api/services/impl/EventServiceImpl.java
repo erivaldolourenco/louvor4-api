@@ -10,6 +10,7 @@ import br.com.louvor4.api.mapper.EventMapper;
 import br.com.louvor4.api.mapper.EventSongMapper;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
+import br.com.louvor4.api.repositories.projections.EventCountProjection;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.PushSenderService;
 import br.com.louvor4.api.services.UserNotificationService;
@@ -321,7 +322,7 @@ public class EventServiceImpl implements EventService {
         UUID userId = currentUserProvider.get().getId();
 
         List<EventParticipant> eventsParticipant = eventParticipantRepository
-                .findByMember_User_IdAndStatusAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(
+                .findAcceptedByUserWithEventAndProjectAndMemberUser(
                         userId,
                         EventParticipantStatus.ACCEPTED,
                         LocalDateTime.now().minusDays(1)
@@ -333,6 +334,28 @@ public class EventServiceImpl implements EventService {
                 .distinct()
                 .toList();
 
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> eventIds = events.stream().map(Event::getId).toList();
+
+        Map<UUID, Integer> participantCountByEvent = eventParticipantRepository
+                .countDistinctMembersByEventIds(eventIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        EventCountProjection::getEventId,
+                        count -> count.getTotal().intValue()
+                ));
+
+        Map<UUID, Integer> songCountByEvent = eventSongRepository
+                .countDistinctSongsByEventIds(eventIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        EventCountProjection::getEventId,
+                        count -> count.getTotal().intValue()
+                ));
+
         Map<UUID, EventParticipant> acceptedParticipantByEventId = eventsParticipant.stream()
                 .filter(participant -> participant.getEvent() != null)
                 .collect(Collectors.toMap(
@@ -341,7 +364,7 @@ public class EventServiceImpl implements EventService {
                         (left, right) -> left
                 ));
 
-        Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(events);
+        Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(eventIds);
 
         return events.stream()
                 .map(event -> {
@@ -356,8 +379,8 @@ public class EventServiceImpl implements EventService {
                         event.getLocation(),
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
-                        eventRepository.countParticipantsByEventId(event.getId()),
-                        eventRepository.countSongsByEventId(event.getId()),
+                        participantCountByEvent.getOrDefault(event.getId(), 0),
+                        songCountByEvent.getOrDefault(event.getId(), 0),
                         participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
                         participant != null ? participant.getId() : null,
                         participant != null ? participant.getStatus() : null
@@ -366,31 +389,20 @@ public class EventServiceImpl implements EventService {
                 .toList();
     }
 
-    private Map<UUID, List<String>> buildParticipantsImagesByEvent(List<Event> events) {
-        if (events.isEmpty()) {
+    private Map<UUID, List<String>> buildParticipantsImagesByEvent(List<UUID> eventIds) {
+        if (eventIds.isEmpty()) {
             return Map.of();
         }
-        List<UUID> eventIds = events.stream().map(Event::getId).toList();
-        return eventParticipantRepository.findByEventIdIn(eventIds)
+        return eventParticipantRepository.findProfileImagesByEventIds(eventIds)
                 .stream()
                 .map(p -> Map.entry(
-                        p.getEvent().getId(),
-                        resolveProfileImage(p)
+                        p.getEventId(),
+                        p.getProfileImage()
                 ))
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey,
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())
                 ));
-    }
-
-    private String resolveProfileImage(EventParticipant participant) {
-        if (participant == null) return "";
-        MusicProjectMember member = participant.getMember();
-        if (member == null) return "";
-        User user = member.getUser();
-        if (user == null) return "";
-        String image = user.getProfileImage();
-        return (image == null) ? "" : image;
     }
 
     @Override

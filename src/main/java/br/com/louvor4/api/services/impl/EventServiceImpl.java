@@ -163,8 +163,14 @@ public class EventServiceImpl implements EventService {
         }
 
         UUID userId = currentUserProvider.get().getId();
-        EventParticipant participant = eventParticipantRepository.findByIdAndMemberUserId(participantId, userId)
-                .orElseThrow(() -> new NotFoundException("Participação no evento não encontrada."));
+        Optional<EventParticipant> optionalParticipant =
+                eventParticipantRepository.findByIdAndMemberUserId(participantId, userId);
+        if (optionalParticipant.isEmpty()) {
+            userNotificationService.markInviteAsReadByEventParticipantId(userId, participantId);
+            throw new NotFoundException("Participação no evento não encontrada.");
+        }
+
+        EventParticipant participant = optionalParticipant.get();
 
         if (participant.getEvent() != null && participant.getEvent().getStartAt() != null
                 && !participant.getEvent().getStartAt().isAfter(LocalDateTime.now())) {

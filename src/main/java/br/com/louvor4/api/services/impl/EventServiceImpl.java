@@ -166,7 +166,7 @@ public class EventServiceImpl implements EventService {
         Optional<EventParticipant> optionalParticipant =
                 eventParticipantRepository.findByIdAndMemberUserId(participantId, userId);
         if (optionalParticipant.isEmpty()) {
-            userNotificationService.markInviteAsReadByEventParticipantId(userId, participantId);
+            userNotificationService.markInviteAsReadByEventParticipantIdIfExists(userId, participantId);
             throw new NotFoundException("Participação no evento não encontrada.");
         }
 

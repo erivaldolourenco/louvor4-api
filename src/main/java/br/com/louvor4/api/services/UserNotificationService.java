@@ -24,5 +24,7 @@ public interface UserNotificationService {
 
     UserNotificationItemResponse markInviteAsReadByEventParticipantId(UUID userId, UUID eventParticipantId);
 
+    void markInviteAsReadByEventParticipantIdIfExists(UUID userId, UUID eventParticipantId);
+
     long markAllAsRead(UUID userId);
 }

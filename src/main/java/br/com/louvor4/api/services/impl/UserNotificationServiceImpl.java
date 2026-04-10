@@ -14,6 +14,7 @@ import br.com.louvor4.api.shared.dto.notification.UserNotificationListResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -123,6 +124,25 @@ public class UserNotificationServiceImpl implements UserNotificationService {
 
         notification.markAsRead();
         return toResponse(userNotificationRepository.save(notification));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markInviteAsReadByEventParticipantIdIfExists(UUID userId, UUID eventParticipantId) {
+        if (userId == null || eventParticipantId == null) {
+            return;
+        }
+
+        userNotificationRepository
+                .findFirstByUserIdAndTypeAndEventParticipantIdOrderByCreatedAtDesc(
+                        userId,
+                        NotificationType.EVENT_INVITE,
+                        eventParticipantId
+                )
+                .ifPresent(notification -> {
+                    notification.markAsRead();
+                    userNotificationRepository.save(notification);
+                });
     }
 
     @Override

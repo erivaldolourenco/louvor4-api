@@ -1,7 +1,7 @@
 package br.com.louvor4.api.models;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.util.UUID;
 
@@ -10,8 +10,8 @@ import java.util.UUID;
 public class ProjectSkill {
 
     @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
+    @GeneratedValue
+    @UuidGenerator
     @Column(columnDefinition = "uuid")
     private UUID id;
 

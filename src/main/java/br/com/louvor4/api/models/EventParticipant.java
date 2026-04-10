@@ -3,9 +3,7 @@ package br.com.louvor4.api.models;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import jakarta.persistence.*;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -24,10 +22,9 @@ import java.util.UUID;
 public class EventParticipant {
 
     @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @JdbcTypeCode(SqlTypes.UUID)
-    @Column(name = "id", columnDefinition = "uuid")
+    @GeneratedValue
+    @UuidGenerator
+    @Column(columnDefinition = "uuid")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

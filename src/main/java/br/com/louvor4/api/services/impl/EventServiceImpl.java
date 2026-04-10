@@ -135,10 +135,13 @@ public class EventServiceImpl implements EventService {
     }
 
     private void notifyNewParticipants(Event event, List<EventParticipant> newParticipants) {
-        String title = "Nova escala: " + event.getTitle();
-        String message = buildParticipantNotificationMessage(event);
+        String eventTitle = (event.getTitle() == null || event.getTitle().isBlank())
+                ? "Evento"
+                : event.getTitle().trim();
+        String title = "Convite para escala: " + eventTitle + " - " + formatEventDate(event.getStartAt());
 
         for (EventParticipant participant : newParticipants) {
+            String message = buildParticipantNotificationMessage(event, participant);
             UUID userId = participant.getMember().getUser().getId();
             userNotificationService.createNotification(new CreateUserNotificationRequest(
                     NotificationType.EVENT_INVITE,
@@ -230,12 +233,23 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private String buildParticipantNotificationMessage(Event event) {
+    private String buildParticipantNotificationMessage(Event event, EventParticipant participant) {
+        String eventTitle = (event.getTitle() == null || event.getTitle().isBlank())
+                ? "evento"
+                : "'" + event.getTitle().trim() + "'";
         String when = formatEventDateTime(event.getStartAt());
         String location = (event.getLocation() == null || event.getLocation().isBlank())
+                ? "local a definir"
+                : event.getLocation().trim();
+        String role = (participant.getSkill() == null || participant.getSkill().getName() == null || participant.getSkill().getName().isBlank())
                 ? ""
-                : " Local: " + event.getLocation().trim() + ".";
-        return "Você foi escalado para o evento em " + when + "." + location;
+                : " Função prevista: " + participant.getSkill().getName().trim() + ".";
+
+        return "Você foi convidado para " + eventTitle
+                + " em " + when
+                + ", local: " + location + "."
+                + role
+                + " Confirme sua participação no app (Aceitar ou Recusar).";
     }
 
     private String formatEventDateTime(LocalDateTime dateTime) {
@@ -243,6 +257,12 @@ public class EventServiceImpl implements EventService {
         var dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
         var timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
         return dateTime.format(dateFormatter) + " às " + dateTime.format(timeFormatter);
+    }
+
+    private String formatEventDate(LocalDateTime dateTime) {
+        if (dateTime == null) return "data a definir";
+        var dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        return dateTime.format(dateFormatter);
     }
 
     private Event findEventOrThrow(UUID eventId) {

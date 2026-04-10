@@ -1,7 +1,6 @@
 package br.com.louvor4.api.models;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

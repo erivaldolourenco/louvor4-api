@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AmazonS3StorageService implements StorageService {

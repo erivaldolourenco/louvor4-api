@@ -88,7 +88,7 @@ public class MusicProjectController {
 
     @PostMapping("/{projectId}/events")
     public ResponseEntity<Void> createEvent(@PathVariable UUID projectId, @RequestBody @Valid CreateEventDto eventDto) {
-        CreateEventDto createEvent = musicProjectService.createEvent(projectId, eventDto);
+        musicProjectService.createEvent(projectId, eventDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

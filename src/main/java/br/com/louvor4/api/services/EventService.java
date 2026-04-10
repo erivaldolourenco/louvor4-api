@@ -7,7 +7,6 @@ import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
-import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import jakarta.validation.Valid;
 
 import java.util.List;

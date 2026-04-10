@@ -5,7 +5,6 @@ import br.com.louvor4.api.shared.dto.eventOverview.MonthEventItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;

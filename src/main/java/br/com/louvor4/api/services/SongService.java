@@ -1,9 +1,7 @@
 package br.com.louvor4.api.services;
 
-import br.com.louvor4.api.models.Song;
-import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
+
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
-import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;

@@ -9,7 +9,6 @@ import br.com.louvor4.api.services.UserUnavailabilityService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
-import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;

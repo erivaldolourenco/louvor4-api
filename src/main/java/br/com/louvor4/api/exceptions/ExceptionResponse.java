@@ -1,6 +1,5 @@
 package br.com.louvor4.api.exceptions;
 
-import br.com.louvor4.api.shared.dto.ApiResponse;
 import org.springframework.http.ProblemDetail;
 
 import java.net.URI;

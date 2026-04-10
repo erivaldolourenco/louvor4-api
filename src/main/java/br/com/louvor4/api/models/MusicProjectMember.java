@@ -2,7 +2,6 @@ package br.com.louvor4.api.models;
 
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.JdbcTypeCode;

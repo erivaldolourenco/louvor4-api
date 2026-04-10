@@ -6,13 +6,11 @@ import br.com.louvor4.api.mapper.SongMapper;
 import br.com.louvor4.api.models.Song;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.SongRepository;
-import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service

@@ -4,7 +4,6 @@ import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.shared.dto.Event.*;
 import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
-import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

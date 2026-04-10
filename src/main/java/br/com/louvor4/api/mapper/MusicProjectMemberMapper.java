@@ -19,6 +19,7 @@ public interface MusicProjectMemberMapper {
     // E o mapeamento das skills usando o método auxiliar
     @Mapping(target = "id", source = "id")
     @Mapping(target = "userId", source = "user.id")
+    @Mapping(target = "username", source = "user.username")
     @Mapping(target = "firstName", source = "user.firstName")
     @Mapping(target = "lastName", source = "user.lastName")
     @Mapping(target = "email", source = "user.email")

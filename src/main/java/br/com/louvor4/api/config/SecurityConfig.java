@@ -3,6 +3,7 @@ package br.com.louvor4.api.config;
 import br.com.louvor4.api.config.security.SecurityFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -26,10 +27,12 @@ public class SecurityConfig {
 
     private final SecurityFilter securityFilter;
     private final CorsProperties corsProperties;
+    private final Environment environment;
 
-    public SecurityConfig(SecurityFilter securityFilter, CorsProperties corsProperties) {
+    public SecurityConfig(SecurityFilter securityFilter, CorsProperties corsProperties, Environment environment) {
         this.securityFilter = securityFilter;
         this.corsProperties = corsProperties;
+        this.environment = environment;
     }
 
     @Bean
@@ -38,18 +41,25 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users/create").permitAll()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(authorize -> {
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/logout").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/users/create").permitAll();
+                    if (isDevProfileActive()) {
+                        authorize.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                    }
+                    authorize.anyRequest().authenticated();
+                })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    private boolean isDevProfileActive() {
+        return environment.matchesProfiles("dev");
     }
 
     @Bean

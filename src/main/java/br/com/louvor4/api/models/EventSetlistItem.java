@@ -56,6 +56,11 @@ public class EventSetlistItem {
     @JoinColumn(name = "song_id", columnDefinition = "uuid")
     private Song song;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "added_by_participant_id", nullable = false, columnDefinition = "uuid")
+    private EventParticipant addedBy;
+
     @Column(name = "musical_key", length = 10)
     private String key;
 
@@ -95,10 +100,14 @@ public class EventSetlistItem {
      * Regras de negócio do item de repertório:
      * - Quando o tipo for SONG, o campo song deve estar preenchido.
      * - Quando o tipo for MEDLEY, o relacionamento específico será adicionado futuramente.
+     * - O campo addedBy deve ser preenchido para rastrear quem adicionou o item.
      */
     private void validateByType() {
         if (isSong() && this.song == null) {
             throw new IllegalStateException("Item de repertório do tipo SONG deve conter uma música.");
+        }
+        if (this.addedBy == null) {
+            throw new IllegalStateException("Item de repertório deve conter o participante que o adicionou.");
         }
     }
 
@@ -140,6 +149,14 @@ public class EventSetlistItem {
 
     public void setSong(Song song) {
         this.song = song;
+    }
+
+    public EventParticipant getAddedBy() {
+        return addedBy;
+    }
+
+    public void setAddedBy(EventParticipant addedBy) {
+        this.addedBy = addedBy;
     }
 
     public String getKey() {

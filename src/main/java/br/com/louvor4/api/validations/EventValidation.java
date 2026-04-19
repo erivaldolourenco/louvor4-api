@@ -3,7 +3,7 @@ package br.com.louvor4.api.validations;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.EventParticipant;
-import br.com.louvor4.api.models.EventSong;
+import br.com.louvor4.api.models.EventSetlistItem;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +37,7 @@ public class EventValidation {
         }
     }
 
-    public void validateSongBelongsToEvent(EventSong eventSong, UUID eventId){
+    public void validateSongBelongsToEvent(EventSetlistItem eventSong, UUID eventId){
         if (eventSong.getEvent() == null || !eventId.equals(eventSong.getEvent().getId())) {
             throw new ValidationException("Esta música não pertence ao evento informado.");
         }

@@ -1,5 +1,6 @@
 package br.com.louvor4.api.repositories;
 
+import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.models.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,10 +26,12 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
     @Query("""
         select count(distinct es.song.id)
-        from EventSong es
+        from EventSetlistItem es
         where es.event.id = :eventId
+          and es.type = :type
+          and es.song is not null
     """)
-    Integer countSongsByEventId(@Param("eventId") UUID eventId);
+    Integer countSongsByEventId(@Param("eventId") UUID eventId, @Param("type") SetlistItemType type);
 
 
 }

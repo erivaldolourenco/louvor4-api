@@ -3,6 +3,7 @@ package br.com.louvor4.api.services.impl;
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
 import br.com.louvor4.api.enums.ProjectMemberRole;
+import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.*;
 import br.com.louvor4.api.models.*;
@@ -37,17 +38,17 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final UserService userService;
     private final MusicProjectMemberMapper musicProjectMemberMapper;
     private final EventMapper eventMapper;
-    private final EventSongMapper eventSongMapper;
+    private final EventSetlistItemMapper eventSetlistItemMapper;
     private final EventParticipantMapper eventParticipantMapper;
     private final EventOverviewMapper eventOverviewMapper;
     private final EventRepository eventRepository;
     private final ProjectSkillRepository projectSkillRepository;
     private final MemberMapper memberMapper;
     private final EventParticipantRepository eventParticipantRepository;
-    private final EventSongRepository eventSongRepository;
+    private final EventSetlistItemRepository eventSetlistItemRepository;
 
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSongMapper eventSongMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSongRepository eventSongRepository) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -55,14 +56,14 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.userService = userService;
         this.musicProjectMemberMapper = musicProjectMemberMapper;
         this.eventMapper = eventMapper;
-        this.eventSongMapper = eventSongMapper;
+        this.eventSetlistItemMapper = eventSetlistItemMapper;
         this.eventParticipantMapper = eventParticipantMapper;
         this.eventOverviewMapper = eventOverviewMapper;
         this.eventRepository = eventRepository;
         this.projectSkillRepository = projectSkillRepository;
         this.memberMapper = memberMapper;
         this.eventParticipantRepository = eventParticipantRepository;
-        this.eventSongRepository = eventSongRepository;
+        this.eventSetlistItemRepository = eventSetlistItemRepository;
     }
 
     @Override
@@ -223,7 +224,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
-                        eventRepository.countSongsByEventId(event.getId()),
+                        eventRepository.countSongsByEventId(event.getId(), SetlistItemType.SONG),
                         List.of()
                 ))
                 .toList();
@@ -382,7 +383,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
             List<UUID> participantIds = participants.stream()
                     .map(EventParticipant::getId)
                     .toList();
-            eventSongRepository.deleteByAddedBy_IdIn(participantIds);
+            eventSetlistItemRepository.deleteByAddedBy_IdIn(participantIds);
             eventParticipantRepository.deleteAllInBatch(participants);
         }
 
@@ -409,12 +410,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
 
         List<EventParticipant> allParticipants = eventParticipantRepository.findByEventIdIn(eventIds);
-        List<EventSong> allSongs = eventSongRepository.findByEventIdIn(eventIds);
+        List<EventSetlistItem> allSongs = eventSetlistItemRepository.findByEventIdInAndType(eventIds, SetlistItemType.SONG);
 
         Map<UUID, List<EventParticipant>> participantsByEvent = allParticipants.stream()
                 .collect(java.util.stream.Collectors.groupingBy(p -> p.getEvent().getId()));
 
-        Map<UUID, List<EventSong>> songsByEvent = allSongs.stream()
+        Map<UUID, List<EventSetlistItem>> songsByEvent = allSongs.stream()
                 .collect(java.util.stream.Collectors.groupingBy(s -> s.getEvent().getId()));
 
 
@@ -431,7 +432,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
             var songs = songsByEvent
                     .getOrDefault(event.getId(), List.of())
                     .stream()
-                    .map(eventSongMapper::toMonthOverviewSong)
+                    .map(eventSetlistItemMapper::toMonthOverviewSong)
                     .toList();
 
             return new MonthEventItem(

@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.UuidGenerator;
@@ -24,6 +25,9 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "event_setlist_items",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_event_setlist_song", columnNames = {"event_id", "song_id", "type"})
+        },
         indexes = {
                 @Index(name = "idx_event_setlist_items_event_id", columnList = "event_id"),
                 @Index(name = "idx_event_setlist_items_event_id_sequence", columnList = "event_id, sequence")

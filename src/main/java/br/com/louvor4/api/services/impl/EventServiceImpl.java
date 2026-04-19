@@ -4,10 +4,11 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
+import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
-import br.com.louvor4.api.mapper.EventSongMapper;
+import br.com.louvor4.api.mapper.EventSetlistItemMapper;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.repositories.projections.EventCountProjection;
@@ -36,11 +37,11 @@ public class EventServiceImpl implements EventService {
     private final EventParticipantRepository eventParticipantRepository;
     private final MusicProjectMemberRepository musicProjectMemberRepository;
     private final EventMapper eventMapper;
-    private final EventSongMapper eventSongMapper;
+    private final EventSetlistItemMapper eventSetlistItemMapper;
     private final CurrentUserProvider currentUserProvider;
     private final ProjectSkillRepository projectSkillRepository;
     private final SongRepository songRepository;
-    private final EventSongRepository eventSongRepository;
+    private final EventSetlistItemRepository eventSetlistItemRepository;
     private final PushSenderService senderService;
     private final UserNotificationService userNotificationService;
     private final UserUnavailabilityRepository userUnavailabilityRepository;
@@ -52,17 +53,17 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSongMapper eventSongMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSongRepository eventSongRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.eventMapper = eventMapper;
-        this.eventSongMapper = eventSongMapper;
+        this.eventSetlistItemMapper = eventSetlistItemMapper;
         this.currentUserProvider = currentUserProvider;
         this.projectSkillRepository = projectSkillRepository;
         this.songRepository = songRepository;
-        this.eventSongRepository = eventSongRepository;
+        this.eventSetlistItemRepository = eventSetlistItemRepository;
         this.senderService = senderService;
         this.userNotificationService = userNotificationService;
         this.userUnavailabilityRepository = userUnavailabilityRepository;
@@ -374,8 +375,8 @@ public class EventServiceImpl implements EventService {
                         count -> count.getTotal().intValue()
                 ));
 
-        Map<UUID, Integer> songCountByEvent = eventSongRepository
-                .countDistinctSongsByEventIds(eventIds)
+        Map<UUID, Integer> songCountByEvent = eventSetlistItemRepository
+                .countDistinctSongsByEventIds(eventIds, SetlistItemType.SONG)
                 .stream()
                 .collect(Collectors.toMap(
                         EventCountProjection::getEventId,
@@ -469,7 +470,7 @@ public class EventServiceImpl implements EventService {
 
         eventValidation.canAddSong(participant);
 
-        Set<UUID> songIds = new HashSet<>();
+        Set<UUID> songIds = new LinkedHashSet<>();
         for (AddEventSongDTO dto : addEventSongsDto) {
             if (dto == null || dto.songId() == null) {
                 throw new ValidationException("songId é obrigatório.");
@@ -479,7 +480,8 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        Set<UUID> existingSongIds = eventSongRepository.getEventSongByEventId(eventId)
+        Set<UUID> existingSongIds = eventSetlistItemRepository
+                .findByEventIdAndTypeOrderBySequenceAsc(eventId, SetlistItemType.SONG)
                 .stream()
                 .map(es -> es.getSong().getId())
                 .collect(Collectors.toSet());
@@ -500,22 +502,31 @@ public class EventServiceImpl implements EventService {
             throw new NotFoundException("Música(s) não encontrada(s): " + missing);
         }
 
-        List<EventSong> toSave = new ArrayList<>(songIds.size());
-        for (UUID songId : songIds) {
-            EventSong eventSong = new EventSong();
-            eventSong.setEvent(participant.getEvent());
-            eventSong.setSong(songsById.get(songId));
-            eventSong.setAddedBy(participant);
-            toSave.add(eventSong);
+        Integer maxSequence = eventSetlistItemRepository.findMaxSequenceByEventId(eventId);
+        int nextSequence = maxSequence == null ? 1 : maxSequence + 1;
+
+        List<EventSetlistItem> toSave = new ArrayList<>(songIds.size());
+        for (AddEventSongDTO dto : addEventSongsDto) {
+            Song song = songsById.get(dto.songId());
+
+            EventSetlistItem eventSetlistItem = new EventSetlistItem();
+            eventSetlistItem.setEvent(participant.getEvent());
+            eventSetlistItem.setType(SetlistItemType.SONG);
+            eventSetlistItem.setSequence(nextSequence++);
+            eventSetlistItem.setSong(song);
+            eventSetlistItem.setAddedBy(participant);
+            eventSetlistItem.setKey(dto.musicalKey() != null && !dto.musicalKey().isBlank() ? dto.musicalKey() : song.getKey());
+            toSave.add(eventSetlistItem);
         }
 
-        eventSongRepository.saveAll(toSave);
+        eventSetlistItemRepository.saveAll(toSave);
     }
 
     @Override
     public List<EventSongDTO> getEventSongs(UUID eventId) {
-        List<EventSong> eventSongs = eventSongRepository.getEventSongByEventId(eventId);
-        return eventSongMapper.toSongDtoList(eventSongs);
+        List<EventSetlistItem> eventSongs = eventSetlistItemRepository
+                .findByEventIdAndTypeOrderBySequenceAsc(eventId, SetlistItemType.SONG);
+        return eventSetlistItemMapper.toSongDtoList(eventSongs);
     }
 
     @Override
@@ -529,11 +540,14 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
 
         eventValidation.canAddSong(participant);
-        EventSong eventSong = eventSongRepository.findById(eventSongId)
+        EventSetlistItem eventSong = eventSetlistItemRepository.findById(eventSongId)
                 .orElseThrow(() -> new NotFoundException("Música não encontrada no evento."));
 
         eventValidation.validateSongBelongsToEvent(eventSong, eventId);
-        eventSongRepository.delete(eventSong);
+        if (!eventSong.isSong()) {
+            throw new ValidationException("O item informado não é uma música.");
+        }
+        eventSetlistItemRepository.delete(eventSong);
     }
 
     @Override
@@ -542,7 +556,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ValidationException("Evento não encontrado."));
         Integer participants = eventRepository.countParticipantsByEventId(eventId);
-        Integer songs = eventRepository.countSongsByEventId(eventId);
+        Integer songs = eventRepository.countSongsByEventId(eventId, SetlistItemType.SONG);
         eventValidation.validateDeletionRules(participants, songs);
 
         eventRepository.delete(event);

@@ -11,7 +11,7 @@ import java.time.LocalTime;
 
 @Mapper(
         componentModel = "spring",
-        uses = { MemberMapper.class, EventSongMapper.class, SongMapper.class }
+        uses = { MemberMapper.class, EventSetlistItemMapper.class, SongMapper.class }
 )
 public interface EventOverviewMapper {
 

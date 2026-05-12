@@ -14,15 +14,18 @@ import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.repositories.projections.EventCountProjection;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.PushSenderService;
+import br.com.louvor4.api.services.ScheduleService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
-import br.com.louvor4.api.shared.dto.Song.AddEventSongDTO;
-import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
+import br.com.louvor4.api.shared.dto.Song.AddEventSetlistItemDTO;
 import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
+import br.com.louvor4.api.strategy.event.EventSetlistItemStrategy;
+import br.com.louvor4.api.strategy.event.EventSetlistItemStrategyResolver;
 import br.com.louvor4.api.validations.EventValidation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +48,8 @@ public class EventServiceImpl implements EventService {
     private final PushSenderService senderService;
     private final UserNotificationService userNotificationService;
     private final UserUnavailabilityRepository userUnavailabilityRepository;
+    private final EventSetlistItemStrategyResolver strategyResolver;
+    private final ScheduleService scheduleService;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -53,7 +58,8 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
+            ScheduleService scheduleService
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -67,6 +73,8 @@ public class EventServiceImpl implements EventService {
         this.senderService = senderService;
         this.userNotificationService = userNotificationService;
         this.userUnavailabilityRepository = userUnavailabilityRepository;
+        this.strategyResolver = strategyResolver;
+        this.scheduleService = scheduleService;
     }
 
     @Transactional
@@ -457,26 +465,20 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public void addSongsToEvent(UUID eventId, List<AddEventSongDTO> addEventSongsDto) {
-        if (addEventSongsDto == null || addEventSongsDto.isEmpty()) {
+    public void addSetListItemToEvent(UUID eventId, List<AddEventSetlistItemDTO> addEventSetlistItemDto) {
+        if (addEventSetlistItemDto == null || addEventSetlistItemDto.isEmpty()) {
             throw new ValidationException("A lista de músicas é obrigatória.");
         }
 
-        User user = currentUserProvider.get();
+        EventParticipant participant =  validateEventParticipant(eventId);
 
-        EventParticipant participant = eventParticipantRepository
-                .findByEventIdAndMemberUserId(eventId, user.getId())
-                .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
-
-        eventValidation.canAddSong(participant);
-
-        Set<UUID> songIds = new LinkedHashSet<>();
-        for (AddEventSongDTO dto : addEventSongsDto) {
-            if (dto == null || dto.songId() == null) {
-                throw new ValidationException("songId é obrigatório.");
+        Set<UUID> setListItemIds = new LinkedHashSet<>();
+        for (AddEventSetlistItemDTO dto : addEventSetlistItemDto) {
+            if (dto == null || dto.itemId() == null || dto.type() == null) {
+                throw new ValidationException("itemId e type são obrigatórios.");
             }
-            if (!songIds.add(dto.songId())) {
-                throw new ValidationException("Música duplicada no payload: " + dto.songId());
+            if (!setListItemIds.add(dto.itemId())) {
+                throw new ValidationException("Música duplicada no payload: " + dto.itemId());
             }
         }
 
@@ -486,52 +488,56 @@ public class EventServiceImpl implements EventService {
                 .map(es -> es.getSong().getId())
                 .collect(Collectors.toSet());
 
-        for (UUID songId : songIds) {
+        for (UUID songId : setListItemIds) {
             if (existingSongIds.contains(songId)) {
                 throw new ValidationException("Música já adicionada ao evento: " + songId);
             }
         }
 
-        Map<UUID, Song> songsById = songRepository.findAllById(songIds)
-                .stream()
-                .collect(Collectors.toMap(Song::getId, s -> s));
-
-        if (songsById.size() != songIds.size()) {
-            Set<UUID> missing = new HashSet<>(songIds);
-            missing.removeAll(songsById.keySet());
-            throw new NotFoundException("Música(s) não encontrada(s): " + missing);
-        }
 
         Integer maxSequence = eventSetlistItemRepository.findMaxSequenceByEventId(eventId);
         int nextSequence = maxSequence == null ? 1 : maxSequence + 1;
 
-        List<EventSetlistItem> toSave = new ArrayList<>(songIds.size());
-        for (AddEventSongDTO dto : addEventSongsDto) {
-            Song song = songsById.get(dto.songId());
+        List<EventSetlistItem> toSave = new ArrayList<>(setListItemIds.size());
+        for (AddEventSetlistItemDTO dto : addEventSetlistItemDto) {
 
-            EventSetlistItem eventSetlistItem = new EventSetlistItem();
-            eventSetlistItem.setEvent(participant.getEvent());
-            eventSetlistItem.setType(SetlistItemType.SONG);
-            eventSetlistItem.setSequence(nextSequence++);
-            eventSetlistItem.setSong(song);
-            eventSetlistItem.setAddedBy(participant);
-            eventSetlistItem.setKey(dto.musicalKey() != null && !dto.musicalKey().isBlank() ? dto.musicalKey() : song.getKey());
+            EventSetlistItemStrategy strategy = strategyResolver.resolve(dto.type());
+
+            EventSetlistItem eventSetlistItem = strategy.create(dto.itemId(), participant, nextSequence++);
+
             toSave.add(eventSetlistItem);
         }
 
         eventSetlistItemRepository.saveAll(toSave);
+        for (EventSetlistItem saved : toSave) {
+            scheduleService.onSetlistItemAdded(saved);
+        }
     }
 
+    private EventParticipant validateEventParticipant(UUID eventId){
+        User user = currentUserProvider.get();
+
+        EventParticipant participant = eventParticipantRepository
+                .findByEventIdAndMemberUserId(eventId, user.getId())
+                .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
+
+        eventValidation.canAddSong(participant);
+
+        return participant;
+    }
+
+
     @Override
-    public List<EventSongDTO> getEventSongs(UUID eventId) {
-        List<EventSetlistItem> eventSongs = eventSetlistItemRepository
-                .findByEventIdAndTypeOrderBySequenceAsc(eventId, SetlistItemType.SONG);
-        return eventSetlistItemMapper.toSongDtoList(eventSongs);
+    public List<SetlistDTO> getSetlist(UUID eventId) {
+        findEventOrThrow(eventId);
+        List<EventSetlistItem> setlistItems = eventSetlistItemRepository
+                .findByEventIdOrderBySequenceAsc(eventId);
+        return eventSetlistItemMapper.toSetlistDtoList(setlistItems);
     }
 
     @Override
     @Transactional
-    public void removeSongFromEvent(UUID eventId, UUID eventSongId) {
+    public void removeSetlistItemFromEvent(UUID eventId, UUID setlistItemId) {
 
         User user = currentUserProvider.get();
 
@@ -540,14 +546,12 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
 
         eventValidation.canAddSong(participant);
-        EventSetlistItem eventSong = eventSetlistItemRepository.findById(eventSongId)
-                .orElseThrow(() -> new NotFoundException("Música não encontrada no evento."));
+        EventSetlistItem setlistItem = eventSetlistItemRepository.findById(setlistItemId)
+                .orElseThrow(() -> new NotFoundException("Item do setlist não encontrado no evento."));
 
-        eventValidation.validateSongBelongsToEvent(eventSong, eventId);
-        if (!eventSong.isSong()) {
-            throw new ValidationException("O item informado não é uma música.");
-        }
-        eventSetlistItemRepository.delete(eventSong);
+        eventValidation.validateSetlistItemBelongsToEvent(setlistItem, eventId);
+        scheduleService.onSetlistItemRemoved(setlistItem.getId());
+        eventSetlistItemRepository.delete(setlistItem);
     }
 
     @Override
@@ -568,4 +572,6 @@ public class EventServiceImpl implements EventService {
         eventMapper.updateEntityFromDto(eventDto, event);
         eventRepository.save(event);
     }
+
+
 }

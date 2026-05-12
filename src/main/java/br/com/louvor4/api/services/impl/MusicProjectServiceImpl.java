@@ -2,7 +2,9 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
+import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.ProjectMemberRole;
+import br.com.louvor4.api.enums.ProjectMemberStatus;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.*;
@@ -10,12 +12,14 @@ import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
+import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
 import br.com.louvor4.api.shared.dto.eventOverview.MonthEventItem;
 import br.com.louvor4.api.shared.dto.eventOverview.MonthOverviewResponse;
+import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +40,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
     private final UserService userService;
+    private final UserNotificationService userNotificationService;
     private final MusicProjectMemberMapper musicProjectMemberMapper;
     private final EventMapper eventMapper;
     private final EventSetlistItemMapper eventSetlistItemMapper;
@@ -47,13 +52,13 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final EventParticipantRepository eventParticipantRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
 
-
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
         this.userService = userService;
+        this.userNotificationService = userNotificationService;
         this.musicProjectMemberMapper = musicProjectMemberMapper;
         this.eventMapper = eventMapper;
         this.eventSetlistItemMapper = eventSetlistItemMapper;
@@ -68,8 +73,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
     @Override
     @Transactional
-    public MusicProjectDetailDTO
-    create(MusicProjectCreateDTO dto) {
+    public MusicProjectDetailDTO create(MusicProjectCreateDTO dto) {
         User creator = currentUserProvider.get();
         ensureUserCanCreateProject(creator);
 
@@ -110,7 +114,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     }
 
     @Override
-    public String updateImage(UUID projecId, MultipartFile profileImage){
+    public String updateImage(UUID projecId, MultipartFile profileImage) {
         MusicProject musicProject = musicProjectRepository.findById(projecId)
                 .orElseThrow(() -> new EntityNotFoundException("MusicProject não encontrado: " + projecId));
         if (isNotNullOrEmpty(profileImage)) {
@@ -141,17 +145,17 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         return filename.substring(lastDash + 1);
     }
 
-
     @Override
     public MusicProjectDetailDTO getById(UUID projectId) {
-        MusicProject musicProject =  musicProjectRepository.getMusicProjectById(projectId);
+        MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
         return toDetailDto(musicProject);
     }
 
     @Override
     public List<MusicProjectDTO> getFromUser() {
-
-        List<MusicProjectMember> musicProjectMember = musicProjectMemberRepository.getMusicProjectMembersByUser_Id(currentUserProvider.get().getId());
+        UUID userId = currentUserProvider.get().getId();
+        List<MusicProjectMember> musicProjectMember = musicProjectMemberRepository
+                .findByUser_IdAndStatus(userId, ProjectMemberStatus.ACTIVE);
 
         return musicProjectMember.stream()
                 .map(MusicProjectMember::getMusicProject)
@@ -169,28 +173,133 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     }
 
     @Override
+    @Transactional
     public void addMember(UUID projectId, AddMemberDTO addDto) {
-
         User user = userService.findByUsername(addDto.getUsername());
 
-        validIfMemberExistInProject(projectId, user.getId());
+        boolean isActive = musicProjectMemberRepository
+                .existsByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.ACTIVE);
+        if (isActive) {
+            throw new ValidationException("Usuário já é membro deste projeto.");
+        }
+
+        boolean hasPendingInvite = musicProjectMemberRepository
+                .existsByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.PENDING_INVITE);
+        if (hasPendingInvite) {
+            throw new ValidationException("Já existe um convite pendente para este usuário.");
+        }
 
         User creator = currentUserProvider.get();
         User userMember = userService.findUserById(user.getId());
         MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
-        MusicProjectMember musicProjectMember = new MusicProjectMember();
+
+        Optional<MusicProjectMember> declinedOpt = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.DECLINED);
+
+        MusicProjectMember musicProjectMember = declinedOpt.orElseGet(MusicProjectMember::new);
         musicProjectMember.setUser(userMember);
         musicProjectMember.setMusicProject(musicProject);
         musicProjectMember.setAddedByUserId(creator.getId());
         musicProjectMember.setProjectRole(ProjectMemberRole.MEMBER);
+        musicProjectMember.setStatus(ProjectMemberStatus.PENDING_INVITE);
+        musicProjectMember.setInvitedAt(LocalDateTime.now());
+        musicProjectMember.setRespondedAt(null);
 
-        musicProjectMemberRepository.save(musicProjectMember);
+        MusicProjectMember saved = musicProjectMemberRepository.save(musicProjectMember);
+
+        String dataJson = String.format(
+                "{\"projectId\":\"%s\",\"projectName\":\"%s\",\"invitedByUserId\":\"%s\",\"memberId\":\"%s\"}",
+                musicProject.getId(), musicProject.getName(), creator.getId(), saved.getId()
+        );
+
+        userNotificationService.createNotification(new CreateUserNotificationRequest(
+                NotificationType.PROJECT_MEMBER_INVITE,
+                userMember.getId(),
+                "Convite para projeto",
+                "Você foi convidado para participar do projeto " + musicProject.getName() + ". Aceite ou recuse o convite.",
+                null,
+                dataJson
+        ));
     }
 
     @Override
     public List<MemberDTO> getMembers(UUID projectId) {
-        List<MusicProjectMember> musicProjectMembers =  musicProjectMemberRepository.getMusicProjectMembersByMusicProject_Id(projectId);
+        List<MusicProjectMember> musicProjectMembers = musicProjectMemberRepository
+                .findByMusicProject_IdAndStatus(projectId, ProjectMemberStatus.ACTIVE);
         return musicProjectMemberMapper.toDtoList(musicProjectMembers);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectInviteDTO> getMyInvites() {
+        UUID userId = currentUserProvider.get().getId();
+        return musicProjectMemberRepository
+                .findByUser_IdAndStatus(userId, ProjectMemberStatus.PENDING_INVITE)
+                .stream()
+                .map(member -> {
+                    MusicProject project = member.getMusicProject();
+                    ProjectInviteDTO dto = new ProjectInviteDTO();
+                    dto.setMemberId(member.getId());
+                    dto.setProjectId(project.getId());
+                    dto.setProjectName(project.getName());
+                    dto.setProjectProfileImage(project.getProfileImage());
+                    dto.setInvitedByUserId(member.getAddedByUserId());
+                    dto.setInvitedAt(member.getInvitedAt());
+                    return dto;
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void respondInvite(UUID projectId, ProjectInviteResponseDTO responseDto) {
+        User currentUser = currentUserProvider.get();
+
+        MusicProjectMember member = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_IdAndStatus(projectId, currentUser.getId(), ProjectMemberStatus.PENDING_INVITE)
+                .orElseThrow(() -> new ValidationException("Convite não encontrado para este projeto."));
+
+        member.setRespondedAt(LocalDateTime.now());
+
+        if (Boolean.TRUE.equals(responseDto.getAccepted())) {
+            member.setStatus(ProjectMemberStatus.ACTIVE);
+            musicProjectMemberRepository.save(member);
+
+            MusicProject project = member.getMusicProject();
+            String dataJson = String.format(
+                    "{\"projectId\":\"%s\",\"projectName\":\"%s\",\"acceptedByUserId\":\"%s\"}",
+                    project.getId(), project.getName(), currentUser.getId()
+            );
+            if (member.getAddedByUserId() != null) {
+                userNotificationService.createNotification(new CreateUserNotificationRequest(
+                        NotificationType.PROJECT_MEMBER_INVITE_ACCEPTED,
+                        member.getAddedByUserId(),
+                        "Convite aceito",
+                        currentUser.getFirstName() + " aceitou o convite para o projeto " + project.getName() + ".",
+                        null,
+                        dataJson
+                ));
+            }
+        } else {
+            member.setStatus(ProjectMemberStatus.DECLINED);
+            musicProjectMemberRepository.save(member);
+
+            MusicProject project = member.getMusicProject();
+            String dataJson = String.format(
+                    "{\"projectId\":\"%s\",\"projectName\":\"%s\",\"declinedByUserId\":\"%s\"}",
+                    project.getId(), project.getName(), currentUser.getId()
+            );
+            if (member.getAddedByUserId() != null) {
+                userNotificationService.createNotification(new CreateUserNotificationRequest(
+                        NotificationType.PROJECT_MEMBER_INVITE_DECLINED,
+                        member.getAddedByUserId(),
+                        "Convite recusado",
+                        currentUser.getFirstName() + " recusou o convite para o projeto " + project.getName() + ".",
+                        null,
+                        dataJson
+                ));
+            }
+        }
     }
 
     @Override
@@ -205,7 +314,6 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
     @Override
     public List<EventDetailDto> getEventsByProject(UUID projectId) {
-
         return eventRepository
                 .findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(
                         projectId,
@@ -230,21 +338,16 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 .toList();
     }
 
-
-
     private MusicProject buildProject(MusicProjectCreateDTO dto, User creator) {
         MusicProject project = new MusicProject();
         project.setName(dto.getName());
         project.setType(dto.getType());
         project.setCreatedByUserId(creator.getId());
         project.setCreatedAt(LocalDateTime.now());
-
         return project;
     }
 
     private void addOwnerMember(MusicProject project, User creator) {
-
-
         validIfMemberExistInProject(project.getId(), creator.getId());
 
         MusicProjectMember ownerMember = new MusicProjectMember();
@@ -255,18 +358,15 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         ownerMember.setCreatedAt(LocalDateTime.now());
 
         musicProjectMemberRepository.save(ownerMember);
-
     }
 
-    private void validIfMemberExistInProject(UUID projectId, UUID userId){
+    private void validIfMemberExistInProject(UUID projectId, UUID userId) {
         boolean alreadyMember = musicProjectMemberRepository
                 .existsByMusicProject_IdAndUser_Id(projectId, userId);
         if (alreadyMember) {
             throw new ValidationException("Usuário já é membro deste projeto.");
         }
     }
-
-
 
     private MusicProjectDetailDTO toDetailDto(MusicProject project) {
         MusicProjectDetailDTO out = new MusicProjectDetailDTO();
@@ -280,14 +380,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 .stream()
                 .map(member -> {
                     User user = member.getUser();
-
                     MemberDTO dto = new MemberDTO();
                     dto.setId(user.getId());
                     dto.setFirstName(user.getFirstName());
                     dto.setLastName(user.getLastName());
                     dto.setProfileImage(user.getProfileImage());
                     dto.setProjectRole(member.getProjectRole());
-
                     return dto;
                 })
                 .toList();
@@ -325,6 +423,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
         ProjectSkill skill = new ProjectSkill();
         skill.setName(skillDto.name());
+        skill.setIconKey(skillDto.iconKey());
         skill.setMusicProject(project);
 
         projectSkillRepository.save(skill);
@@ -334,10 +433,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     public List<ProjectSkillDTO> getProjectSkills(UUID projectId) {
         return projectSkillRepository.findByMusicProject_Id(projectId)
                 .stream()
-                .map(skill -> new ProjectSkillDTO(
-                        skill.getId(),
-                        skill.getName()
-                ))
+                .map(ProjectSkillDTO::fromEntity)
                 .toList();
     }
 
@@ -346,7 +442,6 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         MusicProjectMember member = musicProjectMemberRepository
                 .findById(memberId)
                 .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
-
         return memberMapper.toDto(member);
     }
 
@@ -399,7 +494,6 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
     @Override
     public MonthOverviewResponse getMonthOverview(UUID projectId, String yearMonth) {
-
         List<Event> events = getEventsOfMonth(projectId, yearMonth);
 
         if (events.isEmpty()) {
@@ -407,7 +501,6 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         }
 
         List<UUID> eventIds = events.stream().map(Event::getId).toList();
-
 
         List<EventParticipant> allParticipants = eventParticipantRepository.findByEventIdIn(eventIds);
         List<EventSetlistItem> allSongs = eventSetlistItemRepository.findByEventIdInAndType(eventIds, SetlistItemType.SONG);
@@ -418,9 +511,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         Map<UUID, List<EventSetlistItem>> songsByEvent = allSongs.stream()
                 .collect(java.util.stream.Collectors.groupingBy(s -> s.getEvent().getId()));
 
-
         List<MonthEventItem> items = events.stream().map(event -> {
-
             MonthEventItem base = eventOverviewMapper.toMonthItem(event);
 
             var participants = participantsByEvent
@@ -448,7 +539,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         return new MonthOverviewResponse(projectId, yearMonth, items.size(), items);
     }
 
-    List<Event> getEventsOfMonth(UUID projectId, String yearMonth){
+    List<Event> getEventsOfMonth(UUID projectId, String yearMonth) {
         YearMonth ym;
         try {
             ym = YearMonth.parse(yearMonth);
@@ -459,8 +550,6 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         LocalDateTime start = ym.atDay(1).atStartOfDay();
         LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
 
-        List<Event> events =  eventRepository.findAllByMusicProjectIdAndStartAtBetweenOrderByStartAtAsc(projectId, start, end);
-        return events;
+        return eventRepository.findAllByMusicProjectIdAndStartAtBetweenOrderByStartAtAsc(projectId, start, end);
     }
-
 }

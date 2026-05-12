@@ -6,6 +6,8 @@ import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
+import br.com.louvor4.api.shared.dto.MusicProject.ProjectInviteDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.ProjectInviteResponseDTO;
 import br.com.louvor4.api.shared.dto.eventOverview.MonthOverviewResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -61,6 +63,19 @@ public class MusicProjectController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @GetMapping("/invites")
+    public ResponseEntity<List<ProjectInviteDTO>> getMyInvites() {
+        return ResponseEntity.ok(musicProjectService.getMyInvites());
+    }
+
+    @PostMapping("/{projectId}/members/invite/respond")
+    public ResponseEntity<Void> respondInvite(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid ProjectInviteResponseDTO responseDto) {
+        musicProjectService.respondInvite(projectId, responseDto);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/{projectId}/members")
     public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID projectId) {
         List<MemberDTO> members = musicProjectService.getMembers(projectId);
@@ -98,9 +113,7 @@ public class MusicProjectController {
     }
 
     @PostMapping("/{projectId}/skills")
-    public ResponseEntity<Void> addProjectSkill(
-            @PathVariable UUID projectId,
-            @RequestBody @Valid ProjectSkillRequestDTO skillDto) {
+    public ResponseEntity<Void> addProjectSkill(@PathVariable UUID projectId, @RequestBody @Valid ProjectSkillRequestDTO skillDto) {
         musicProjectService.addProjectSkill(projectId, skillDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

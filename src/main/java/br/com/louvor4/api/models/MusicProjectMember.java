@@ -58,6 +58,12 @@ public class MusicProjectMember {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "invited_at")
+    private LocalDateTime invitedAt;
+
+    @Column(name = "responded_at")
+    private LocalDateTime respondedAt;
+
     public UUID getId() {
         return id;
     }
@@ -120,5 +126,21 @@ public class MusicProjectMember {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getInvitedAt() {
+        return invitedAt;
+    }
+
+    public void setInvitedAt(LocalDateTime invitedAt) {
+        this.invitedAt = invitedAt;
+    }
+
+    public LocalDateTime getRespondedAt() {
+        return respondedAt;
+    }
+
+    public void setRespondedAt(LocalDateTime respondedAt) {
+        this.respondedAt = respondedAt;
     }
 }

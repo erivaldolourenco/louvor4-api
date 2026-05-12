@@ -20,7 +20,10 @@ public interface MusicProjectService {
     void addMember(UUID projectId, AddMemberDTO addDto);
     List<MemberDTO> getMembers(UUID projectId);
 
-    CreateEventDto createEvent(UUID projectId,CreateEventDto eventDto);
+    List<ProjectInviteDTO> getMyInvites();
+    void respondInvite(UUID projectId, ProjectInviteResponseDTO responseDto);
+
+    CreateEventDto createEvent(UUID projectId, CreateEventDto eventDto);
     List<EventDetailDto> getEventsByProject(UUID projectId);
 
     void assignSkillsToMember(UUID projectId, UUID memberId, List<UUID> skillIds);

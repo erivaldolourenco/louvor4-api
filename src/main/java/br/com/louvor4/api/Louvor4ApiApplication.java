@@ -10,11 +10,13 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @EnableAsync
+@EnableScheduling
 @ConfigurationPropertiesScan
 @SpringBootApplication
 public class Louvor4ApiApplication {

@@ -10,6 +10,7 @@ import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.*;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
+import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
 import br.com.louvor4.api.shared.dto.MusicProject.MusicProjectDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.UserUnavailability.CreateUserUnavailabilityRequest;
@@ -21,7 +22,10 @@ import br.com.louvor4.api.shared.dto.notification.UnreadNotificationCountRespons
 import br.com.louvor4.api.shared.dto.notification.UserNotificationItemResponse;
 import br.com.louvor4.api.shared.dto.notification.UserNotificationListResponse;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -101,9 +105,20 @@ public class UserController {
         return ResponseEntity.ok(dtoList);
     }
 
+    @GetMapping("/medleys")
+    public ResponseEntity<List<MedleyResponse>> getMedleys() {
+        return ResponseEntity.ok(userService.getMedleys());
+    }
+
     @GetMapping("/events")
     public ResponseEntity<List<UserEventDetailDto>> getEventsByUser() {
         return ResponseEntity.ok(eventService.getEventsByUser());
+    }
+
+    @GetMapping("/events/past")
+    public ResponseEntity<Page<UserEventDetailDto>> getPastEventsByUser(
+            @PageableDefault(size = 10, sort = "startAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(eventService.getPastEventsByUser(pageable));
     }
 
     @GetMapping("/notifications")

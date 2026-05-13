@@ -6,6 +6,7 @@ import br.com.louvor4.api.models.EventReminder;
 import br.com.louvor4.api.repositories.EventReminderRepository;
 import br.com.louvor4.api.services.EventReminderScheduler;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +34,7 @@ public class EventReminderSchedulerImpl implements EventReminderScheduler {
         repository.save(reminder);
     }
 
+    @Transactional
     @Override
     public void reschedule(Event event) {
         cancelExisting(event.getId());

@@ -107,6 +107,30 @@ class EventReminderSchedulerImplTest {
         verify(repository).save(any(EventReminder.class));
     }
 
+    @Test
+    void reschedule_cancelsExistingButDoesNotCreateWhenEventNoLongerEligible() throws Exception {
+        event.setStartAt(LocalDateTime.now().plusHours(10));
+        EventReminder existing = new EventReminder();
+        setId(existing, UUID.randomUUID());
+        existing.setStatus(ReminderStatus.PENDING);
+        when(repository.findByEventIdAndStatusIn(eq(event.getId()), anyList()))
+                .thenReturn(List.of(existing));
+
+        scheduler.reschedule(event);
+
+        verify(repository).cancelById(eq(existing.getId()), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void schedule_doesNotCreateReminderWhenStartAtIsNull() {
+        event.setStartAt(null);
+
+        scheduler.schedule(event);
+
+        verify(repository, never()).save(any());
+    }
+
     // EventReminder.id has no public setter; set via reflection
     private static void setId(EventReminder reminder, UUID id) throws Exception {
         Field field = EventReminder.class.getDeclaredField("id");

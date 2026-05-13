@@ -28,6 +28,9 @@ import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
 import br.com.louvor4.api.strategy.event.EventSetlistItemStrategy;
 import br.com.louvor4.api.strategy.event.EventSetlistItemStrategyResolver;
 import br.com.louvor4.api.validations.EventValidation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -426,6 +429,83 @@ public class EventServiceImpl implements EventService {
                     );
                 })
                 .toList();
+    }
+
+    @Override
+    public Page<UserEventDetailDto> getPastEventsByUser(Pageable pageable) {
+        UUID userId = currentUserProvider.get().getId();
+
+        Page<EventParticipant> page = eventParticipantRepository
+                .findPastByUserWithEventAndProjectAndMemberUser(
+                        userId,
+                        EventParticipantStatus.ACCEPTED,
+                        LocalDateTime.now(),
+                        pageable
+                );
+
+        List<EventParticipant> participants = page.getContent();
+
+        if (participants.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<Event> events = participants.stream()
+                .map(EventParticipant::getEvent)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        List<UUID> eventIds = events.stream().map(Event::getId).toList();
+
+        Map<UUID, Integer> participantCountByEvent = eventParticipantRepository
+                .countDistinctMembersByEventIds(eventIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        EventCountProjection::getEventId,
+                        count -> count.getTotal().intValue()
+                ));
+
+        Map<UUID, Integer> songCountByEvent = eventSetlistItemRepository
+                .countDistinctSongsByEventIds(eventIds, SetlistItemType.SONG)
+                .stream()
+                .collect(Collectors.toMap(
+                        EventCountProjection::getEventId,
+                        count -> count.getTotal().intValue()
+                ));
+
+        Map<UUID, EventParticipant> participantByEventId = participants.stream()
+                .filter(p -> p.getEvent() != null)
+                .collect(Collectors.toMap(
+                        p -> p.getEvent().getId(),
+                        p -> p,
+                        (left, right) -> left
+                ));
+
+        Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(eventIds);
+
+        List<UserEventDetailDto> dtos = events.stream()
+                .map(event -> {
+                    EventParticipant ep = participantByEventId.get(event.getId());
+                    return new UserEventDetailDto(
+                            event.getId(),
+                            event.getMusicProject().getId(),
+                            event.getTitle(),
+                            event.getDescription(),
+                            event.getStartAt().toLocalDate(),
+                            event.getStartAt().toLocalTime(),
+                            event.getLocation(),
+                            event.getMusicProject().getName(),
+                            event.getMusicProject().getProfileImage(),
+                            participantCountByEvent.getOrDefault(event.getId(), 0),
+                            songCountByEvent.getOrDefault(event.getId(), 0),
+                            participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
+                            ep != null ? ep.getId() : null,
+                            ep != null ? ep.getStatus() : null
+                    );
+                })
+                .toList();
+
+        return new PageImpl<>(dtos, pageable, page.getTotalElements());
     }
 
     private Map<UUID, List<String>> buildParticipantsImagesByEvent(List<UUID> eventIds) {

@@ -12,9 +12,10 @@ import br.com.louvor4.api.mapper.EventSetlistItemMapper;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.repositories.projections.EventCountProjection;
+import br.com.louvor4.api.services.EventReminderScheduler;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.PushSenderService;
-import br.com.louvor4.api.services.ScheduleService;
+import br.com.louvor4.api.services.ProgramService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
@@ -49,7 +50,8 @@ public class EventServiceImpl implements EventService {
     private final UserNotificationService userNotificationService;
     private final UserUnavailabilityRepository userUnavailabilityRepository;
     private final EventSetlistItemStrategyResolver strategyResolver;
-    private final ScheduleService scheduleService;
+    private final ProgramService programService;
+    private final EventReminderScheduler eventReminderScheduler;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -59,7 +61,8 @@ public class EventServiceImpl implements EventService {
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
             MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
-            ScheduleService scheduleService
+            ProgramService programService,
+            EventReminderScheduler eventReminderScheduler
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -74,7 +77,8 @@ public class EventServiceImpl implements EventService {
         this.userNotificationService = userNotificationService;
         this.userUnavailabilityRepository = userUnavailabilityRepository;
         this.strategyResolver = strategyResolver;
-        this.scheduleService = scheduleService;
+        this.programService = programService;
+        this.eventReminderScheduler = eventReminderScheduler;
     }
 
     @Transactional
@@ -510,7 +514,7 @@ public class EventServiceImpl implements EventService {
 
         eventSetlistItemRepository.saveAll(toSave);
         for (EventSetlistItem saved : toSave) {
-            scheduleService.onSetlistItemAdded(saved);
+            programService.onSetlistItemAdded(saved);
         }
     }
 
@@ -550,7 +554,7 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new NotFoundException("Item do setlist não encontrado no evento."));
 
         eventValidation.validateSetlistItemBelongsToEvent(setlistItem, eventId);
-        scheduleService.onSetlistItemRemoved(setlistItem.getId());
+        programService.onSetlistItemRemoved(setlistItem.getId());
         eventSetlistItemRepository.delete(setlistItem);
     }
 
@@ -563,6 +567,7 @@ public class EventServiceImpl implements EventService {
         Integer songs = eventRepository.countSongsByEventId(eventId, SetlistItemType.SONG);
         eventValidation.validateDeletionRules(participants, songs);
 
+        eventReminderScheduler.cancel(eventId);
         eventRepository.delete(event);
     }
 
@@ -570,7 +575,8 @@ public class EventServiceImpl implements EventService {
     public void updateEventBy(UUID eventId, UpdateEventDto eventDto) {
         Event event = findEventOrThrow(eventId);
         eventMapper.updateEntityFromDto(eventDto, event);
-        eventRepository.save(event);
+        Event saved = eventRepository.save(event);
+        eventReminderScheduler.reschedule(saved);
     }
 
 

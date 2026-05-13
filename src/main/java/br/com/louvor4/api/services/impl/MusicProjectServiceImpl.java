@@ -10,6 +10,7 @@ import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.*;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
+import br.com.louvor4.api.services.EventReminderScheduler;
 import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserNotificationService;
@@ -51,8 +52,9 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final MemberMapper memberMapper;
     private final EventParticipantRepository eventParticipantRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
+    private final EventReminderScheduler eventReminderScheduler;
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, EventReminderScheduler eventReminderScheduler) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -69,6 +71,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.memberMapper = memberMapper;
         this.eventParticipantRepository = eventParticipantRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
+        this.eventReminderScheduler = eventReminderScheduler;
     }
 
     @Override
@@ -215,7 +218,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         userNotificationService.createNotification(new CreateUserNotificationRequest(
                 NotificationType.PROJECT_MEMBER_INVITE,
                 userMember.getId(),
-                "Convite para projeto",
+                "Convite para projeto: " + musicProject.getName(),
                 "Você foi convidado para participar do projeto " + musicProject.getName() + ". Aceite ou recuse o convite.",
                 null,
                 dataJson
@@ -260,6 +263,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 .orElseThrow(() -> new ValidationException("Convite não encontrado para este projeto."));
 
         member.setRespondedAt(LocalDateTime.now());
+        userNotificationService.markProjectInviteAsReadIfExists(currentUser.getId(), projectId);
 
         if (Boolean.TRUE.equals(responseDto.getAccepted())) {
             member.setStatus(ProjectMemberStatus.ACTIVE);
@@ -309,6 +313,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         Event event = eventMapper.toEntity(eventDto);
         event.setMusicProject(project);
         Event saved = eventRepository.save(event);
+        eventReminderScheduler.schedule(saved);
         return eventMapper.toDto(saved);
     }
 
@@ -427,6 +432,22 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         skill.setMusicProject(project);
 
         projectSkillRepository.save(skill);
+    }
+
+    @Override
+    @Transactional
+    public ProjectSkillDTO updateProjectSkill(UUID projectId, UUID skillId, ProjectSkillRequestDTO skillDto) {
+        ProjectSkill skill = projectSkillRepository.findById(skillId)
+                .orElseThrow(() -> new ValidationException("Função não encontrada."));
+
+        if (!skill.getMusicProject().getId().equals(projectId)) {
+            throw new ValidationException("Esta função não pertence ao projeto informado.");
+        }
+
+        skill.setName(skillDto.name());
+        skill.setIconKey(skillDto.iconKey());
+
+        return ProjectSkillDTO.fromEntity(projectSkillRepository.save(skill));
     }
 
     @Override

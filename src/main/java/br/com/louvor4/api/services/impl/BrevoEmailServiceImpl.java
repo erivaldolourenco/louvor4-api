@@ -2,6 +2,8 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.EmailConfig;
 import br.com.louvor4.api.services.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
@@ -17,6 +19,8 @@ import java.util.Map;
 @Service
 @ConditionalOnProperty(name = "app.email.provider", havingValue = "brevo")
 public class BrevoEmailServiceImpl implements EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(BrevoEmailServiceImpl.class);
 
 
     @Value("${app.email.brevo.api-key}")
@@ -95,6 +99,31 @@ public class BrevoEmailServiceImpl implements EmailService {
             }
         } catch (Exception e) {
             System.err.println("Erro ao enviar e-mail de verificação via Brevo: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendEventReminder(String to, String subject, String message) {
+        Map<String, Object> body = Map.of(
+            "sender", Map.of("email", emailConfig.getFromEmail(), "name", "Louvor4"),
+            "to", List.of(Map.of("email", to)),
+            "subject", subject,
+            "textContent", message
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", apiKey);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Lembrete de evento enviado via e-mail para: {}", to);
+            }
+        } catch (Exception e) {
+            log.error("Erro ao enviar lembrete de evento via e-mail para {}: {}", to, e.getMessage());
+            throw e;
         }
     }
 }

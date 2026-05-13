@@ -33,5 +33,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     """)
     Integer countSongsByEventId(@Param("eventId") UUID eventId, @Param("type") SetlistItemType type);
 
+    @Query("SELECT e.musicProject.id FROM Event e WHERE e.id = :eventId")
+    UUID findProjectIdByEventId(@Param("eventId") UUID eventId);
 
 }

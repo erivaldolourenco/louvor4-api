@@ -8,7 +8,6 @@ import br.com.louvor4.api.repositories.EventReminderRepository;
 import br.com.louvor4.api.services.EmailService;
 import br.com.louvor4.api.services.PushSenderService;
 import br.com.louvor4.api.services.UserNotificationService;
-import com.google.firebase.messaging.FirebaseMessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,7 +85,7 @@ class EventReminderServiceImplTest {
     }
 
     @Test
-    void processDue_sendsToAcceptedAndPendingParticipants() throws FirebaseMessagingException {
+    void processDue_sendsToAcceptedAndPendingParticipants() throws Exception {
         when(reminderRepository.findByStatusAndScheduledForLessThanEqual(
                 eq(ReminderStatus.PENDING), any()))
                 .thenReturn(List.of(reminder));
@@ -102,7 +101,8 @@ class EventReminderServiceImplTest {
     }
 
     @Test
-    void processDue_marksFailedWhenPushThrows() throws FirebaseMessagingException {
+    void processDue_marksSentEvenWhenPushThrows() throws Exception {
+        // Push is @Async in production and cannot throw synchronously — treated as best-effort
         when(reminderRepository.findByStatusAndScheduledForLessThanEqual(
                 eq(ReminderStatus.PENDING), any()))
                 .thenReturn(List.of(reminder));
@@ -114,7 +114,25 @@ class EventReminderServiceImplTest {
 
         service.processDue();
 
-        verify(reminderRepository).markAsFailed(any(), contains("Firebase down"), any());
+        verify(reminderRepository).markAsSent(any(), any());
+        verify(reminderRepository, never()).markAsFailed(any(), any(), any());
+    }
+
+    @Test
+    void processDue_marksSentEvenWhenEmailThrows() {
+        when(reminderRepository.findByStatusAndScheduledForLessThanEqual(
+                eq(ReminderStatus.PENDING), any()))
+                .thenReturn(List.of(reminder));
+        when(reminderRepository.tryUpdateStatus(any(), any(), any(), any())).thenReturn(1);
+        when(participantRepository.findByEventId(event.getId()))
+                .thenReturn(List.of(acceptedParticipant));
+        doThrow(new RuntimeException("Brevo down"))
+                .when(emailService).sendEventReminder(anyString(), anyString(), anyString());
+
+        service.processDue();
+
+        verify(reminderRepository).markAsSent(any(), any());
+        verify(reminderRepository, never()).markAsFailed(any(), any(), any());
     }
 
     @Test

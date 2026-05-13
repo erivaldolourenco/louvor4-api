@@ -105,11 +105,11 @@ public class EventReminderServiceImpl implements EventReminderService {
     }
 
     private void sendAll(UUID userId, String email, String title, String message) {
+        // Push is @Async — exceptions cannot surface synchronously; treat as best-effort
         try {
             pushSenderService.sendToUser(userId, title, message);
         } catch (Exception e) {
             log.warn("Push falhou para usuário {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Push failed: " + e.getMessage(), e);
         }
 
         try {

@@ -2,6 +2,8 @@ package br.com.louvor4.api.models;
 
 import br.com.louvor4.api.enums.ReminderStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ public class EventReminder {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "event_id", nullable = false, columnDefinition = "uuid")
     private Event event;
 

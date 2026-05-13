@@ -306,6 +306,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         }
     }
 
+    @Transactional
     @Override
     public CreateEventDto createEvent(UUID projectId, CreateEventDto eventDto) {
         MusicProject project = musicProjectRepository.findById(projectId)

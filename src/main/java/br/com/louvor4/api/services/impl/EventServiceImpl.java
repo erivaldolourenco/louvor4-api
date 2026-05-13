@@ -558,6 +558,7 @@ public class EventServiceImpl implements EventService {
         eventSetlistItemRepository.delete(setlistItem);
     }
 
+    @Transactional
     @Override
     public void deleteEventById(UUID eventId) {
 
@@ -571,6 +572,7 @@ public class EventServiceImpl implements EventService {
         eventRepository.delete(event);
     }
 
+    @Transactional
     @Override
     public void updateEventBy(UUID eventId, UpdateEventDto eventDto) {
         Event event = findEventOrThrow(eventId);

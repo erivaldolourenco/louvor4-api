@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,7 +30,6 @@ public class MusicProjectController {
         this.musicProjectService = musicProjectService;
     }
 
-
     @PostMapping("/create")
     public ResponseEntity<MusicProjectDetailDTO> create(@RequestBody @Valid MusicProjectCreateDTO createDto) {
         MusicProjectDetailDTO dto = musicProjectService.create(createDto);
@@ -37,18 +37,21 @@ public class MusicProjectController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@projectSecurity.isMember(#id)")
     public ResponseEntity<MusicProjectDetailDTO> findById(@PathVariable UUID id) {
         MusicProjectDetailDTO musicProjectDetailDTO = musicProjectService.getById(id);
         return ResponseEntity.ok(musicProjectDetailDTO);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#id)")
     public ResponseEntity<MusicProjectDetailDTO> update(@PathVariable UUID id, @RequestBody @Valid MusicProjectDTO updateDto) {
-        MusicProjectDetailDTO musicProjectDetailDTO = musicProjectService.update(id,updateDto);
+        MusicProjectDetailDTO musicProjectDetailDTO = musicProjectService.update(id, updateDto);
         return ResponseEntity.ok(musicProjectDetailDTO);
     }
 
     @PutMapping(value = "/{id}/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#id)")
     public ResponseEntity<String> updateProfileImage(
             @PathVariable UUID id,
             @RequestPart("profileImage") MultipartFile profileImage
@@ -58,6 +61,7 @@ public class MusicProjectController {
     }
 
     @PostMapping("/{projectId}/members")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
     public ResponseEntity<Void> addMember(@PathVariable UUID projectId, @RequestBody @Valid AddMemberDTO addDto) {
         musicProjectService.addMember(projectId, addDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
@@ -77,54 +81,62 @@ public class MusicProjectController {
     }
 
     @GetMapping("/{projectId}/members")
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<List<MemberDTO>> getMembers(@PathVariable UUID projectId) {
         List<MemberDTO> members = musicProjectService.getMembers(projectId);
         return ResponseEntity.ok(members);
     }
 
-
     @GetMapping("/{projectId}/members/{memberId}")
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<MemberDTO> getMember(@PathVariable UUID projectId, @PathVariable UUID memberId) {
         MemberDTO members = musicProjectService.getMember(projectId, memberId);
         return ResponseEntity.ok(members);
     }
 
     @PutMapping("/{projectId}/members/{memberId}")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
     public ResponseEntity<MemberDTO> updateMember(@PathVariable UUID projectId, @PathVariable UUID memberId, @RequestBody UpdateMemberRequest request) {
-        MemberDTO members = musicProjectService.updateMember(projectId, memberId,request);
+        MemberDTO members = musicProjectService.updateMember(projectId, memberId, request);
         return ResponseEntity.ok(members);
     }
 
     @DeleteMapping("/{projectId}/members/{memberId}")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
     public ResponseEntity<Void> deleteMember(@PathVariable UUID projectId, @PathVariable UUID memberId) {
         musicProjectService.deleteMember(projectId, memberId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{projectId}/events")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
     public ResponseEntity<Void> createEvent(@PathVariable UUID projectId, @RequestBody @Valid CreateEventDto eventDto) {
         musicProjectService.createEvent(projectId, eventDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{projectId}/events")
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<List<EventDetailDto>> getEventsByProject(@PathVariable UUID projectId) {
         return ResponseEntity.ok(musicProjectService.getEventsByProject(projectId));
     }
 
     @PostMapping("/{projectId}/skills")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
     public ResponseEntity<Void> addProjectSkill(@PathVariable UUID projectId, @RequestBody @Valid ProjectSkillRequestDTO skillDto) {
         musicProjectService.addProjectSkill(projectId, skillDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/{projectId}/skills")
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<List<ProjectSkillDTO>> getProjectSkills(@PathVariable UUID projectId) {
         List<ProjectSkillDTO> skills = musicProjectService.getProjectSkills(projectId);
         return ResponseEntity.ok(skills);
     }
 
     @PostMapping("/{projectId}/members/{memberId}/skills")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
     public ResponseEntity<Void> assignSkillsToMember(
             @PathVariable UUID projectId,
             @PathVariable UUID memberId,
@@ -134,13 +146,15 @@ public class MusicProjectController {
     }
 
     @GetMapping("/{projectId}/member-role")
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<ProjectMemberRole> getMemberRole(@PathVariable UUID projectId) {
         ProjectMemberRole memberRole = musicProjectService.getMemberRole(projectId);
         return ResponseEntity.ok(memberRole);
     }
 
     @GetMapping("/{projectId}/months/{yearMonth}/overview")
-    public ResponseEntity<MonthOverviewResponse> getMonthOverview(  @PathVariable UUID projectId, @PathVariable String yearMonth) {
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
+    public ResponseEntity<MonthOverviewResponse> getMonthOverview(@PathVariable UUID projectId, @PathVariable String yearMonth) {
         MonthOverviewResponse resp = musicProjectService.getMonthOverview(projectId, yearMonth);
         return ResponseEntity.ok(resp);
     }

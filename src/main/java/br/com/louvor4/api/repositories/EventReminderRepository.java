@@ -22,7 +22,7 @@ public interface EventReminderRepository extends JpaRepository<EventReminder, UU
     List<EventReminder> findByStatusAndUpdatedAtBefore(
             ReminderStatus status, LocalDateTime threshold);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
         UPDATE EventReminder e
@@ -35,16 +35,16 @@ public interface EventReminderRepository extends JpaRepository<EventReminder, UU
             @Param("newStatus") ReminderStatus newStatus,
             @Param("now") LocalDateTime now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
         UPDATE EventReminder e
            SET e.status = 'SENT', e.sentAt = :now, e.updatedAt = :now
-         WHERE e.id = :id
+         WHERE e.id = :id AND e.status = 'PROCESSING'
         """)
-    void markAsSent(@Param("id") UUID id, @Param("now") LocalDateTime now);
+    int markAsSent(@Param("id") UUID id, @Param("now") LocalDateTime now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
         UPDATE EventReminder e
@@ -53,7 +53,7 @@ public interface EventReminderRepository extends JpaRepository<EventReminder, UU
         """)
     void markAsFailed(@Param("id") UUID id, @Param("msg") String msg, @Param("now") LocalDateTime now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
         UPDATE EventReminder e

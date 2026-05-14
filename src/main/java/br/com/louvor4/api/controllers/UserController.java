@@ -24,7 +24,6 @@ import br.com.louvor4.api.shared.dto.notification.UserNotificationListResponse;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -117,7 +116,7 @@ public class UserController {
 
     @GetMapping("/events/past")
     public ResponseEntity<Page<UserEventDetailDto>> getPastEventsByUser(
-            @PageableDefault(size = 10, sort = "startAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 10) Pageable pageable) {
         return ResponseEntity.ok(eventService.getPastEventsByUser(pageable));
     }
 

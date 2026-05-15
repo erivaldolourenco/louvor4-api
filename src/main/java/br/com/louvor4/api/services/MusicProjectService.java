@@ -29,6 +29,8 @@ public interface MusicProjectService {
     void assignSkillsToMember(UUID projectId, UUID memberId, List<UUID> skillIds);
     void addProjectSkill(UUID projectId, ProjectSkillRequestDTO skillDto);
 
+    ProjectSkillDTO updateProjectSkill(UUID projectId, UUID skillId, ProjectSkillRequestDTO skillDto);
+
     List<ProjectSkillDTO> getProjectSkills(UUID projectId);
 
     MemberDTO getMember(UUID projectId, UUID memberId);

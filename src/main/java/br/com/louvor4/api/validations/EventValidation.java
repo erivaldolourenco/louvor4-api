@@ -37,9 +37,9 @@ public class EventValidation {
         }
     }
 
-    public void validateSongBelongsToEvent(EventSetlistItem eventSong, UUID eventId){
-        if (eventSong.getEvent() == null || !eventId.equals(eventSong.getEvent().getId())) {
-            throw new ValidationException("Esta música não pertence ao evento informado.");
+    public void validateSetlistItemBelongsToEvent(EventSetlistItem setlistItem, UUID eventId){
+        if (setlistItem.getEvent() == null || !eventId.equals(setlistItem.getEvent().getId())) {
+            throw new ValidationException("Este item do setlist não pertence ao evento informado.");
         }
     }
 

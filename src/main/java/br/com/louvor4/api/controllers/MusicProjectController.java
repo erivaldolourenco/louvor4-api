@@ -128,6 +128,15 @@ public class MusicProjectController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PutMapping("/{projectId}/skills/{skillId}")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
+    public ResponseEntity<ProjectSkillDTO> updateProjectSkill(
+            @PathVariable UUID projectId,
+            @PathVariable UUID skillId,
+            @RequestBody @Valid ProjectSkillRequestDTO skillDto) {
+        return ResponseEntity.ok(musicProjectService.updateProjectSkill(projectId, skillId, skillDto));
+    }
+
     @GetMapping("/{projectId}/skills")
     @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<List<ProjectSkillDTO>> getProjectSkills(@PathVariable UUID projectId) {

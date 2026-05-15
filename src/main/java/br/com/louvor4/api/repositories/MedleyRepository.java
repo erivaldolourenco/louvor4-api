@@ -5,9 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface MedleyRepository extends JpaRepository<Medley, UUID> {
     List<Medley> findByUser_Id(UUID userId);
+    Optional<Medley> findMedleyById(UUID medleyId);
 }

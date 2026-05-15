@@ -1,6 +1,6 @@
 package br.com.louvor4.api.enums;
 
-public enum ScheduleItemType {
+public enum ProgramItemType {
     MUSIC,
     TEXT
 }

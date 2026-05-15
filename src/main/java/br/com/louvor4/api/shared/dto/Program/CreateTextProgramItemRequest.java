@@ -1,8 +1,8 @@
-package br.com.louvor4.api.shared.dto.Schedule;
+package br.com.louvor4.api.shared.dto.Program;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record CreateTextScheduleItemRequest(
+public record CreateTextProgramItemRequest(
         @NotBlank String title,
         String description
 ) {}

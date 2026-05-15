@@ -10,9 +10,11 @@ import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.PlanRepository;
 import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.EmailService;
+import br.com.louvor4.api.services.MedleyService;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserService;
+import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
@@ -34,6 +36,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final SongService songService;
+    private final MedleyService medleyService;
     private final CurrentUserProvider currentUserProvider;
     private final StorageService storageService;
     private final UserMapper userMapper;
@@ -44,6 +47,7 @@ public class UserServiceImpl implements UserService {
     public UserServiceImpl(
             UserRepository userRepository,
             SongService songService,
+            MedleyService medleyService,
             CurrentUserProvider currentUserProvider,
             StorageService storageService,
             UserMapper userMapper,
@@ -53,6 +57,7 @@ public class UserServiceImpl implements UserService {
     ) {
         this.userRepository = userRepository;
         this.songService = songService;
+        this.medleyService = medleyService;
         this.currentUserProvider = currentUserProvider;
         this.storageService = storageService;
         this.userMapper = userMapper;
@@ -168,6 +173,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<SongDTO> getSongs() {
         return songService.getSongsFromUser();
+    }
+
+    @Override
+    public List<MedleyResponse> getMedleys() {
+        return medleyService.listFromCurrentUser();
     }
 
 }

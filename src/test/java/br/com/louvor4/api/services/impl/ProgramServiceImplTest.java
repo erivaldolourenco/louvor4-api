@@ -1,12 +1,12 @@
 package br.com.louvor4.api.services.impl;
 
-import br.com.louvor4.api.enums.ScheduleItemType;
+import br.com.louvor4.api.enums.ProgramItemType;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.EventRepository;
-import br.com.louvor4.api.repositories.EventScheduleItemRepository;
-import br.com.louvor4.api.shared.dto.Schedule.*;
+import br.com.louvor4.api.repositories.EventProgramItemRepository;
+import br.com.louvor4.api.shared.dto.Program.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -23,19 +23,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ScheduleServiceImplTest {
+class ProgramServiceImplTest {
 
     @Mock
-    private EventScheduleItemRepository scheduleItemRepository;
+    private EventProgramItemRepository programItemRepository;
 
     @Mock
     private EventRepository eventRepository;
 
     @InjectMocks
-    private ScheduleServiceImpl scheduleService;
+    private ProgramServiceImpl programService;
 
     @Test
-    void getScheduleShouldReturnItemsOrderedByPosition() {
+    void getProgramShouldReturnItemsOrderedByPosition() {
         UUID eventId = UUID.randomUUID();
         Event event = new Event();
         event.setId(eventId);
@@ -49,39 +49,39 @@ class ScheduleServiceImplTest {
         setlistItem.setId(UUID.randomUUID());
         setlistItem.setSong(song);
 
-        EventScheduleItem musicItem = new EventScheduleItem();
+        EventProgramItem musicItem = new EventProgramItem();
         musicItem.setId(UUID.randomUUID());
         musicItem.setEvent(event);
-        musicItem.setType(ScheduleItemType.MUSIC);
+        musicItem.setType(ProgramItemType.MUSIC);
         musicItem.setPosition(1000);
         musicItem.setSetlistItem(setlistItem);
 
-        EventScheduleItem textItem = new EventScheduleItem();
+        EventProgramItem textItem = new EventProgramItem();
         textItem.setId(UUID.randomUUID());
         textItem.setEvent(event);
-        textItem.setType(ScheduleItemType.TEXT);
+        textItem.setType(ProgramItemType.TEXT);
         textItem.setPosition(2000);
         textItem.setTitle("Oração");
         textItem.setDescription("Momento de oração coletiva");
 
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
-        when(scheduleItemRepository.findByEventIdOrderByPositionAsc(eventId))
+        when(programItemRepository.findByEventIdOrderByPositionAsc(eventId))
                 .thenReturn(List.of(musicItem, textItem));
 
-        List<ScheduleItemResponse> result = scheduleService.getSchedule(eventId);
+        List<ProgramItemResponse> result = programService.getProgram(eventId);
 
         assertEquals(2, result.size());
 
-        ScheduleItemResponse first = result.get(0);
-        assertEquals(ScheduleItemType.MUSIC, first.type());
+        ProgramItemResponse first = result.get(0);
+        assertEquals(ProgramItemType.MUSIC, first.type());
         assertEquals(1000, first.position());
         assertNotNull(first.music());
         assertEquals("Superman", first.music().title());
         assertEquals("Fruto Sagrado", first.music().artist());
         assertNull(first.title());
 
-        ScheduleItemResponse second = result.get(1);
-        assertEquals(ScheduleItemType.TEXT, second.type());
+        ProgramItemResponse second = result.get(1);
+        assertEquals(ProgramItemType.TEXT, second.type());
         assertEquals(2000, second.position());
         assertEquals("Oração", second.title());
         assertEquals("Momento de oração coletiva", second.description());
@@ -89,11 +89,11 @@ class ScheduleServiceImplTest {
     }
 
     @Test
-    void getScheduleShouldThrowWhenEventNotFound() {
+    void getProgramShouldThrowWhenEventNotFound() {
         UUID eventId = UUID.randomUUID();
         when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> scheduleService.getSchedule(eventId));
+        assertThrows(NotFoundException.class, () -> programService.getProgram(eventId));
     }
 
     @Test
@@ -103,15 +103,15 @@ class ScheduleServiceImplTest {
         event.setId(eventId);
 
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
-        when(scheduleItemRepository.findMaxPositionByEventId(eventId)).thenReturn(2000);
+        when(programItemRepository.findMaxPositionByEventId(eventId)).thenReturn(2000);
 
-        scheduleService.addTextItem(eventId, new CreateTextScheduleItemRequest("Oração", "Descrição"));
+        programService.addTextItem(eventId, new CreateTextProgramItemRequest("Oração", "Descrição"));
 
-        ArgumentCaptor<EventScheduleItem> captor = ArgumentCaptor.forClass(EventScheduleItem.class);
-        verify(scheduleItemRepository).save(captor.capture());
+        ArgumentCaptor<EventProgramItem> captor = ArgumentCaptor.forClass(EventProgramItem.class);
+        verify(programItemRepository).save(captor.capture());
 
-        EventScheduleItem saved = captor.getValue();
-        assertEquals(ScheduleItemType.TEXT, saved.getType());
+        EventProgramItem saved = captor.getValue();
+        assertEquals(ProgramItemType.TEXT, saved.getType());
         assertEquals(3000, saved.getPosition());
         assertEquals("Oração", saved.getTitle());
         assertEquals("Descrição", saved.getDescription());
@@ -124,12 +124,12 @@ class ScheduleServiceImplTest {
         event.setId(eventId);
 
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
-        when(scheduleItemRepository.findMaxPositionByEventId(eventId)).thenReturn(0);
+        when(programItemRepository.findMaxPositionByEventId(eventId)).thenReturn(0);
 
-        scheduleService.addTextItem(eventId, new CreateTextScheduleItemRequest("Início", null));
+        programService.addTextItem(eventId, new CreateTextProgramItemRequest("Início", null));
 
-        ArgumentCaptor<EventScheduleItem> captor = ArgumentCaptor.forClass(EventScheduleItem.class);
-        verify(scheduleItemRepository).save(captor.capture());
+        ArgumentCaptor<EventProgramItem> captor = ArgumentCaptor.forClass(EventProgramItem.class);
+        verify(programItemRepository).save(captor.capture());
         assertEquals(1000, captor.getValue().getPosition());
     }
 
@@ -141,17 +141,17 @@ class ScheduleServiceImplTest {
         Event event = new Event();
         event.setId(eventId);
 
-        EventScheduleItem item = new EventScheduleItem();
+        EventProgramItem item = new EventProgramItem();
         item.setId(itemId);
         item.setEvent(event);
-        item.setType(ScheduleItemType.TEXT);
+        item.setType(ProgramItemType.TEXT);
         item.setTitle("Antigo");
 
-        when(scheduleItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(programItemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
-        scheduleService.updateTextItem(eventId, itemId, new UpdateTextScheduleItemRequest("Novo", "Nova desc"));
+        programService.updateTextItem(eventId, itemId, new UpdateTextProgramItemRequest("Novo", "Nova desc"));
 
-        verify(scheduleItemRepository).save(item);
+        verify(programItemRepository).save(item);
         assertEquals("Novo", item.getTitle());
         assertEquals("Nova desc", item.getDescription());
     }
@@ -161,10 +161,10 @@ class ScheduleServiceImplTest {
         UUID eventId = UUID.randomUUID();
         UUID itemId = UUID.randomUUID();
 
-        when(scheduleItemRepository.findById(itemId)).thenReturn(Optional.empty());
+        when(programItemRepository.findById(itemId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
-                () -> scheduleService.updateTextItem(eventId, itemId, new UpdateTextScheduleItemRequest("X", null)));
+                () -> programService.updateTextItem(eventId, itemId, new UpdateTextProgramItemRequest("X", null)));
     }
 
     @Test
@@ -175,15 +175,15 @@ class ScheduleServiceImplTest {
         Event otherEvent = new Event();
         otherEvent.setId(UUID.randomUUID());
 
-        EventScheduleItem item = new EventScheduleItem();
+        EventProgramItem item = new EventProgramItem();
         item.setId(itemId);
         item.setEvent(otherEvent);
-        item.setType(ScheduleItemType.TEXT);
+        item.setType(ProgramItemType.TEXT);
 
-        when(scheduleItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(programItemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
         assertThrows(ValidationException.class,
-                () -> scheduleService.updateTextItem(eventId, itemId, new UpdateTextScheduleItemRequest("X", null)));
+                () -> programService.updateTextItem(eventId, itemId, new UpdateTextProgramItemRequest("X", null)));
     }
 
     @Test
@@ -194,15 +194,15 @@ class ScheduleServiceImplTest {
         Event event = new Event();
         event.setId(eventId);
 
-        EventScheduleItem item = new EventScheduleItem();
+        EventProgramItem item = new EventProgramItem();
         item.setId(itemId);
         item.setEvent(event);
-        item.setType(ScheduleItemType.MUSIC);
+        item.setType(ProgramItemType.MUSIC);
 
-        when(scheduleItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(programItemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
         assertThrows(ValidationException.class,
-                () -> scheduleService.updateTextItem(eventId, itemId, new UpdateTextScheduleItemRequest("X", null)));
+                () -> programService.updateTextItem(eventId, itemId, new UpdateTextProgramItemRequest("X", null)));
     }
 
     @Test
@@ -213,16 +213,16 @@ class ScheduleServiceImplTest {
         Event event = new Event();
         event.setId(eventId);
 
-        EventScheduleItem item = new EventScheduleItem();
+        EventProgramItem item = new EventProgramItem();
         item.setId(itemId);
         item.setEvent(event);
-        item.setType(ScheduleItemType.TEXT);
+        item.setType(ProgramItemType.TEXT);
 
-        when(scheduleItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(programItemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
-        scheduleService.deleteTextItem(eventId, itemId);
+        programService.deleteTextItem(eventId, itemId);
 
-        verify(scheduleItemRepository).delete(item);
+        verify(programItemRepository).delete(item);
     }
 
     @Test
@@ -233,14 +233,14 @@ class ScheduleServiceImplTest {
         Event event = new Event();
         event.setId(eventId);
 
-        EventScheduleItem item = new EventScheduleItem();
+        EventProgramItem item = new EventProgramItem();
         item.setId(itemId);
         item.setEvent(event);
-        item.setType(ScheduleItemType.MUSIC);
+        item.setType(ProgramItemType.MUSIC);
 
-        when(scheduleItemRepository.findById(itemId)).thenReturn(Optional.of(item));
+        when(programItemRepository.findById(itemId)).thenReturn(Optional.of(item));
 
-        assertThrows(ValidationException.class, () -> scheduleService.deleteTextItem(eventId, itemId));
+        assertThrows(ValidationException.class, () -> programService.deleteTextItem(eventId, itemId));
     }
 
     @Test
@@ -253,55 +253,55 @@ class ScheduleServiceImplTest {
         Event event = new Event();
         event.setId(eventId);
 
-        EventScheduleItem item1 = new EventScheduleItem();
+        EventProgramItem item1 = new EventProgramItem();
         item1.setId(id1);
         item1.setEvent(event);
         item1.setPosition(3000);
 
-        EventScheduleItem item2 = new EventScheduleItem();
+        EventProgramItem item2 = new EventProgramItem();
         item2.setId(id2);
         item2.setEvent(event);
         item2.setPosition(1000);
 
-        EventScheduleItem item3 = new EventScheduleItem();
+        EventProgramItem item3 = new EventProgramItem();
         item3.setId(id3);
         item3.setEvent(event);
         item3.setPosition(2000);
 
-        when(scheduleItemRepository.findByEventIdOrderByPositionAsc(eventId))
+        when(programItemRepository.findByEventIdOrderByPositionAsc(eventId))
                 .thenReturn(List.of(item2, item3, item1));
 
-        scheduleService.reorder(eventId, new ReorderScheduleRequest(List.of(id1, id2, id3)));
+        programService.reorder(eventId, new ReorderProgramRequest(List.of(id1, id2, id3)));
 
-        verify(scheduleItemRepository).saveAll(any());
+        verify(programItemRepository).saveAll(any());
         assertEquals(1000, item1.getPosition());
         assertEquals(2000, item2.getPosition());
         assertEquals(3000, item3.getPosition());
     }
 
     @Test
-    void reorderShouldThrowWhenOrderedIdsCountDiffersFromScheduleCount() {
+    void reorderShouldThrowWhenOrderedIdsCountDiffersFromProgramCount() {
         UUID eventId = UUID.randomUUID();
         UUID id1 = UUID.randomUUID();
 
         Event event = new Event();
         event.setId(eventId);
 
-        EventScheduleItem item = new EventScheduleItem();
+        EventProgramItem item = new EventProgramItem();
         item.setId(id1);
         item.setEvent(event);
         item.setPosition(1000);
 
-        EventScheduleItem extra = new EventScheduleItem();
+        EventProgramItem extra = new EventProgramItem();
         extra.setId(UUID.randomUUID());
         extra.setEvent(event);
         extra.setPosition(2000);
 
-        when(scheduleItemRepository.findByEventIdOrderByPositionAsc(eventId))
+        when(programItemRepository.findByEventIdOrderByPositionAsc(eventId))
                 .thenReturn(List.of(item, extra));
 
         assertThrows(ValidationException.class,
-                () -> scheduleService.reorder(eventId, new ReorderScheduleRequest(List.of(id1))));
+                () -> programService.reorder(eventId, new ReorderProgramRequest(List.of(id1))));
     }
 
     @Test
@@ -313,26 +313,26 @@ class ScheduleServiceImplTest {
         setlistItem.setId(UUID.randomUUID());
         setlistItem.setEvent(event);
 
-        when(scheduleItemRepository.findMaxPositionByEventId(event.getId())).thenReturn(1000);
+        when(programItemRepository.findMaxPositionByEventId(event.getId())).thenReturn(1000);
 
-        scheduleService.onSetlistItemAdded(setlistItem);
+        programService.onSetlistItemAdded(setlistItem);
 
-        ArgumentCaptor<EventScheduleItem> captor = ArgumentCaptor.forClass(EventScheduleItem.class);
-        verify(scheduleItemRepository).save(captor.capture());
+        ArgumentCaptor<EventProgramItem> captor = ArgumentCaptor.forClass(EventProgramItem.class);
+        verify(programItemRepository).save(captor.capture());
 
-        EventScheduleItem saved = captor.getValue();
-        assertEquals(ScheduleItemType.MUSIC, saved.getType());
+        EventProgramItem saved = captor.getValue();
+        assertEquals(ProgramItemType.MUSIC, saved.getType());
         assertEquals(2000, saved.getPosition());
         assertEquals(setlistItem, saved.getSetlistItem());
         assertEquals(event, saved.getEvent());
     }
 
     @Test
-    void onSetlistItemRemovedShouldDeleteCorrespondingScheduleItem() {
+    void onSetlistItemRemovedShouldDeleteCorrespondingProgramItem() {
         UUID setlistItemId = UUID.randomUUID();
 
-        scheduleService.onSetlistItemRemoved(setlistItemId);
+        programService.onSetlistItemRemoved(setlistItemId);
 
-        verify(scheduleItemRepository).deleteBySetlistItemId(setlistItemId);
+        verify(programItemRepository).deleteBySetlistItemId(setlistItemId);
     }
 }

@@ -1,6 +1,7 @@
 package br.com.louvor4.api.services;
 
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
@@ -20,4 +21,5 @@ public interface UserService {
     User findUserById(UUID idUser);
     User findByUsername(String username);
     List<SongDTO> getSongs();
+    List<MedleyResponse> getMedleys();
 }

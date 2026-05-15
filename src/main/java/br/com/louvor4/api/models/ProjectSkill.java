@@ -1,5 +1,6 @@
 package br.com.louvor4.api.models;
 
+import br.com.louvor4.api.enums.SkillIcon;
 import jakarta.persistence.*;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -17,6 +18,10 @@ public class ProjectSkill {
 
     @Column(nullable = false, length = 50)
     private String name;
+
+    @Column(name = "icon_key", nullable = true, length = 50)
+    @Enumerated(EnumType.STRING)
+    private SkillIcon iconKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "music_project_id", nullable = false)
@@ -36,6 +41,14 @@ public class ProjectSkill {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public SkillIcon getIconKey() {
+        return iconKey;
+    }
+
+    public void setIconKey(SkillIcon iconKey) {
+        this.iconKey = iconKey;
     }
 
     public MusicProject getMusicProject() {

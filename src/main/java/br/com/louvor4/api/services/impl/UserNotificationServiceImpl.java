@@ -146,6 +146,21 @@ public class UserNotificationServiceImpl implements UserNotificationService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markProjectInviteAsReadIfExists(UUID userId, UUID projectId) {
+        if (userId == null || projectId == null) {
+            return;
+        }
+
+        userNotificationRepository
+                .findFirstProjectInviteByUserIdAndProjectId(userId, projectId)
+                .ifPresent(notification -> {
+                    notification.markAsRead();
+                    userNotificationRepository.save(notification);
+                });
+    }
+
+    @Override
     @Transactional
     public long markAllAsRead(UUID userId) {
         validateUserId(userId);

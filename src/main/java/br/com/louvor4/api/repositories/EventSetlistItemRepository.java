@@ -12,11 +12,11 @@ import java.util.UUID;
 
 public interface EventSetlistItemRepository extends JpaRepository<EventSetlistItem, UUID> {
 
+    List<EventSetlistItem> findByEventIdOrderBySequenceAsc(UUID eventId);
+
     List<EventSetlistItem> findByEventIdAndTypeOrderBySequenceAsc(UUID eventId, SetlistItemType type);
 
     List<EventSetlistItem> findByEventIdInAndType(List<UUID> eventIds, SetlistItemType type);
-
-    boolean existsByEventIdAndSongIdAndType(UUID eventId, UUID songId, SetlistItemType type);
 
     void deleteByAddedBy_IdIn(List<UUID> participantIds);
 

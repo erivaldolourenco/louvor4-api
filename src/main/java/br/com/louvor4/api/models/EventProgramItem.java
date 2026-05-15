@@ -1,6 +1,6 @@
 package br.com.louvor4.api.models;
 
-import br.com.louvor4.api.enums.ScheduleItemType;
+import br.com.louvor4.api.enums.ProgramItemType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -11,19 +11,19 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "event_schedule_items",
+        name = "event_program_items",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uq_event_schedule_setlist_item",
+                        name = "uq_event_program_setlist_item",
                         columnNames = {"event_id", "setlist_item_id"}
                 )
         },
         indexes = {
-                @Index(name = "idx_event_schedule_items_event_id", columnList = "event_id"),
-                @Index(name = "idx_event_schedule_items_event_id_position", columnList = "event_id, position")
+                @Index(name = "idx_event_program_items_event_id", columnList = "event_id"),
+                @Index(name = "idx_event_program_items_event_id_position", columnList = "event_id, position")
         }
 )
-public class EventScheduleItem {
+public class EventProgramItem {
 
     @Id
     @GeneratedValue
@@ -39,7 +39,7 @@ public class EventScheduleItem {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)
-    private ScheduleItemType type;
+    private ProgramItemType type;
 
     @NotNull
     @Min(1)
@@ -75,19 +75,19 @@ public class EventScheduleItem {
     }
 
     public boolean isMusic() {
-        return ScheduleItemType.MUSIC.equals(this.type);
+        return ProgramItemType.MUSIC.equals(this.type);
     }
 
     public boolean isText() {
-        return ScheduleItemType.TEXT.equals(this.type);
+        return ProgramItemType.TEXT.equals(this.type);
     }
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public Event getEvent() { return event; }
     public void setEvent(Event event) { this.event = event; }
-    public ScheduleItemType getType() { return type; }
-    public void setType(ScheduleItemType type) { this.type = type; }
+    public ProgramItemType getType() { return type; }
+    public void setType(ProgramItemType type) { this.type = type; }
     public Integer getPosition() { return position; }
     public void setPosition(Integer position) { this.position = position; }
     public EventSetlistItem getSetlistItem() { return setlistItem; }

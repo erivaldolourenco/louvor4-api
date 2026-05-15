@@ -60,6 +60,10 @@ public class EventSetlistItem {
     @JoinColumn(name = "song_id", columnDefinition = "uuid")
     private Song song;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "medley_id", columnDefinition = "uuid")
+    private Medley medley;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "added_by_participant_id", nullable = false, columnDefinition = "uuid")
@@ -153,6 +157,14 @@ public class EventSetlistItem {
 
     public void setSong(Song song) {
         this.song = song;
+    }
+
+    public Medley getMedley() {
+        return medley;
+    }
+
+    public void setMedley(Medley medley) {
+        this.medley = medley;
     }
 
     public EventParticipant getAddedBy() {

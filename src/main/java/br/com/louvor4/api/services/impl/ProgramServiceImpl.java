@@ -1,14 +1,14 @@
 package br.com.louvor4.api.services.impl;
 
-import br.com.louvor4.api.enums.ScheduleItemType;
+import br.com.louvor4.api.enums.ProgramItemType;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
-import br.com.louvor4.api.models.EventScheduleItem;
+import br.com.louvor4.api.models.EventProgramItem;
 import br.com.louvor4.api.models.EventSetlistItem;
 import br.com.louvor4.api.repositories.EventRepository;
-import br.com.louvor4.api.repositories.EventScheduleItemRepository;
-import br.com.louvor4.api.services.ScheduleService;
-import br.com.louvor4.api.shared.dto.Schedule.*;
+import br.com.louvor4.api.repositories.EventProgramItemRepository;
+import br.com.louvor4.api.services.ProgramService;
+import br.com.louvor4.api.shared.dto.Program.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,25 +16,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class ScheduleServiceImpl implements ScheduleService {
+public class ProgramServiceImpl implements ProgramService {
 
     private static final int POSITION_GAP = 1000;
 
-    private final EventScheduleItemRepository scheduleItemRepository;
+    private final EventProgramItemRepository programItemRepository;
     private final EventRepository eventRepository;
 
-    public ScheduleServiceImpl(EventScheduleItemRepository scheduleItemRepository,
-                               EventRepository eventRepository) {
-        this.scheduleItemRepository = scheduleItemRepository;
+    public ProgramServiceImpl(EventProgramItemRepository programItemRepository,
+                              EventRepository eventRepository) {
+        this.programItemRepository = programItemRepository;
         this.eventRepository = eventRepository;
     }
 
     @Override
-    public List<ScheduleItemResponse> getSchedule(UUID eventId) {
+    public List<ProgramItemResponse> getProgram(UUID eventId) {
         eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Evento não encontrado."));
 
-        return scheduleItemRepository.findByEventIdOrderByPositionAsc(eventId)
+        return programItemRepository.findByEventIdOrderByPositionAsc(eventId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -42,26 +42,26 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     @Transactional
-    public void addTextItem(UUID eventId, CreateTextScheduleItemRequest request) {
+    public void addTextItem(UUID eventId, CreateTextProgramItemRequest request) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Evento não encontrado."));
 
         int nextPosition = nextPosition(eventId);
 
-        var item = new EventScheduleItem();
+        var item = new EventProgramItem();
         item.setEvent(event);
-        item.setType(ScheduleItemType.TEXT);
+        item.setType(ProgramItemType.TEXT);
         item.setPosition(nextPosition);
         item.setTitle(request.title());
         item.setDescription(request.description());
 
-        scheduleItemRepository.save(item);
+        programItemRepository.save(item);
     }
 
     @Override
     @Transactional
-    public void updateTextItem(UUID eventId, UUID itemId, UpdateTextScheduleItemRequest request) {
-        var item = scheduleItemRepository.findById(itemId)
+    public void updateTextItem(UUID eventId, UUID itemId, UpdateTextProgramItemRequest request) {
+        var item = programItemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Item da programação não encontrado."));
 
         if (!item.getEvent().getId().equals(eventId)) {
@@ -73,13 +73,13 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         item.setTitle(request.title());
         item.setDescription(request.description());
-        scheduleItemRepository.save(item);
+        programItemRepository.save(item);
     }
 
     @Override
     @Transactional
     public void deleteTextItem(UUID eventId, UUID itemId) {
-        var item = scheduleItemRepository.findById(itemId)
+        var item = programItemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Item da programação não encontrado."));
 
         if (!item.getEvent().getId().equals(eventId)) {
@@ -89,14 +89,14 @@ public class ScheduleServiceImpl implements ScheduleService {
             throw new ValidationException("Apenas itens do tipo TEXT podem ser removidos diretamente.");
         }
 
-        scheduleItemRepository.delete(item);
+        programItemRepository.delete(item);
     }
 
     @Override
     @Transactional
-    public void reorder(UUID eventId, ReorderScheduleRequest request) {
-        List<EventScheduleItem> currentItems =
-                scheduleItemRepository.findByEventIdOrderByPositionAsc(eventId);
+    public void reorder(UUID eventId, ReorderProgramRequest request) {
+        List<EventProgramItem> currentItems =
+                programItemRepository.findByEventIdOrderByPositionAsc(eventId);
 
         List<UUID> orderedIds = request.orderedIds();
 
@@ -105,13 +105,13 @@ public class ScheduleServiceImpl implements ScheduleService {
                     "A lista de IDs deve conter exatamente " + currentItems.size() + " itens.");
         }
 
-        Map<UUID, EventScheduleItem> itemById = currentItems.stream()
-                .collect(Collectors.toMap(EventScheduleItem::getId, i -> i));
+        Map<UUID, EventProgramItem> itemById = currentItems.stream()
+                .collect(Collectors.toMap(EventProgramItem::getId, i -> i));
 
-        List<EventScheduleItem> toSave = new ArrayList<>(orderedIds.size());
+        List<EventProgramItem> toSave = new ArrayList<>(orderedIds.size());
         int position = POSITION_GAP;
         for (UUID id : orderedIds) {
-            EventScheduleItem item = itemById.get(id);
+            EventProgramItem item = itemById.get(id);
             if (item == null) {
                 throw new ValidationException("Item não encontrado na programação do evento: " + id);
             }
@@ -120,7 +120,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             position += POSITION_GAP;
         }
 
-        scheduleItemRepository.saveAll(toSave);
+        programItemRepository.saveAll(toSave);
     }
 
     @Override
@@ -128,37 +128,37 @@ public class ScheduleServiceImpl implements ScheduleService {
     public void onSetlistItemAdded(EventSetlistItem setlistItem) {
         int nextPosition = nextPosition(setlistItem.getEvent().getId());
 
-        var item = new EventScheduleItem();
+        var item = new EventProgramItem();
         item.setEvent(setlistItem.getEvent());
-        item.setType(ScheduleItemType.MUSIC);
+        item.setType(ProgramItemType.MUSIC);
         item.setPosition(nextPosition);
         item.setSetlistItem(setlistItem);
 
-        scheduleItemRepository.save(item);
+        programItemRepository.save(item);
     }
 
     @Override
     @Transactional
     public void onSetlistItemRemoved(UUID setlistItemId) {
-        scheduleItemRepository.deleteBySetlistItemId(setlistItemId);
+        programItemRepository.deleteBySetlistItemId(setlistItemId);
     }
 
     private int nextPosition(UUID eventId) {
-        int max = scheduleItemRepository.findMaxPositionByEventId(eventId);
+        int max = programItemRepository.findMaxPositionByEventId(eventId);
         return max + POSITION_GAP;
     }
 
-    private ScheduleItemResponse toResponse(EventScheduleItem item) {
-        ScheduleMusicResponse music = null;
+    private ProgramItemResponse toResponse(EventProgramItem item) {
+        ProgramMusicResponse music = null;
         if (item.isMusic() && item.getSetlistItem() != null) {
             var song = item.getSetlistItem().getSong();
-            music = new ScheduleMusicResponse(
+            music = new ProgramMusicResponse(
                     song != null ? song.getId() : null,
                     song != null ? song.getTitle() : null,
                     song != null ? song.getArtist() : null
             );
         }
-        return new ScheduleItemResponse(
+        return new ProgramItemResponse(
                 item.getId(),
                 item.getType(),
                 item.getPosition(),

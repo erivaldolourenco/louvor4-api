@@ -29,6 +29,18 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
 
     Page<UserNotification> findByUserIdAndTypeOrderByCreatedAtDesc(UUID userId, NotificationType type, Pageable pageable);
 
+    @Query("""
+            SELECT n FROM UserNotification n
+             WHERE n.userId = :userId
+               AND n.type = 'PROJECT_MEMBER_INVITE'
+               AND n.dataJson LIKE CONCAT('%"projectId":"', CAST(:projectId AS string), '"%')
+             ORDER BY n.createdAt DESC
+            """)
+    Optional<UserNotification> findFirstProjectInviteByUserIdAndProjectId(
+            @Param("userId") UUID userId,
+            @Param("projectId") UUID projectId
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update UserNotification notification

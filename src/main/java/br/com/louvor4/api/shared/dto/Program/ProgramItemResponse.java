@@ -10,5 +10,6 @@ public record ProgramItemResponse(
         Integer position,
         String title,
         String description,
-        ProgramMusicResponse music
+        ProgramMusicResponse music,
+        ProgramMedleyResponse medley
 ) {}

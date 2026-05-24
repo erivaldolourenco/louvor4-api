@@ -78,6 +78,10 @@ public class EventProgramItem {
         return ProgramItemType.MUSIC.equals(this.type);
     }
 
+    public boolean isMedley() {
+        return ProgramItemType.MEDLEY.equals(this.type);
+    }
+
     public boolean isText() {
         return ProgramItemType.TEXT.equals(this.type);
     }

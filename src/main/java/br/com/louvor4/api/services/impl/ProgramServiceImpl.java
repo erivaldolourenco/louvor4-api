@@ -5,6 +5,7 @@ import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.EventProgramItem;
 import br.com.louvor4.api.models.EventSetlistItem;
+import br.com.louvor4.api.models.Medley;
 import br.com.louvor4.api.repositories.EventRepository;
 import br.com.louvor4.api.repositories.EventProgramItemRepository;
 import br.com.louvor4.api.services.ProgramService;
@@ -130,7 +131,7 @@ public class ProgramServiceImpl implements ProgramService {
 
         var item = new EventProgramItem();
         item.setEvent(setlistItem.getEvent());
-        item.setType(ProgramItemType.MUSIC);
+        item.setType(setlistItem.isMedley() ? ProgramItemType.MEDLEY : ProgramItemType.MUSIC);
         item.setPosition(nextPosition);
         item.setSetlistItem(setlistItem);
 
@@ -150,21 +151,39 @@ public class ProgramServiceImpl implements ProgramService {
 
     private ProgramItemResponse toResponse(EventProgramItem item) {
         ProgramMusicResponse music = null;
+        ProgramMedleyResponse medley = null;
+
         if (item.isMusic() && item.getSetlistItem() != null) {
             var song = item.getSetlistItem().getSong();
             music = new ProgramMusicResponse(
                     song != null ? song.getId() : null,
                     song != null ? song.getTitle() : null,
-                    song != null ? song.getArtist() : null
+                    song != null ? song.getArtist() : null,
+                    song != null ? song.getYouTubeUrl() : null
             );
+        } else if (item.isMedley() && item.getSetlistItem() != null) {
+            Medley m = item.getSetlistItem().getMedley();
+            if (m != null) {
+                var songs = m.getItems().stream()
+                        .map(mi -> new ProgramMusicResponse(
+                                mi.getSong().getId(),
+                                mi.getSong().getTitle(),
+                                mi.getSong().getArtist(),
+                                mi.getSong().getYouTubeUrl()
+                        ))
+                        .collect(java.util.stream.Collectors.toList());
+                medley = new ProgramMedleyResponse(m.getId(), m.getName(), songs);
+            }
         }
+
         return new ProgramItemResponse(
                 item.getId(),
                 item.getType(),
                 item.getPosition(),
                 item.isText() ? item.getTitle() : null,
                 item.isText() ? item.getDescription() : null,
-                music
+                music,
+                medley
         );
     }
 }

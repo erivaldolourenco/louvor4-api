@@ -5,5 +5,6 @@ import java.util.UUID;
 public record ProgramMusicResponse(
         UUID id,
         String title,
-        String artist
+        String artist,
+        String youTubeUrl
 ) {}

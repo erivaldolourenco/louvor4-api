@@ -5,7 +5,8 @@ public enum FileCategory {
     MINISTRY_COVER("images/ministry/cover"),
     PROJECT_PROFILE("images/project/profile"),
     USER_PROFILE("images/user/profile"),
-    DOCUMENTS("documents");
+    DOCUMENTS("documents"),
+    SONG_AUDIO("audio/songs");
 
     private final String path;
 

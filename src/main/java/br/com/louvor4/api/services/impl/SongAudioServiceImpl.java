@@ -36,6 +36,10 @@ public class SongAudioServiceImpl implements SongAudioService {
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new NotFoundException("Música não encontrada."));
 
+        if (file == null || file.isEmpty()) {
+            throw new ValidationException("O arquivo não pode estar vazio.");
+        }
+
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("audio/")) {
             throw new ValidationException("O arquivo deve ser um áudio válido (audio/*).");

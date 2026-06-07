@@ -108,6 +108,8 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
             msg = "Música já adicionada ao evento.";
         } else if (raw != null && raw.contains("uq_event_member_skill")) {
             msg = "Membro já está escalado com esta função.";
+        } else if (raw != null && raw.contains("uq_song_audio_song_type")) {
+            msg = "Esta música já possui um áudio do tipo informado.";
         }
 
         ExceptionResponse response = ExceptionResponse.create()

@@ -14,7 +14,9 @@ public interface SongMapper {
     @Mapping(target = "user", ignore = true)
     Song toEntity(SongDTO dto);
 
+    @Mapping(target = "referenceAudioUrl", ignore = true)
     SongDTO toDto(Song entity);
 
+    @Mapping(target = "referenceAudioUrl", ignore = true)
     List<SongDTO> toDtoList(List<Song> entities);
 }

@@ -10,6 +10,7 @@ public record EventSongDTO(
         Integer bpm,
         String youTubeUrl,
         String notes,
-        String addedBy
+        String addedBy,
+        String referenceAudioUrl
 ) {
 }

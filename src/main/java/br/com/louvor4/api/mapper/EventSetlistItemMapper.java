@@ -24,6 +24,7 @@ public interface EventSetlistItemMapper {
     @Mapping(target = "youTubeUrl", source = "song.youTubeUrl")
     @Mapping(target = "notes", expression = "java(resolveNotes(entity))")
     @Mapping(target = "addedBy", source = "addedBy.member.user.firstName")
+    @Mapping(target = "referenceAudioUrl", ignore = true)
     EventSongDTO toSongDto(EventSetlistItem entity);
 
     List<EventSongDTO> toSongDtoList(List<EventSetlistItem> entities);

@@ -5,6 +5,7 @@ import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.SetlistItemType;
+import br.com.louvor4.api.enums.SongAudioType;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
@@ -22,6 +23,7 @@ import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
+import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
 import br.com.louvor4.api.shared.dto.Song.AddEventSetlistItemDTO;
 import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
@@ -55,6 +57,7 @@ public class EventServiceImpl implements EventService {
     private final EventSetlistItemStrategyResolver strategyResolver;
     private final ProgramService programService;
     private final EventReminderScheduler eventReminderScheduler;
+    private final SongAudioRepository songAudioRepository;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -65,7 +68,8 @@ public class EventServiceImpl implements EventService {
             EventParticipantRepository eventParticipantRepository,
             MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
             ProgramService programService,
-            EventReminderScheduler eventReminderScheduler
+            EventReminderScheduler eventReminderScheduler,
+            SongAudioRepository songAudioRepository
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -82,6 +86,7 @@ public class EventServiceImpl implements EventService {
         this.strategyResolver = strategyResolver;
         this.programService = programService;
         this.eventReminderScheduler = eventReminderScheduler;
+        this.songAudioRepository = songAudioRepository;
     }
 
     @Transactional
@@ -616,7 +621,37 @@ public class EventServiceImpl implements EventService {
         findEventOrThrow(eventId);
         List<EventSetlistItem> setlistItems = eventSetlistItemRepository
                 .findByEventIdOrderBySequenceAsc(eventId);
-        return eventSetlistItemMapper.toSetlistDtoList(setlistItems);
+
+        List<UUID> songIds = setlistItems.stream()
+                .filter(EventSetlistItem::isSong)
+                .map(item -> item.getSong() != null ? item.getSong().getId() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        Map<UUID, String> audioUrlBySongId = songAudioRepository
+                .findBySong_IdInAndType(songIds, SongAudioType.REFERENCE)
+                .stream()
+                .collect(Collectors.toMap(sa -> sa.getSong().getId(), SongAudio::getAudioUrl));
+
+        return setlistItems.stream().map(item -> {
+            SetlistDTO dto = eventSetlistItemMapper.toSetlistDto(item);
+            if (item.isSong() && item.getSong() != null && dto.eventSong() != null) {
+                String audioUrl = audioUrlBySongId.get(item.getSong().getId());
+                EventSongDTO enriched = new EventSongDTO(
+                        dto.eventSong().id(),
+                        dto.eventSong().title(),
+                        dto.eventSong().artist(),
+                        dto.eventSong().key(),
+                        dto.eventSong().bpm(),
+                        dto.eventSong().youTubeUrl(),
+                        dto.eventSong().notes(),
+                        dto.eventSong().addedBy(),
+                        audioUrl
+                );
+                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.notes(), enriched, dto.eventMedley());
+            }
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     @Override

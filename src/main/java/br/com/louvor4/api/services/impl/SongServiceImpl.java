@@ -47,7 +47,22 @@ public class SongServiceImpl implements SongService {
     public List<SongDTO> getSongsFromUser() {
         User user = currentUserProvider.get();
         List<Song> songs = songRepository.getSongByUser_Id(user.getId());
-        return songMapper.toDtoList(songs);
+        return songs.stream().map(song -> {
+            String referenceAudioUrl = songAudioRepository
+                    .findBySong_IdAndType(song.getId(), SongAudioType.REFERENCE)
+                    .map(SongAudio::getAudioUrl)
+                    .orElse(null);
+            return new SongDTO(
+                    song.getId(),
+                    song.getTitle(),
+                    song.getArtist(),
+                    song.getKey(),
+                    song.getBpm(),
+                    song.getYouTubeUrl(),
+                    song.getNotes(),
+                    referenceAudioUrl
+            );
+        }).toList();
     }
 
     @Override

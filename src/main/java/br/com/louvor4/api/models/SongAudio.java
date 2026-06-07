@@ -10,7 +10,7 @@ import java.util.UUID;
 @Entity
 @Table(
     name = "song_audio_files",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"song_id", "type"})
+    uniqueConstraints = @UniqueConstraint(name = "uq_song_audio_song_type", columnNames = {"song_id", "type"})
 )
 public class SongAudio {
 

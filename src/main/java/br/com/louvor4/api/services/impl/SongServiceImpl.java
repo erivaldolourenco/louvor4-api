@@ -1,10 +1,13 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
+import br.com.louvor4.api.enums.SongAudioType;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.SongMapper;
 import br.com.louvor4.api.models.Song;
+import br.com.louvor4.api.models.SongAudio;
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.repositories.SongAudioRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
@@ -17,11 +20,16 @@ import java.util.UUID;
 public class SongServiceImpl implements SongService {
 
     private final SongRepository songRepository;
+    private final SongAudioRepository songAudioRepository;
     private final SongMapper songMapper;
     private final CurrentUserProvider currentUserProvider;
 
-    public SongServiceImpl(SongRepository songRepository, SongMapper songMapper, CurrentUserProvider currentUserProvider) {
+    public SongServiceImpl(SongRepository songRepository,
+                           SongAudioRepository songAudioRepository,
+                           SongMapper songMapper,
+                           CurrentUserProvider currentUserProvider) {
         this.songRepository = songRepository;
+        this.songAudioRepository = songAudioRepository;
         this.songMapper = songMapper;
         this.currentUserProvider = currentUserProvider;
     }
@@ -66,6 +74,21 @@ public class SongServiceImpl implements SongService {
     public SongDTO get(UUID songId) {
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
-        return songMapper.toDto(song);
+
+        String referenceAudioUrl = songAudioRepository
+                .findBySong_IdAndType(song.getId(), SongAudioType.REFERENCE)
+                .map(SongAudio::getAudioUrl)
+                .orElse(null);
+
+        return new SongDTO(
+                song.getId(),
+                song.getTitle(),
+                song.getArtist(),
+                song.getKey(),
+                song.getBpm(),
+                song.getYouTubeUrl(),
+                song.getNotes(),
+                referenceAudioUrl
+        );
     }
 }

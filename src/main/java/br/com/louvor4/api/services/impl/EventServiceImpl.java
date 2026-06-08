@@ -5,7 +5,7 @@ import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.SetlistItemType;
-import br.com.louvor4.api.enums.SongAudioType;
+import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
@@ -57,7 +57,7 @@ public class EventServiceImpl implements EventService {
     private final EventSetlistItemStrategyResolver strategyResolver;
     private final ProgramService programService;
     private final EventReminderScheduler eventReminderScheduler;
-    private final SongAudioRepository songAudioRepository;
+    private final AudioFileRepository audioFileRepository;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -69,7 +69,7 @@ public class EventServiceImpl implements EventService {
             MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
             ProgramService programService,
             EventReminderScheduler eventReminderScheduler,
-            SongAudioRepository songAudioRepository
+            AudioFileRepository audioFileRepository
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -86,7 +86,7 @@ public class EventServiceImpl implements EventService {
         this.strategyResolver = strategyResolver;
         this.programService = programService;
         this.eventReminderScheduler = eventReminderScheduler;
-        this.songAudioRepository = songAudioRepository;
+        this.audioFileRepository = audioFileRepository;
     }
 
     @Transactional
@@ -628,10 +628,10 @@ public class EventServiceImpl implements EventService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        Map<UUID, String> audioUrlBySongId = songAudioRepository
-                .findBySong_IdInAndType(songIds, SongAudioType.REFERENCE)
+        Map<UUID, String> audioUrlBySongId = audioFileRepository
+                .findBySong_IdInAndType(songIds, AudioType.REFERENCE)
                 .stream()
-                .collect(Collectors.toMap(sa -> sa.getSong().getId(), SongAudio::getAudioUrl));
+                .collect(Collectors.toMap(af -> af.getSong().getId(), AudioFile::getAudioUrl));
 
         return setlistItems.stream().map(item -> {
             SetlistDTO dto = eventSetlistItemMapper.toSetlistDto(item);

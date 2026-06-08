@@ -43,12 +43,12 @@ public class AudioFileServiceImpl implements AudioFileService {
 
         validateFile(file);
 
-        String audioUrl = storageService.uploadFileWithPrefix(file, FileCategory.SONG_AUDIO, songId.toString());
-
         AudioFile audioFile = audioFileRepository.findBySong_IdAndType(songId, type)
                 .orElseGet(AudioFile::new);
         audioFile.setSong(song);
         audioFile.setType(type);
+
+        String audioUrl = storageService.uploadFileWithPrefix(file, FileCategory.SONG_AUDIO, songId.toString());
         audioFile.setAudioUrl(audioUrl);
 
         AudioFile saved = audioFileRepository.save(audioFile);
@@ -63,12 +63,12 @@ public class AudioFileServiceImpl implements AudioFileService {
 
         validateFile(file);
 
-        String audioUrl = storageService.uploadFileWithPrefix(file, FileCategory.MEDLEY_AUDIO, medleyId.toString());
-
         AudioFile audioFile = audioFileRepository.findByMedley_IdAndType(medleyId, type)
                 .orElseGet(AudioFile::new);
         audioFile.setMedley(medley);
         audioFile.setType(type);
+
+        String audioUrl = storageService.uploadFileWithPrefix(file, FileCategory.MEDLEY_AUDIO, medleyId.toString());
         audioFile.setAudioUrl(audioUrl);
 
         AudioFile saved = audioFileRepository.save(audioFile);

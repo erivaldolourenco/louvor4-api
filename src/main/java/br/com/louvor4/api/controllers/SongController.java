@@ -1,9 +1,9 @@
 package br.com.louvor4.api.controllers;
 
-import br.com.louvor4.api.enums.SongAudioType;
-import br.com.louvor4.api.services.SongAudioService;
+import br.com.louvor4.api.enums.AudioType;
+import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.SongService;
-import br.com.louvor4.api.shared.dto.Song.SongAudioDTO;
+import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -19,11 +19,11 @@ import java.util.UUID;
 public class SongController {
 
     private final SongService songService;
-    private final SongAudioService songAudioService;
+    private final AudioFileService audioFileService;
 
-    public SongController(SongService songService, SongAudioService songAudioService) {
+    public SongController(SongService songService, AudioFileService audioFileService) {
         this.songService = songService;
-        this.songAudioService = songAudioService;
+        this.audioFileService = audioFileService;
     }
 
     @GetMapping("/{songId}")
@@ -45,11 +45,11 @@ public class SongController {
     }
 
     @PostMapping(value = "/{songId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<SongAudioDTO> uploadAudio(
+    public ResponseEntity<AudioFileDTO> uploadAudio(
             @PathVariable UUID songId,
-            @RequestParam SongAudioType type,
+            @RequestParam AudioType type,
             @RequestParam("file") MultipartFile file) {
-        SongAudioDTO dto = songAudioService.uploadAudio(songId, type, file);
+        AudioFileDTO dto = audioFileService.uploadSongAudio(songId, type, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 }

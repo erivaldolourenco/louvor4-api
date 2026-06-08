@@ -10,6 +10,7 @@ public record EventMedleyDTO(
         String name,
         String description,
         String notes,
-        List<MedleyItemResponse> items
+        List<MedleyItemResponse> items,
+        String referenceAudioUrl
 ) {
 }

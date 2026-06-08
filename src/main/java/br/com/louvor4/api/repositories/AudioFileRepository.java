@@ -15,4 +15,5 @@ public interface AudioFileRepository extends JpaRepository<AudioFile, UUID> {
     Optional<AudioFile> findBySong_IdAndType(UUID songId, AudioType type);
     Optional<AudioFile> findByMedley_IdAndType(UUID medleyId, AudioType type);
     List<AudioFile> findBySong_IdInAndType(Collection<UUID> songIds, AudioType type);
+    List<AudioFile> findByMedley_IdInAndType(Collection<UUID> medleyIds, AudioType type);
 }

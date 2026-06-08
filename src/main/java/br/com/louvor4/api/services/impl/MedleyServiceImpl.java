@@ -1,11 +1,14 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
+import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Medley;
 import br.com.louvor4.api.models.MedleyItem;
 import br.com.louvor4.api.models.Song;
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.MedleyRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.MedleyService;
@@ -33,13 +36,16 @@ public class MedleyServiceImpl implements MedleyService {
     private final MedleyRepository medleyRepository;
     private final SongRepository songRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final AudioFileRepository audioFileRepository;
 
     public MedleyServiceImpl(MedleyRepository medleyRepository,
                              SongRepository songRepository,
-                             CurrentUserProvider currentUserProvider) {
+                             CurrentUserProvider currentUserProvider,
+                             AudioFileRepository audioFileRepository) {
         this.medleyRepository = medleyRepository;
         this.songRepository = songRepository;
         this.currentUserProvider = currentUserProvider;
+        this.audioFileRepository = audioFileRepository;
     }
 
     @Override
@@ -163,9 +169,16 @@ public class MedleyServiceImpl implements MedleyService {
     @Transactional(readOnly = true)
     public List<MedleyResponse> listFromCurrentUser() {
         User owner = currentUserProvider.get();
-        return medleyRepository.findByUser_Id(owner.getId())
+        List<Medley> medleys = medleyRepository.findByUser_Id(owner.getId());
+
+        List<UUID> medleyIds = medleys.stream().map(Medley::getId).toList();
+        Map<UUID, String> audioUrlByMedleyId = audioFileRepository
+                .findByMedley_IdInAndType(medleyIds, AudioType.REFERENCE)
                 .stream()
-                .map(this::toResponse)
+                .collect(Collectors.toMap(af -> af.getMedley().getId(), AudioFile::getAudioUrl));
+
+        return medleys.stream()
+                .map(m -> toResponse(m, audioUrlByMedleyId.get(m.getId())))
                 .toList();
     }
 
@@ -183,6 +196,10 @@ public class MedleyServiceImpl implements MedleyService {
     }
 
     private MedleyResponse toResponse(Medley medley) {
+        return toResponse(medley, null);
+    }
+
+    private MedleyResponse toResponse(Medley medley, String referenceAudioUrl) {
         List<MedleyItemResponse> itemResponses = medley.getItems()
                 .stream()
                 .sorted(Comparator.comparing(MedleyItem::getSequence))
@@ -205,7 +222,8 @@ public class MedleyServiceImpl implements MedleyService {
                 medley.getNotes(),
                 medley.getCreatedAt(),
                 medley.getUpdatedAt(),
-                itemResponses
+                itemResponses,
+                referenceAudioUrl
         );
     }
 }

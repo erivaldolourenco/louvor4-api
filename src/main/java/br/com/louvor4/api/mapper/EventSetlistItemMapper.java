@@ -108,7 +108,8 @@ public interface EventSetlistItemMapper {
                         ? List.of()
                         : entity.getMedley().getItems().stream()
                         .map(this::toMedleyItemResponse)
-                        .collect(Collectors.toList())
+                        .collect(Collectors.toList()),
+                null
         );
     }
 

@@ -21,6 +21,7 @@ import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.EventMedleyDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
@@ -633,6 +634,17 @@ public class EventServiceImpl implements EventService {
                 .stream()
                 .collect(Collectors.toMap(af -> af.getSong().getId(), AudioFile::getAudioUrl));
 
+        List<UUID> medleyIds = setlistItems.stream()
+                .filter(EventSetlistItem::isMedley)
+                .map(item -> item.getMedley() != null ? item.getMedley().getId() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        Map<UUID, String> audioUrlByMedleyId = audioFileRepository
+                .findByMedley_IdInAndType(medleyIds, AudioType.REFERENCE)
+                .stream()
+                .collect(Collectors.toMap(af -> af.getMedley().getId(), AudioFile::getAudioUrl));
+
         return setlistItems.stream().map(item -> {
             SetlistDTO dto = eventSetlistItemMapper.toSetlistDto(item);
             if (item.isSong() && item.getSong() != null && dto.eventSong() != null) {
@@ -649,6 +661,18 @@ public class EventServiceImpl implements EventService {
                         audioUrl
                 );
                 return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.notes(), enriched, dto.eventMedley());
+            }
+            if (item.isMedley() && item.getMedley() != null && dto.eventMedley() != null) {
+                String audioUrl = audioUrlByMedleyId.get(item.getMedley().getId());
+                EventMedleyDTO enriched = new EventMedleyDTO(
+                        dto.eventMedley().id(),
+                        dto.eventMedley().name(),
+                        dto.eventMedley().description(),
+                        dto.eventMedley().notes(),
+                        dto.eventMedley().items(),
+                        audioUrl
+                );
+                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.notes(), dto.eventSong(), enriched);
             }
             return dto;
         }).collect(Collectors.toList());

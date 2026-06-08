@@ -37,6 +37,10 @@ CREATE INDEX idx_audio_files_medley_id
     ON audio_files(medley_id)
     WHERE medley_id IS NOT NULL;
 
+-- 8. Expandir constraint de tipo em event_program_items para incluir MEDLEY
+ALTER TABLE event_program_items DROP CONSTRAINT event_program_items_type_check;
+ALTER TABLE event_program_items ADD CONSTRAINT event_program_items_type_check CHECK (type IN ('MUSIC', 'MEDLEY', 'TEXT'));
+
 -- ============================================================
 -- DDL completo para criação do zero (ambientes limpos)
 -- ============================================================

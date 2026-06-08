@@ -11,6 +11,7 @@ public record MedleyResponse(
         String notes,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        List<MedleyItemResponse> items
+        List<MedleyItemResponse> items,
+        String referenceAudioUrl
 ) {
 }

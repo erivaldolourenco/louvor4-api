@@ -1,13 +1,13 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
-import br.com.louvor4.api.enums.SongAudioType;
+import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.SongMapper;
+import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Song;
-import br.com.louvor4.api.models.SongAudio;
 import br.com.louvor4.api.models.User;
-import br.com.louvor4.api.repositories.SongAudioRepository;
+import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
@@ -20,16 +20,16 @@ import java.util.UUID;
 public class SongServiceImpl implements SongService {
 
     private final SongRepository songRepository;
-    private final SongAudioRepository songAudioRepository;
+    private final AudioFileRepository audioFileRepository;
     private final SongMapper songMapper;
     private final CurrentUserProvider currentUserProvider;
 
     public SongServiceImpl(SongRepository songRepository,
-                           SongAudioRepository songAudioRepository,
+                           AudioFileRepository audioFileRepository,
                            SongMapper songMapper,
                            CurrentUserProvider currentUserProvider) {
         this.songRepository = songRepository;
-        this.songAudioRepository = songAudioRepository;
+        this.audioFileRepository = audioFileRepository;
         this.songMapper = songMapper;
         this.currentUserProvider = currentUserProvider;
     }
@@ -48,9 +48,9 @@ public class SongServiceImpl implements SongService {
         User user = currentUserProvider.get();
         List<Song> songs = songRepository.getSongByUser_Id(user.getId());
         return songs.stream().map(song -> {
-            String referenceAudioUrl = songAudioRepository
-                    .findBySong_IdAndType(song.getId(), SongAudioType.REFERENCE)
-                    .map(SongAudio::getAudioUrl)
+            String referenceAudioUrl = audioFileRepository
+                    .findBySong_IdAndType(song.getId(), AudioType.REFERENCE)
+                    .map(AudioFile::getAudioUrl)
                     .orElse(null);
             return new SongDTO(
                     song.getId(),
@@ -90,9 +90,9 @@ public class SongServiceImpl implements SongService {
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
 
-        String referenceAudioUrl = songAudioRepository
-                .findBySong_IdAndType(song.getId(), SongAudioType.REFERENCE)
-                .map(SongAudio::getAudioUrl)
+        String referenceAudioUrl = audioFileRepository
+                .findBySong_IdAndType(song.getId(), AudioType.REFERENCE)
+                .map(AudioFile::getAudioUrl)
                 .orElse(null);
 
         return new SongDTO(

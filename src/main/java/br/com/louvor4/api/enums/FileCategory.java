@@ -6,7 +6,8 @@ public enum FileCategory {
     PROJECT_PROFILE("images/project/profile"),
     USER_PROFILE("images/user/profile"),
     DOCUMENTS("documents"),
-    SONG_AUDIO("audio/songs");
+    SONG_AUDIO("audio/songs"),
+    MEDLEY_AUDIO("audio/medleys");
 
     private final String path;
 

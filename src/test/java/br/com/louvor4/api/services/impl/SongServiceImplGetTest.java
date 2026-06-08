@@ -1,12 +1,12 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
-import br.com.louvor4.api.enums.SongAudioType;
+import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.SongMapper;
+import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Song;
-import br.com.louvor4.api.models.SongAudio;
-import br.com.louvor4.api.repositories.SongAudioRepository;
+import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 class SongServiceImplGetTest {
 
     @Mock SongRepository songRepository;
-    @Mock SongAudioRepository songAudioRepository;
+    @Mock AudioFileRepository audioFileRepository;
     @Mock SongMapper songMapper;
     @Mock CurrentUserProvider currentUserProvider;
 
@@ -49,11 +49,11 @@ class SongServiceImplGetTest {
 
     @Test
     void getShouldIncludeReferenceAudioUrlWhenAudioExists() {
-        SongAudio audio = new SongAudio();
+        AudioFile audio = new AudioFile();
         audio.setAudioUrl("https://s3.example.com/audio.mp3");
 
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
-        when(songAudioRepository.findBySong_IdAndType(songId, SongAudioType.REFERENCE))
+        when(audioFileRepository.findBySong_IdAndType(songId, AudioType.REFERENCE))
                 .thenReturn(Optional.of(audio));
 
         SongDTO result = service.get(songId);
@@ -66,7 +66,7 @@ class SongServiceImplGetTest {
     @Test
     void getShouldReturnNullReferenceAudioUrlWhenNoAudioExists() {
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
-        when(songAudioRepository.findBySong_IdAndType(songId, SongAudioType.REFERENCE))
+        when(audioFileRepository.findBySong_IdAndType(songId, AudioType.REFERENCE))
                 .thenReturn(Optional.empty());
 
         SongDTO result = service.get(songId);

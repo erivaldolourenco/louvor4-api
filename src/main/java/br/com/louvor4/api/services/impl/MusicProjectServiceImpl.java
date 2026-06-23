@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static br.com.louvor4.api.shared.util.ObjectUtils.isNotNull;
 import static br.com.louvor4.api.shared.util.ObjectUtils.isNotNullOrEmpty;
@@ -320,13 +321,23 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
     @Override
     public List<EventDetailDto> getEventsByProject(UUID projectId) {
-        return eventRepository
+        List<Event> events = eventRepository
                 .findAllByMusicProject_IdAndStartAtGreaterThanEqualOrderByStartAtAsc(
                         projectId,
                         LocalDateTime.now().minusDays(1)
                 )
                 .stream()
                 .filter(Objects::nonNull)
+                .toList();
+
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> eventIds = events.stream().map(Event::getId).toList();
+        Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(eventIds);
+
+        return events.stream()
                 .map(event -> new EventDetailDto(
                         event.getId(),
                         event.getMusicProject().getId(),
@@ -339,9 +350,25 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
                         eventRepository.countSongsByEventId(event.getId(), SetlistItemType.SONG),
-                        List.of()
+                        participantsImagesByEvent.getOrDefault(event.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    private Map<UUID, List<String>> buildParticipantsImagesByEvent(List<UUID> eventIds) {
+        if (eventIds.isEmpty()) {
+            return Map.of();
+        }
+        return eventParticipantRepository.findProfileImagesByEventIds(eventIds)
+                .stream()
+                .map(p -> Map.entry(
+                        p.getEventId(),
+                        p.getProfileImage()
+                ))
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                ));
     }
 
     private MusicProject buildProject(MusicProjectCreateDTO dto, User creator) {

@@ -197,9 +197,10 @@ public class EventServiceImpl implements EventService {
 
         EventParticipant participant = optionalParticipant.get();
 
-        if (participant.getEvent() != null && participant.getEvent().getStartAt() != null
+        if (status == EventParticipantStatus.ACCEPTED && participant.getEvent() != null
+                && participant.getEvent().getStartAt() != null
                 && !participant.getEvent().getStartAt().isAfter(LocalDateTime.now())) {
-            throw new ValidationException("Não é possível responder a participação após o início do evento.");
+            throw new ValidationException("Não é possível aceitar a participação após o início do evento.");
         }
 
         if (participant.getStatus() == status) {

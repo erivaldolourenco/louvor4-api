@@ -3,11 +3,17 @@ package br.com.louvor4.api.repositories;
 import br.com.louvor4.api.models.PasswordResetToken;
 import br.com.louvor4.api.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, UUID> {
     Optional<PasswordResetToken> findByToken(String token);
-    void deleteByUser(User user);
+
+    @Modifying
+    @Query("DELETE FROM PasswordResetToken t WHERE t.user = :user")
+    void deleteByUser(@Param("user") User user);
 }

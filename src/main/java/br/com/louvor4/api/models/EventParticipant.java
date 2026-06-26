@@ -3,13 +3,18 @@ package br.com.louvor4.api.models;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
 @Entity
+@SQLDelete(sql = "UPDATE event_participants SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Table(
         name = "event_participants",
         uniqueConstraints = {
@@ -49,6 +54,9 @@ public class EventParticipant {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private EventParticipantStatus status = EventParticipantStatus.PENDING;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     public void prePersist() {
@@ -103,5 +111,13 @@ public class EventParticipant {
 
     public void setStatus(EventParticipantStatus status) {
         this.status = status;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

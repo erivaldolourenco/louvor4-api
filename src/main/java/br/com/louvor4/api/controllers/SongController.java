@@ -52,4 +52,10 @@ public class SongController {
         AudioFileDTO dto = audioFileService.uploadSongAudio(songId, type, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
+
+    @DeleteMapping("/{songId}/delete")
+    public ResponseEntity<Void> delete(@PathVariable UUID songId) {
+        songService.delete(songId);
+        return ResponseEntity.noContent().build();
+    }
 }

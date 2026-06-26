@@ -61,4 +61,6 @@ public interface EventReminderRepository extends JpaRepository<EventReminder, UU
          WHERE e.id = :id AND e.status IN ('PENDING', 'PROCESSING')
         """)
     int cancelById(@Param("id") UUID id, @Param("now") LocalDateTime now);
+
+    void deleteByEventIdIn(List<UUID> eventIds);
 }

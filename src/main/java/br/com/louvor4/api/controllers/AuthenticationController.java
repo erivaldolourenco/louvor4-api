@@ -12,6 +12,8 @@ import br.com.louvor4.api.services.PasswordResetService;
 import br.com.louvor4.api.shared.dto.AuthenticationDTO;
 import br.com.louvor4.api.shared.dto.LoginResponseDTO;
 import br.com.louvor4.api.shared.dto.User.UserDTO;
+import br.com.louvor4.api.shared.dto.authentication.ForgotPasswordChannelsRequest;
+import br.com.louvor4.api.shared.dto.authentication.ForgotPasswordChannelsResponse;
 import br.com.louvor4.api.shared.dto.authentication.ForgotPasswordRequest;
 import br.com.louvor4.api.shared.dto.authentication.ResetPasswordRequest;
 import jakarta.validation.Valid;
@@ -129,11 +131,17 @@ public class AuthenticationController {
                 });
         return ResponseEntity.noContent().build();
     }
+    @PostMapping("/forgot-password/channels")
+    public ResponseEntity<ForgotPasswordChannelsResponse> getForgotPasswordChannels(
+            @RequestBody @Valid ForgotPasswordChannelsRequest request) {
+        ForgotPasswordChannelsResponse response = passwordResetService.getAvailableChannels(request.identifier());
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-        passwordResetService.generateAndSendToken(request.email());
-        return ResponseEntity.ok("Se o e-mail estiver cadastrado, um código foi enviado.");
+    public ResponseEntity<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        passwordResetService.generateAndSendToken(request.identifier(), request.channel());
+        return ResponseEntity.ok("Código enviado com sucesso.");
     }
 
     @PostMapping("/reset-password")

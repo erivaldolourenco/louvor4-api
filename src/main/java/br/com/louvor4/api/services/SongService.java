@@ -11,4 +11,5 @@ public interface SongService {
     List<SongDTO> getSongsFromUser();
     SongDTO update(SongDTO updateDto);
     SongDTO get(UUID songId);
+    void delete(UUID songId);
 }

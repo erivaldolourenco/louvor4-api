@@ -13,7 +13,9 @@ public interface EventSongRepository extends JpaRepository<EventSong, UUID> {
     List<EventSong> getEventSongByEventId(UUID eventId);
     List<EventSong> findByEventIdIn(List<UUID> eventIds);
     boolean existsByEventIdAndSongId(UUID eventId, UUID songId);
+    boolean existsBySongId(UUID songId);
     void deleteByAddedBy_IdIn(List<UUID> participantIds);
+    void deleteByEventIdIn(List<UUID> eventIds);
 
     @Query("""
             select es.event.id as eventId, count(distinct es.song.id) as total

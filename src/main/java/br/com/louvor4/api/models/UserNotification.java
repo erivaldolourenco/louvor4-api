@@ -60,23 +60,6 @@ public class UserNotification {
         }
     }
 
-    public void markAsRead() {
-        if (Boolean.TRUE.equals(this.isRead)) {
-            if (this.readAt == null) {
-                this.readAt = LocalDateTime.now();
-            }
-            return;
-        }
-
-        this.isRead = Boolean.TRUE;
-        this.readAt = LocalDateTime.now();
-    }
-
-    public void markAsUnread() {
-        this.isRead = Boolean.FALSE;
-        this.readAt = null;
-    }
-
     public UUID getId() {
         return id;
     }

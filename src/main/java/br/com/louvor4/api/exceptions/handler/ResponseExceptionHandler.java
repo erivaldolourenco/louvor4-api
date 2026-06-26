@@ -120,6 +120,16 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(RuntimeException.class)
+    public final ResponseEntity<ExceptionResponse> runtimeException(RuntimeException ex, WebRequest request) {
+        logger.warn("RuntimeException: {}", ex.getMessage(), ex);
+        ExceptionResponse exceptionResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.BAD_REQUEST.value())
+                .withTitle("Requisição inválida");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exceptionResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<ExceptionResponse> handleAllExceptions(Exception ex, WebRequest request) {
         logger.error("Unhandled exception: {}", ex.getMessage(), ex);

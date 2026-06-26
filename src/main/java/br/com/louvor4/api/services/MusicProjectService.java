@@ -38,6 +38,8 @@ public interface MusicProjectService {
     MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request);
 
     void deleteMember(UUID projectId, UUID memberId);
+    void leaveProject(UUID projectId);
+    void deleteProject(UUID projectId);
 
     ProjectMemberRole getMemberRole(UUID projectId);
 

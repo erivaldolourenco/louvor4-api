@@ -155,4 +155,16 @@ public class UserController {
         userUnavailabilityService.deleteFromCurrentUser(unavailabilityId);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount() {
+        userService.deleteAccount();
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/project/{projectId}/leave")
+    public ResponseEntity<Void> leaveProject(@PathVariable UUID projectId) {
+        musicProjectService.leaveProject(projectId);
+        return ResponseEntity.noContent().build();
+    }
 }

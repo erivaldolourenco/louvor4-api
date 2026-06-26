@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface UserUnavailabilityProjectRepository extends JpaRepository<UserUnavailabilityProject, UUID> {
+    void deleteByProject_Id(UUID projectId);
 }

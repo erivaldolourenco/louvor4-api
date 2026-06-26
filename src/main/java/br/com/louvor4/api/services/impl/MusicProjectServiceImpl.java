@@ -53,9 +53,10 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final MemberMapper memberMapper;
     private final EventParticipantRepository eventParticipantRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
+    private final UserUnavailabilityProjectRepository userUnavailabilityProjectRepository;
     private final EventReminderScheduler eventReminderScheduler;
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, EventReminderScheduler eventReminderScheduler) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -72,6 +73,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.memberMapper = memberMapper;
         this.eventParticipantRepository = eventParticipantRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
+        this.userUnavailabilityProjectRepository = userUnavailabilityProjectRepository;
         this.eventReminderScheduler = eventReminderScheduler;
     }
 
@@ -92,8 +94,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private void ensureUserCanCreateProject(User user) {
         Plan plan = user.getPlan();
         int maxProjects = (plan == null || plan.getMaxProjects() == null) ? 0 : plan.getMaxProjects();
-        long ownedProjects = musicProjectMemberRepository.countByUser_IdAndProjectRole(
-                user.getId(), ProjectMemberRole.OWNER
+        long ownedProjects = musicProjectMemberRepository.countByUser_IdAndProjectRoleAndStatus(
+                user.getId(), ProjectMemberRole.OWNER, ProjectMemberStatus.ACTIVE
         );
         if (ownedProjects >= maxProjects) {
             throw new ValidationException("Seu plano não permite criar mais projetos.");
@@ -197,10 +199,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         User userMember = userService.findUserById(user.getId());
         MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
 
-        Optional<MusicProjectMember> declinedOpt = musicProjectMemberRepository
-                .findByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.DECLINED);
+        Optional<MusicProjectMember> existingOpt = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.DECLINED)
+                .or(() -> musicProjectMemberRepository
+                        .findByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.REMOVED));
 
-        MusicProjectMember musicProjectMember = declinedOpt.orElseGet(MusicProjectMember::new);
+        MusicProjectMember musicProjectMember = existingOpt.orElseGet(MusicProjectMember::new);
         musicProjectMember.setUser(userMember);
         musicProjectMember.setMusicProject(musicProject);
         musicProjectMember.setAddedByUserId(creator.getId());
@@ -264,7 +268,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 .orElseThrow(() -> new ValidationException("Convite não encontrado para este projeto."));
 
         member.setRespondedAt(LocalDateTime.now());
-        userNotificationService.markProjectInviteAsReadIfExists(currentUser.getId(), projectId);
+        userNotificationService.deleteProjectInviteNotifications(currentUser.getId(), projectId);
 
         if (Boolean.TRUE.equals(responseDto.getAccepted())) {
             member.setStatus(ProjectMemberStatus.ACTIVE);
@@ -411,6 +415,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
         List<MemberDTO> members = project.getMembers()
                 .stream()
+                .filter(m -> m.getStatus() == ProjectMemberStatus.ACTIVE)
                 .map(member -> {
                     User user = member.getUser();
                     MemberDTO dto = new MemberDTO();
@@ -522,16 +527,80 @@ public class MusicProjectServiceImpl implements MusicProjectService {
             throw new ValidationException("Não é possível remover o proprietário do projeto.");
         }
 
-        List<EventParticipant> participants = eventParticipantRepository.findByMember_Id(memberId);
-        if (!participants.isEmpty()) {
-            List<UUID> participantIds = participants.stream()
+        LocalDateTime now = LocalDateTime.now();
+        List<EventParticipant> futureParticipants = eventParticipantRepository
+                .findByMember_IdAndEvent_StartAtGreaterThan(memberId, now);
+        if (!futureParticipants.isEmpty()) {
+            List<UUID> futureParticipantIds = futureParticipants.stream()
                     .map(EventParticipant::getId)
                     .toList();
-            eventSetlistItemRepository.deleteByAddedBy_IdIn(participantIds);
-            eventParticipantRepository.deleteAllInBatch(participants);
+            eventSetlistItemRepository.deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
+            eventParticipantRepository.deleteAllInBatch(futureParticipants);
         }
 
-        musicProjectMemberRepository.delete(member);
+        member.setStatus(ProjectMemberStatus.REMOVED);
+        musicProjectMemberRepository.save(member);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProject(UUID projectId) {
+        MusicProject project = musicProjectRepository.findById(projectId)
+                .orElseThrow(() -> new ValidationException("Projeto não encontrado."));
+
+        User currentUser = currentUserProvider.get();
+        MusicProjectMember member = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_Id(projectId, currentUser.getId())
+                .orElseThrow(() -> new ValidationException("Você não é membro deste projeto."));
+
+        if (member.getProjectRole() != ProjectMemberRole.OWNER) {
+            throw new ValidationException("Apenas o proprietário pode excluir o projeto.");
+        }
+
+        // Soft-delete participações e eventos para preservar histórico dos membros
+        List<UUID> eventIds = eventRepository.findIdsByMusicProjectId(projectId);
+        if (!eventIds.isEmpty()) {
+            eventParticipantRepository.softDeleteByEventIds(eventIds);
+            eventRepository.softDeleteByProjectId(projectId);
+        }
+
+        // Marca todos os membros como REMOVED (preserva member_skills para histórico)
+        musicProjectMemberRepository.markAllRemovedByProjectId(projectId);
+
+        // Hard-delete: dado operacional sem valor histórico
+        userUnavailabilityProjectRepository.deleteByProject_Id(projectId);
+
+        // Soft-delete do projeto (@SQLDelete → UPDATE deleted_at = NOW())
+        // Sem cascade de delete graças ao cascade = {PERSIST, MERGE} em MusicProject.members
+        musicProjectRepository.delete(project);
+    }
+
+    @Override
+    @Transactional
+    public void leaveProject(UUID projectId) {
+        User currentUser = currentUserProvider.get();
+
+        MusicProjectMember member = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_IdAndStatus(projectId, currentUser.getId(), ProjectMemberStatus.ACTIVE)
+                .orElseThrow(() -> new ValidationException("Você não é membro ativo deste projeto."));
+
+        if (member.getProjectRole() == ProjectMemberRole.OWNER) {
+            throw new ValidationException("O proprietário não pode sair do projeto. Transfira a propriedade antes.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<EventParticipant> futureParticipants = eventParticipantRepository
+                .findByMember_IdAndEvent_StartAtGreaterThan(member.getId(), now);
+        if (!futureParticipants.isEmpty()) {
+            List<UUID> futureParticipantIds = futureParticipants.stream()
+                    .map(EventParticipant::getId)
+                    .toList();
+            eventSetlistItemRepository.deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
+            eventParticipantRepository.deleteAllInBatch(futureParticipants);
+        }
+
+        member.setStatus(ProjectMemberStatus.REMOVED);
+        musicProjectMemberRepository.save(member);
     }
 
     @Override

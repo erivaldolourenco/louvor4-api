@@ -3,6 +3,8 @@ package br.com.louvor4.api.models;
 import br.com.louvor4.api.enums.MusicProjectType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
@@ -12,6 +14,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "music_projects")
+@SQLDelete(sql = "UPDATE music_projects SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class MusicProject {
 
     @Id
@@ -42,8 +46,11 @@ public class MusicProject {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @JsonIgnore
-    @OneToMany(mappedBy = "musicProject", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "musicProject", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<MusicProjectMember> members = new ArrayList<>();
 
     @PreUpdate
@@ -122,5 +129,13 @@ public class MusicProject {
 
     public void setMembers(List<MusicProjectMember> members) {
         this.members = members;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

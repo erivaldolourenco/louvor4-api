@@ -43,6 +43,13 @@ public class MusicProjectController {
         return ResponseEntity.ok(musicProjectDetailDTO);
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("@projectSecurity.isOwner(#id)")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        musicProjectService.deleteProject(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("@projectSecurity.isAdminOrOwner(#id)")
     public ResponseEntity<MusicProjectDetailDTO> update(@PathVariable UUID id, @RequestBody @Valid MusicProjectDTO updateDto) {

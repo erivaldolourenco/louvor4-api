@@ -46,6 +46,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/logout").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/forgot-password/channels").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/users/create").permitAll();

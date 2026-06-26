@@ -19,6 +19,10 @@ public interface EventSetlistItemRepository extends JpaRepository<EventSetlistIt
     List<EventSetlistItem> findByEventIdInAndType(List<UUID> eventIds, SetlistItemType type);
 
     void deleteByAddedBy_IdIn(List<UUID> participantIds);
+    void deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(List<UUID> participantIds, java.time.LocalDateTime now);
+    void deleteByEventIdIn(List<UUID> eventIds);
+
+    boolean existsBySong_Id(UUID songId);
 
     @Query("""
             select coalesce(max(esi.sequence), 0)

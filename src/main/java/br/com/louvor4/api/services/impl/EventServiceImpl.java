@@ -13,6 +13,7 @@ import br.com.louvor4.api.mapper.EventSetlistItemMapper;
 import br.com.louvor4.api.models.*;
 import br.com.louvor4.api.repositories.*;
 import br.com.louvor4.api.repositories.projections.EventCountProjection;
+import br.com.louvor4.api.repositories.projections.PastEventParticipantProjection;
 import br.com.louvor4.api.services.EventReminderScheduler;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.services.PushSenderService;
@@ -442,74 +443,39 @@ public class EventServiceImpl implements EventService {
     public Page<UserEventDetailDto> getPastEventsByUser(Pageable pageable) {
         UUID userId = currentUserProvider.get().getId();
 
-        Page<EventParticipant> page = eventParticipantRepository
-                .findPastByUserWithEventAndProjectAndMemberUser(
-                        userId,
-                        EventParticipantStatus.ACCEPTED,
-                        LocalDateTime.now(),
-                        pageable
-                );
+        // Query nativa: inclui eventos de projetos soft-deleted para preservar histórico
+        Page<PastEventParticipantProjection> page = eventParticipantRepository
+                .findPastByUserIncludingDeletedProjects(userId, LocalDateTime.now(), pageable);
 
-        List<EventParticipant> participants = page.getContent();
-
-        if (participants.isEmpty()) {
+        List<PastEventParticipantProjection> projections = page.getContent();
+        if (projections.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        List<Event> events = participants.stream()
-                .map(EventParticipant::getEvent)
-                .filter(Objects::nonNull)
+        List<UUID> eventIds = projections.stream()
+                .map(p -> UUID.fromString(p.getEventId()))
                 .distinct()
                 .toList();
 
-        List<UUID> eventIds = events.stream().map(Event::getId).toList();
-
-        Map<UUID, Integer> participantCountByEvent = eventParticipantRepository
-                .countDistinctMembersByEventIds(eventIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        EventCountProjection::getEventId,
-                        count -> count.getTotal().intValue()
-                ));
-
-        Map<UUID, Integer> songCountByEvent = eventSetlistItemRepository
-                .countDistinctSongsByEventIds(eventIds, SetlistItemType.SONG)
-                .stream()
-                .collect(Collectors.toMap(
-                        EventCountProjection::getEventId,
-                        count -> count.getTotal().intValue()
-                ));
-
-        Map<UUID, EventParticipant> participantByEventId = participants.stream()
-                .filter(p -> p.getEvent() != null)
-                .collect(Collectors.toMap(
-                        p -> p.getEvent().getId(),
-                        p -> p,
-                        (left, right) -> left
-                ));
-
         Map<UUID, List<String>> participantsImagesByEvent = buildParticipantsImagesByEvent(eventIds);
 
-        List<UserEventDetailDto> dtos = events.stream()
-                .map(event -> {
-                    EventParticipant ep = participantByEventId.get(event.getId());
-                    return new UserEventDetailDto(
-                            event.getId(),
-                            event.getMusicProject().getId(),
-                            event.getTitle(),
-                            event.getDescription(),
-                            event.getStartAt().toLocalDate(),
-                            event.getStartAt().toLocalTime(),
-                            event.getLocation(),
-                            event.getMusicProject().getName(),
-                            event.getMusicProject().getProfileImage(),
-                            participantCountByEvent.getOrDefault(event.getId(), 0),
-                            songCountByEvent.getOrDefault(event.getId(), 0),
-                            participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
-                            ep != null ? ep.getId() : null,
-                            ep != null ? ep.getStatus() : null
-                    );
-                })
+        List<UserEventDetailDto> dtos = projections.stream()
+                .map(p -> new UserEventDetailDto(
+                        UUID.fromString(p.getEventId()),
+                        UUID.fromString(p.getProjectId()),
+                        p.getEventTitle(),
+                        p.getEventDescription(),
+                        p.getEventStartAt().toLocalDate(),
+                        p.getEventStartAt().toLocalTime(),
+                        p.getEventLocation(),
+                        p.getProjectName(),
+                        p.getProjectProfileImage(),
+                        p.getParticipantsCount() != null ? p.getParticipantsCount() : 0,
+                        p.getRepertoireCount() != null ? p.getRepertoireCount() : 0,
+                        participantsImagesByEvent.getOrDefault(UUID.fromString(p.getEventId()), List.of()),
+                        UUID.fromString(p.getParticipantId()),
+                        EventParticipantStatus.valueOf(p.getParticipantStatus())
+                ))
                 .toList();
 
         return new PageImpl<>(dtos, pageable, page.getTotalElements());

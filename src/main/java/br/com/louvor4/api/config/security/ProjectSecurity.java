@@ -29,6 +29,14 @@ public class ProjectSecurity {
                 projectId, userId, ProjectMemberStatus.ACTIVE);
     }
 
+    public boolean isOwner(UUID projectId) {
+        UUID userId = currentUserProvider.get().getId();
+        return memberRepository.findByMusicProject_IdAndUser_IdAndStatus(
+                        projectId, userId, ProjectMemberStatus.ACTIVE)
+                .map(m -> m.getProjectRole() == ProjectMemberRole.OWNER)
+                .orElse(false);
+    }
+
     public boolean isAdminOrOwner(UUID projectId) {
         UUID userId = currentUserProvider.get().getId();
         return memberRepository.findByMusicProject_IdAndUser_IdAndStatus(

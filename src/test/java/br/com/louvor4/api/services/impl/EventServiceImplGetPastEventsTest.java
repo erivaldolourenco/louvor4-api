@@ -2,11 +2,11 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.EventParticipantStatus;
-import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.mapper.EventMapper;
 import br.com.louvor4.api.mapper.EventSetlistItemMapper;
-import br.com.louvor4.api.models.*;
+import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.*;
+import br.com.louvor4.api.repositories.projections.PastEventParticipantProjection;
 import br.com.louvor4.api.services.EventReminderScheduler;
 import br.com.louvor4.api.services.PushSenderService;
 import br.com.louvor4.api.services.ProgramService;
@@ -47,6 +47,7 @@ class EventServiceImplGetPastEventsTest {
     @Mock EventSetlistItemStrategyResolver strategyResolver;
     @Mock ProgramService programService;
     @Mock EventReminderScheduler eventReminderScheduler;
+    @Mock AudioFileRepository audioFileRepository;
     @InjectMocks EventServiceImpl service;
 
     private UUID userId;
@@ -63,8 +64,8 @@ class EventServiceImplGetPastEventsTest {
 
     @Test
     void getPastEventsByUser_returnsEmptyPageWhenNoParticipants() {
-        when(eventParticipantRepository.findPastByUserWithEventAndProjectAndMemberUser(
-                eq(userId), eq(EventParticipantStatus.ACCEPTED), any(LocalDateTime.class), eq(pageable)))
+        when(eventParticipantRepository.findPastByUserIncludingDeletedProjects(
+                eq(userId), any(LocalDateTime.class), eq(pageable)))
                 .thenReturn(Page.empty(pageable));
 
         Page<UserEventDetailDto> result = service.getPastEventsByUser(pageable);
@@ -75,29 +76,29 @@ class EventServiceImplGetPastEventsTest {
 
     @Test
     void getPastEventsByUser_returnsDtosForEachEvent() {
-        MusicProject project = new MusicProject();
-        project.setId(UUID.randomUUID());
-        project.setName("Louvor");
+        UUID eventId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
 
-        Event event = new Event();
-        event.setId(UUID.randomUUID());
-        event.setTitle("Culto Passado");
-        event.setStartAt(LocalDateTime.now().minusDays(7));
-        event.setMusicProject(project);
+        PastEventParticipantProjection projection = mock(PastEventParticipantProjection.class);
+        when(projection.getEventId()).thenReturn(eventId.toString());
+        when(projection.getProjectId()).thenReturn(projectId.toString());
+        when(projection.getParticipantId()).thenReturn(participantId.toString());
+        when(projection.getEventTitle()).thenReturn("Culto Passado");
+        when(projection.getEventDescription()).thenReturn("Descrição");
+        when(projection.getEventStartAt()).thenReturn(LocalDateTime.now().minusDays(7));
+        when(projection.getEventLocation()).thenReturn("Igreja");
+        when(projection.getProjectName()).thenReturn("Louvor");
+        when(projection.getProjectProfileImage()).thenReturn(null);
+        when(projection.getParticipantsCount()).thenReturn(5);
+        when(projection.getRepertoireCount()).thenReturn(3);
+        when(projection.getParticipantStatus()).thenReturn(EventParticipantStatus.ACCEPTED.name());
 
-        EventParticipant participant = new EventParticipant();
-        participant.setEvent(event);
-        participant.setMember(new MusicProjectMember());
-        participant.setStatus(EventParticipantStatus.ACCEPTED);
-
-        Page<EventParticipant> repoPage = new PageImpl<>(List.of(participant), pageable, 1);
-        when(eventParticipantRepository.findPastByUserWithEventAndProjectAndMemberUser(
-                eq(userId), eq(EventParticipantStatus.ACCEPTED), any(LocalDateTime.class), eq(pageable)))
+        Page<PastEventParticipantProjection> repoPage = new PageImpl<>(List.of(projection), pageable, 1);
+        when(eventParticipantRepository.findPastByUserIncludingDeletedProjects(
+                eq(userId), any(LocalDateTime.class), eq(pageable)))
                 .thenReturn(repoPage);
-        when(eventParticipantRepository.countDistinctMembersByEventIds(any())).thenReturn(List.of());
         when(eventParticipantRepository.findProfileImagesByEventIds(any())).thenReturn(List.of());
-        when(eventSetlistItemRepository.countDistinctSongsByEventIds(any(), eq(SetlistItemType.SONG)))
-                .thenReturn(List.of());
 
         Page<UserEventDetailDto> result = service.getPastEventsByUser(pageable);
 
@@ -107,16 +108,15 @@ class EventServiceImplGetPastEventsTest {
     }
 
     @Test
-    void getPastEventsByUser_passesAcceptedStatusAndCurrentTimeToQuery() {
-        when(eventParticipantRepository.findPastByUserWithEventAndProjectAndMemberUser(
-                eq(userId), eq(EventParticipantStatus.ACCEPTED), any(LocalDateTime.class), eq(pageable)))
+    void getPastEventsByUser_passesUserIdAndCurrentTimeToQuery() {
+        when(eventParticipantRepository.findPastByUserIncludingDeletedProjects(
+                eq(userId), any(LocalDateTime.class), eq(pageable)))
                 .thenReturn(Page.empty(pageable));
 
         service.getPastEventsByUser(pageable);
 
-        verify(eventParticipantRepository).findPastByUserWithEventAndProjectAndMemberUser(
+        verify(eventParticipantRepository).findPastByUserIncludingDeletedProjects(
                 eq(userId),
-                eq(EventParticipantStatus.ACCEPTED),
                 any(LocalDateTime.class),
                 eq(pageable));
     }

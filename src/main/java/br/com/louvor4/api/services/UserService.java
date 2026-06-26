@@ -22,4 +22,5 @@ public interface UserService {
     User findByUsername(String username);
     List<SongDTO> getSongs();
     List<MedleyResponse> getMedleys();
+    void deleteAccount();
 }

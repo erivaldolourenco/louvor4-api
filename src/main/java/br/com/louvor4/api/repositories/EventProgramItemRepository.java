@@ -20,4 +20,5 @@ public interface EventProgramItemRepository extends JpaRepository<EventProgramIt
     Integer findMaxPositionByEventId(@Param("eventId") UUID eventId);
 
     void deleteBySetlistItemId(UUID setlistItemId);
+    void deleteByEventIdIn(List<UUID> eventIds);
 }

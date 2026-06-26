@@ -1,4 +1,10 @@
 package br.com.louvor4.api.shared.dto.authentication;
 
-public record ForgotPasswordRequest(String email) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record ForgotPasswordRequest(
+        @NotBlank String identifier,
+        @NotNull ResetChannel channel
+) {
 }

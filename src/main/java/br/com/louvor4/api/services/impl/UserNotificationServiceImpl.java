@@ -102,8 +102,9 @@ public class UserNotificationServiceImpl implements UserNotificationService {
         UserNotification notification = userNotificationRepository.findByIdAndUserId(notificationId, userId)
                 .orElseThrow(() -> new NotFoundException("Notificação não encontrada."));
 
-        notification.markAsRead();
-        return toResponse(userNotificationRepository.save(notification));
+        UserNotificationItemResponse response = toResponse(notification);
+        userNotificationRepository.delete(notification);
+        return response;
     }
 
     @Override
@@ -122,8 +123,9 @@ public class UserNotificationServiceImpl implements UserNotificationService {
                 )
                 .orElseThrow(() -> new NotFoundException("Notificação de convite não encontrada."));
 
-        notification.markAsRead();
-        return toResponse(userNotificationRepository.save(notification));
+        UserNotificationItemResponse response = toResponse(notification);
+        userNotificationRepository.delete(notification);
+        return response;
     }
 
     @Override
@@ -139,32 +141,23 @@ public class UserNotificationServiceImpl implements UserNotificationService {
                         NotificationType.EVENT_INVITE,
                         eventParticipantId
                 )
-                .ifPresent(notification -> {
-                    notification.markAsRead();
-                    userNotificationRepository.save(notification);
-                });
+                .ifPresent(userNotificationRepository::delete);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markProjectInviteAsReadIfExists(UUID userId, UUID projectId) {
+    public void deleteProjectInviteNotifications(UUID userId, UUID projectId) {
         if (userId == null || projectId == null) {
             return;
         }
-
-        userNotificationRepository
-                .findFirstProjectInviteByUserIdAndProjectId(userId, projectId)
-                .ifPresent(notification -> {
-                    notification.markAsRead();
-                    userNotificationRepository.save(notification);
-                });
+        userNotificationRepository.deleteAllProjectInvites(userId, projectId);
     }
 
     @Override
     @Transactional
     public long markAllAsRead(UUID userId) {
         validateUserId(userId);
-        return userNotificationRepository.markAllAsReadByUserId(userId);
+        return userNotificationRepository.deleteByUserId(userId);
     }
 
     private void validateCreateRequest(CreateUserNotificationRequest request) {

@@ -180,4 +180,10 @@ public class UserServiceImpl implements UserService {
         return medleyService.listFromCurrentUser();
     }
 
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteAccount() {
+        User user = currentUserProvider.get();
+        userRepository.delete(user);
+    }
 }

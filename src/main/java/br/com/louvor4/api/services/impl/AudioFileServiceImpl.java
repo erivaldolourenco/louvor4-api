@@ -13,6 +13,7 @@ import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
+import br.com.louvor4.entitlement.aspect.RequiresPlan;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -39,6 +40,7 @@ public class AudioFileServiceImpl implements AudioFileService {
 
     @Override
     @Transactional
+    @RequiresPlan(feature = "upload_audio")
     public AudioFileDTO uploadSongAudio(UUID songId, AudioType type, MultipartFile file) {
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new NotFoundException("Música não encontrada."));
@@ -60,6 +62,7 @@ public class AudioFileServiceImpl implements AudioFileService {
 
     @Override
     @Transactional
+    @RequiresPlan(feature = "upload_audio")
     public AudioFileDTO uploadMedleyAudio(UUID medleyId, AudioType type, MultipartFile file) {
         Medley medley = medleyRepository.findById(medleyId)
                 .orElseThrow(() -> new NotFoundException("Medley não encontrado."));

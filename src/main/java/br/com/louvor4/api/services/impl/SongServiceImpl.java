@@ -14,6 +14,7 @@ import br.com.louvor4.api.repositories.MedleyItemRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
+import br.com.louvor4.entitlement.services.EntitlementService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ public class SongServiceImpl implements SongService {
     private final EventSetlistItemRepository eventSetlistItemRepository;
     private final SongMapper songMapper;
     private final CurrentUserProvider currentUserProvider;
+    private final EntitlementService entitlementService;
 
     public SongServiceImpl(SongRepository songRepository,
                            AudioFileRepository audioFileRepository,
@@ -37,7 +39,8 @@ public class SongServiceImpl implements SongService {
                            EventSongRepository eventSongRepository,
                            EventSetlistItemRepository eventSetlistItemRepository,
                            SongMapper songMapper,
-                           CurrentUserProvider currentUserProvider) {
+                           CurrentUserProvider currentUserProvider,
+                           EntitlementService entitlementService) {
         this.songRepository = songRepository;
         this.audioFileRepository = audioFileRepository;
         this.medleyItemRepository = medleyItemRepository;
@@ -45,11 +48,14 @@ public class SongServiceImpl implements SongService {
         this.eventSetlistItemRepository = eventSetlistItemRepository;
         this.songMapper = songMapper;
         this.currentUserProvider = currentUserProvider;
+        this.entitlementService = entitlementService;
     }
 
     @Override
     public SongDTO create(SongDTO createDto) {
         User creator = currentUserProvider.get();
+        long current = songRepository.countByUser_Id(creator.getId());
+        entitlementService.enforceLimit(creator.getId(), "max_songs", current);
         Song song = songMapper.toEntity(createDto);
         song.setUser(creator);
         Song saved = songRepository.save(song);

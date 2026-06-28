@@ -6,7 +6,8 @@ INSERT INTO ent_plans (id, name, display_name, price) VALUES
     (gen_random_uuid(), 'FREE',    'Gratuito', 0.00),
     (gen_random_uuid(), 'STARTER', 'Starter',  9.90),
     (gen_random_uuid(), 'PRO',     'Pro',       19.90),
-    (gen_random_uuid(), 'ELITE',   'Elite',     29.90)
+    (gen_random_uuid(), 'ELITE',   'Elite',     29.90),
+    (gen_random_uuid(), 'PARTNER', 'Parceiro',  0.00)
 ON CONFLICT (name) DO NOTHING;
 
 -- Catálogo de entitlements
@@ -39,7 +40,12 @@ FROM (VALUES
     ('ELITE',   'max_songs',           '40'),
     ('ELITE',   'upload_audio',        'true'),
     ('ELITE',   'max_projects',        '10'),
-    ('ELITE',   'max_project_members', '30')
+    ('ELITE',   'max_project_members', '30'),
+
+    ('PARTNER', 'max_songs',           '50'),
+    ('PARTNER', 'upload_audio',        'true'),
+    ('PARTNER', 'max_projects',        '10'),
+    ('PARTNER', 'max_project_members', '20')
 ) AS v(plan_name, entitlement_key, value)
 JOIN ent_plans        p ON p.name = v.plan_name
 JOIN ent_entitlements e ON e.key  = v.entitlement_key

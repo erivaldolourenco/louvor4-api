@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface SongRepository extends JpaRepository<Song, UUID> {
     List<Song> getSongByUser_Id(UUID userId);
     Optional<Song> getSongById(UUID songId);
+    long countByUser_Id(UUID userId);
 }

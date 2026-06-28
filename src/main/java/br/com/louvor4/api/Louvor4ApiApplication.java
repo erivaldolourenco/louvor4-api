@@ -5,10 +5,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootVersion;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -18,7 +20,9 @@ import java.net.UnknownHostException;
 @EnableAsync
 @EnableScheduling
 @ConfigurationPropertiesScan
-@SpringBootApplication
+@EntityScan(basePackages = "br.com.louvor4")
+@EnableJpaRepositories(basePackages = "br.com.louvor4")
+@SpringBootApplication(scanBasePackages = "br.com.louvor4")
 public class Louvor4ApiApplication {
 
     private static final Logger log = LoggerFactory.getLogger(Louvor4ApiApplication.class);

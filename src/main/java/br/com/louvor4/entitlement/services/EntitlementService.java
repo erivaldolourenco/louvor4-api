@@ -4,6 +4,8 @@ import java.util.UUID;
 
 public interface EntitlementService {
 
+    String getPlanName(UUID userId);
+
     boolean hasFeature(UUID userId, String key);
 
     int getLimit(UUID userId, String key);

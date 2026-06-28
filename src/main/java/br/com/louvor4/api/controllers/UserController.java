@@ -8,6 +8,7 @@ import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.UserUnavailabilityService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
+import br.com.louvor4.entitlement.services.EntitlementService;
 import br.com.louvor4.api.shared.dto.*;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
 import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
@@ -48,8 +49,9 @@ public class UserController {
     private final UserNotificationService userNotificationService;
     private final UserUnavailabilityService userUnavailabilityService;
     private final CurrentUserProvider currentUserProvider;
+    private final EntitlementService entitlementService;
 
-    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService, UserMapper userMapper, UserNotificationService userNotificationService, UserUnavailabilityService userUnavailabilityService, CurrentUserProvider currentUserProvider) {
+    public UserController(UserService userService, MusicProjectService musicProjectService, EventService eventService, UserMapper userMapper, UserNotificationService userNotificationService, UserUnavailabilityService userUnavailabilityService, CurrentUserProvider currentUserProvider, EntitlementService entitlementService) {
         this.userService = userService;
         this.musicProjectService = musicProjectService;
         this.eventService = eventService;
@@ -57,13 +59,19 @@ public class UserController {
         this.userNotificationService = userNotificationService;
         this.userUnavailabilityService = userUnavailabilityService;
         this.currentUserProvider = currentUserProvider;
+        this.entitlementService = entitlementService;
     }
 
     @GetMapping("/detail")
     public ResponseEntity<UserDetailDTO> getUserDetail(Authentication authentication) {
-        String username = authentication.getName();
-        User user = userService.findByUsername(username);
-       return ResponseEntity.status(HttpStatus.OK).body(userMapper.toDto(user));
+        User user = userService.findByUsername(authentication.getName());
+        UserDetailDTO dto = userMapper.toDto(user);
+        String planName = entitlementService.getPlanName(user.getId());
+        return ResponseEntity.ok(new UserDetailDTO(
+                dto.id(), dto.firstName(), dto.lastName(), dto.email(),
+                dto.username(), dto.phoneNumber(), dto.profileImage(),
+                dto.profileImageHash(), planName
+        ));
     }
 
     @PostMapping("/create")
@@ -81,8 +89,13 @@ public class UserController {
 
     @PutMapping("/update")
     public ResponseEntity<UserDetailDTO> update(@RequestBody @Valid UserUpdateDTO updateDto) {
-        UserDetailDTO userDetailDTO = userService.update(updateDto);
-        return ResponseEntity.ok(userDetailDTO);
+        UserDetailDTO dto = userService.update(updateDto);
+        String planName = entitlementService.getPlanName(dto.id());
+        return ResponseEntity.ok(new UserDetailDTO(
+                dto.id(), dto.firstName(), dto.lastName(), dto.email(),
+                dto.username(), dto.phoneNumber(), dto.profileImage(),
+                dto.profileImageHash(), planName
+        ));
     }
 
     @PutMapping(value = "/update/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

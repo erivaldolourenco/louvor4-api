@@ -9,6 +9,7 @@ import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.RefreshTokenRepository;
 import br.com.louvor4.api.repositories.UserRepository;
 import br.com.louvor4.api.services.PasswordResetService;
+import br.com.louvor4.entitlement.services.EntitlementService;
 import br.com.louvor4.api.shared.dto.AuthenticationDTO;
 import br.com.louvor4.api.shared.dto.LoginResponseDTO;
 import br.com.louvor4.api.shared.dto.User.UserDTO;
@@ -34,6 +35,7 @@ public class AuthenticationController {
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final UserRepository userRepository;
+    private final EntitlementService entitlementService;
 
     public AuthenticationController(
             TokenService tokenService,
@@ -41,7 +43,8 @@ public class AuthenticationController {
             PasswordResetService passwordResetService,
             RefreshTokenRepository refreshTokenRepository,
             EmailVerificationTokenRepository emailVerificationTokenRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            EntitlementService entitlementService
     ) {
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
@@ -49,6 +52,7 @@ public class AuthenticationController {
         this.refreshTokenRepository = refreshTokenRepository;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.userRepository = userRepository;
+        this.entitlementService = entitlementService;
     }
 
 
@@ -78,7 +82,7 @@ public class AuthenticationController {
                 userDetails.getUser().getFirstName(),
                 userDetails.getUser().getLastName(),
                 userDetails.getUser().getEmail(),
-                null,
+                entitlementService.getPlanName(userDetails.getUser().getId()),
                 userDetails.getUser().getProfileImage(),
                 userDetails.getUser().getProfileImageHash()
                 )
@@ -112,7 +116,7 @@ public class AuthenticationController {
                         userDetails.getUser().getFirstName(),
                         userDetails.getUser().getLastName(),
                         userDetails.getUser().getEmail(),
-                        null,
+                        entitlementService.getPlanName(userDetails.getUser().getId()),
                         userDetails.getUser().getProfileImage(),
                         userDetails.getUser().getProfileImageHash()
                 )

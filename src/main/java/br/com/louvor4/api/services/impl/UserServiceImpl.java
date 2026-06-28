@@ -18,11 +18,18 @@ import br.com.louvor4.api.shared.dto.User.UserCreateDTO;
 import br.com.louvor4.api.shared.dto.User.UserDetailDTO;
 import br.com.louvor4.api.shared.dto.User.UserUpdateDTO;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.entitlement.enums.SubscriptionStatus;
+import br.com.louvor4.entitlement.models.Plans;
+import br.com.louvor4.entitlement.models.Subscription;
+import br.com.louvor4.entitlement.repositories.PlansRepository;
+import br.com.louvor4.entitlement.repositories.SubscriptionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +47,8 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final EmailService emailService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PlansRepository plansRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -49,7 +58,9 @@ public class UserServiceImpl implements UserService {
             StorageService storageService,
             UserMapper userMapper,
             EmailService emailService,
-            EmailVerificationTokenRepository emailVerificationTokenRepository
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
+            PlansRepository plansRepository,
+            SubscriptionRepository subscriptionRepository
     ) {
         this.userRepository = userRepository;
         this.songService = songService;
@@ -59,9 +70,12 @@ public class UserServiceImpl implements UserService {
         this.userMapper = userMapper;
         this.emailService = emailService;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.plansRepository = plansRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Override
+    @Transactional
     public User create(UserCreateDTO userDTO) {
         if (userRepository.existsByUsername(userDTO.getUsername())) {
             throw new ValidationException("o usuario " + userDTO.getUsername() + " ja existe");
@@ -78,8 +92,20 @@ public class UserServiceImpl implements UserService {
         userEntity.setPassword(encryptedPassword);
         userEntity.setEmailVerified(false);
         User saved = userRepository.save(userEntity);
+        createFreeSubscription(saved);
         sendEmailVerification(saved);
         return saved;
+    }
+
+    private void createFreeSubscription(User user) {
+        Plans freePlan = plansRepository.findByName("FREE")
+                .orElseThrow(() -> new ValidationException("Plano FREE não encontrado."));
+        Subscription subscription = new Subscription();
+        subscription.setUserId(user.getId());
+        subscription.setPlan(freePlan);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setStartedAt(LocalDateTime.now());
+        subscriptionRepository.save(subscription);
     }
 
     private void sendEmailVerification(User user) {

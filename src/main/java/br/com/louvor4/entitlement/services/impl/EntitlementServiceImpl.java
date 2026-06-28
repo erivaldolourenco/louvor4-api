@@ -37,6 +37,11 @@ public class EntitlementServiceImpl implements EntitlementService {
     }
 
     @Override
+    public String getPlanName(UUID userId) {
+        return findActiveSubscription(userId).getPlan().getName();
+    }
+
+    @Override
     public boolean hasFeature(UUID userId, String key) {
         Subscription sub = findActiveSubscription(userId);
         String value = resolve(sub.getId(), sub.getPlan().getId(), key);

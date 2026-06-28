@@ -15,6 +15,7 @@ import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
+import br.com.louvor4.entitlement.services.EntitlementService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
@@ -55,8 +56,9 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final EventSetlistItemRepository eventSetlistItemRepository;
     private final UserUnavailabilityProjectRepository userUnavailabilityProjectRepository;
     private final EventReminderScheduler eventReminderScheduler;
+    private final EntitlementService entitlementService;
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler, EntitlementService entitlementService) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -75,12 +77,17 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.eventSetlistItemRepository = eventSetlistItemRepository;
         this.userUnavailabilityProjectRepository = userUnavailabilityProjectRepository;
         this.eventReminderScheduler = eventReminderScheduler;
+        this.entitlementService = entitlementService;
     }
 
     @Override
     @Transactional
     public MusicProjectDetailDTO create(MusicProjectCreateDTO dto) {
         User creator = currentUserProvider.get();
+        long ownedProjects = musicProjectMemberRepository.countByUser_IdAndProjectRoleAndStatus(
+                creator.getId(), ProjectMemberRole.OWNER, ProjectMemberStatus.ACTIVE
+        );
+        entitlementService.enforceLimit(creator.getId(), "max_projects", ownedProjects);
         MusicProject project = buildProject(dto, creator);
         project = musicProjectRepository.save(project);
 

@@ -38,6 +38,7 @@ public interface EventSetlistItemMapper {
                 entity.getId(),
                 entity.getType(),
                 resolveAddedBy(entity),
+                resolveAddedByUserId(entity),
                 resolveNotes(entity),
                 entity.isSong() ? toSongDto(entity) : null,
                 entity.isMedley() ? toMedleyDto(entity) : null
@@ -92,6 +93,16 @@ public interface EventSetlistItemMapper {
             return null;
         }
         return entity.getAddedBy().getMember().getUser().getFirstName();
+    }
+
+    default java.util.UUID resolveAddedByUserId(EventSetlistItem entity) {
+        if (entity == null
+                || entity.getAddedBy() == null
+                || entity.getAddedBy().getMember() == null
+                || entity.getAddedBy().getMember().getUser() == null) {
+            return null;
+        }
+        return entity.getAddedBy().getMember().getUser().getId();
     }
 
     default EventMedleyDTO toMedleyDto(EventSetlistItem entity) {

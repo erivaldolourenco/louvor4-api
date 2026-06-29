@@ -9,6 +9,7 @@ public record SetlistDTO(
         UUID id,
         SetlistItemType type,
         String addedBy,
+        UUID addedByUserId,
         String notes,
         EventSongDTO eventSong,
         EventMedleyDTO eventMedley

@@ -4,6 +4,8 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
+import br.com.louvor4.api.enums.ProjectMemberRole;
+import br.com.louvor4.api.enums.ProjectMemberStatus;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.exceptions.NotFoundException;
@@ -627,7 +629,7 @@ public class EventServiceImpl implements EventService {
                         dto.eventSong().addedBy(),
                         audioUrl
                 );
-                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.notes(), enriched, dto.eventMedley());
+                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.addedByUserId(), dto.notes(), enriched, dto.eventMedley());
             }
             if (item.isMedley() && item.getMedley() != null && dto.eventMedley() != null) {
                 String audioUrl = audioUrlByMedleyId.get(item.getMedley().getId());
@@ -639,7 +641,7 @@ public class EventServiceImpl implements EventService {
                         dto.eventMedley().items(),
                         audioUrl
                 );
-                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.notes(), dto.eventSong(), enriched);
+                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.addedByUserId(), dto.notes(), dto.eventSong(), enriched);
             }
             return dto;
         }).collect(Collectors.toList());
@@ -648,18 +650,33 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public void removeSetlistItemFromEvent(UUID eventId, UUID setlistItemId) {
-
         User user = currentUserProvider.get();
 
-        EventParticipant participant = eventParticipantRepository
-                .findByEventIdAndMemberUserId(eventId, user.getId())
-                .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
-
-        eventValidation.canAddSong(participant);
         EventSetlistItem setlistItem = eventSetlistItemRepository.findById(setlistItemId)
                 .orElseThrow(() -> new NotFoundException("Item do setlist não encontrado no evento."));
 
         eventValidation.validateSetlistItemBelongsToEvent(setlistItem, eventId);
+
+        UUID projectId = setlistItem.getEvent().getMusicProject().getId();
+        boolean isAdmin = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.ACTIVE)
+                .map(m -> m.getProjectRole() == ProjectMemberRole.OWNER
+                        || m.getProjectRole() == ProjectMemberRole.ADMIN)
+                .orElse(false);
+
+        if (!isAdmin) {
+            EventParticipant participant = eventParticipantRepository
+                    .findByEventIdAndMemberUserId(eventId, user.getId())
+                    .orElseThrow(() -> new ValidationException("Você não tem permissão para remover músicas neste evento."));
+
+            eventValidation.canAddSong(participant);
+
+            if (setlistItem.getAddedBy() == null
+                    || !participant.getId().equals(setlistItem.getAddedBy().getId())) {
+                throw new ValidationException("Você só pode remover músicas que você mesmo adicionou.");
+            }
+        }
+
         programService.onSetlistItemRemoved(setlistItem.getId());
         eventSetlistItemRepository.delete(setlistItem);
     }

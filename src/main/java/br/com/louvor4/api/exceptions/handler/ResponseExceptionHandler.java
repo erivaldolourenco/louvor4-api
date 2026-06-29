@@ -1,6 +1,7 @@
 package br.com.louvor4.api.exceptions.handler;
 
 import br.com.louvor4.api.exceptions.*;
+import br.com.louvor4.voucher.exception.VoucherException;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,6 +150,16 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
                 .withTitle(RECURSO_NAO_ENCONTRADO);
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exceptionResponse);
+    }
+
+    @ExceptionHandler(VoucherException.class)
+    public final ResponseEntity<ExceptionResponse> voucherException(VoucherException ex, WebRequest request) {
+        logger.warn("VoucherException: {}", ex.getMessage(), ex);
+        ExceptionResponse response = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.BAD_REQUEST.value())
+                .withTitle("Voucher inválido");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(ValidationException.class)

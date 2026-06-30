@@ -9,6 +9,7 @@ import br.com.louvor4.entitlement.repositories.PlansRepository;
 import br.com.louvor4.entitlement.repositories.SubscriptionRepository;
 import br.com.louvor4.entitlement.services.EntitlementService;
 import br.com.louvor4.voucher.dto.CreateVoucherRequest;
+import br.com.louvor4.voucher.dto.RedeemVoucherResponse;
 import br.com.louvor4.voucher.dto.VoucherResponse;
 import br.com.louvor4.voucher.exception.VoucherException;
 import br.com.louvor4.voucher.model.Voucher;
@@ -64,7 +65,7 @@ public class VoucherServiceImpl implements VoucherService {
 
     @Override
     @Transactional
-    public void redeem(String code) {
+    public RedeemVoucherResponse redeem(String code) {
         User user = currentUserProvider.get();
 
         Voucher voucher = voucherRepository.findActiveByCode(code.toUpperCase().trim())
@@ -100,6 +101,8 @@ public class VoucherServiceImpl implements VoucherService {
         subscriptionRepository.save(subscription);
         redemptionRepository.save(redemption);
         entitlementService.invalidateCache(subscription.getId());
+
+        return new RedeemVoucherResponse(voucher.getPlan().getName());
     }
 
     @Override

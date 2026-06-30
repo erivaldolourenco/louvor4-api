@@ -2,6 +2,7 @@ package br.com.louvor4.voucher.controller;
 
 import br.com.louvor4.voucher.dto.CreateVoucherRequest;
 import br.com.louvor4.voucher.dto.RedeemVoucherRequest;
+import br.com.louvor4.voucher.dto.RedeemVoucherResponse;
 import br.com.louvor4.voucher.dto.VoucherResponse;
 import br.com.louvor4.voucher.service.VoucherService;
 import jakarta.validation.Valid;
@@ -25,8 +26,7 @@ public class VoucherController {
     }
 
     @PostMapping("/redeem")
-    public ResponseEntity<Void> redeem(@RequestBody @Valid RedeemVoucherRequest request) {
-        voucherService.redeem(request.code());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<RedeemVoucherResponse> redeem(@RequestBody @Valid RedeemVoucherRequest request) {
+        return ResponseEntity.ok(voucherService.redeem(request.code()));
     }
 }

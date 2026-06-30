@@ -1,9 +1,11 @@
 package br.com.louvor4.api.controllers;
 
+import br.com.louvor4.api.services.EventRoteiroService;
 import br.com.louvor4.api.services.EventService;
 import br.com.louvor4.api.shared.dto.Event.*;
 import br.com.louvor4.api.shared.dto.Song.AddEventSetlistItemDTO;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,9 +19,11 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final EventRoteiroService eventRoteiroService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, EventRoteiroService eventRoteiroService) {
         this.eventService = eventService;
+        this.eventRoteiroService = eventRoteiroService;
     }
 
     @GetMapping("/{id}")
@@ -87,5 +91,24 @@ public class EventController {
     public ResponseEntity<List<SetlistDTO>> getSetlist(@PathVariable UUID eventId) {
         List<SetlistDTO> setlist = eventService.getSetlist(eventId);
         return ResponseEntity.ok(setlist);
+    }
+
+    @GetMapping("/{eventId}/roteiro/pdf")
+    @PreAuthorize("@projectSecurity.isMemberByEventId(#eventId)")
+    public ResponseEntity<byte[]> getRoteiroAsPdf(@PathVariable UUID eventId) {
+        EventRoteiroService.Result result = eventRoteiroService.generatePdf(eventId);
+        String filename = sanitizeFilename(result.eventTitle()) + "-roteiro.pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(result.pdf());
+    }
+
+    private String sanitizeFilename(String title) {
+        if (title == null || title.isBlank()) return "roteiro";
+        return title.trim()
+                .replaceAll("[^a-zA-Z0-9\\-_. áéíóúâêîôûãõàèìòùç]", "")
+                .replaceAll("\\s+", "-")
+                .toLowerCase();
     }
 }

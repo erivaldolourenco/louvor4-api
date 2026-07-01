@@ -29,7 +29,7 @@ public class Event {
     @Column(nullable = false, length = 150)
     private String title;
 
-    @Column(nullable = false, length = 150)
+    @Column(length = 150)
     private String description;
 
     @Column(name = "start_at", nullable = false)

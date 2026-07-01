@@ -5,6 +5,7 @@ import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
+import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -57,5 +58,19 @@ public class SongController {
     public ResponseEntity<Void> delete(@PathVariable UUID songId) {
         songService.delete(songId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{songId}/lyrics")
+    public ResponseEntity<SongLyricsDTO> getLyrics(@PathVariable UUID songId) {
+        SongLyricsDTO dto = songService.getLyrics(songId);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{songId}/lyrics")
+    public ResponseEntity<SongLyricsDTO> updateLyrics(
+            @PathVariable UUID songId,
+            @RequestBody @Valid SongLyricsDTO lyricsDto) {
+        SongLyricsDTO dto = songService.updateLyrics(songId, lyricsDto.lyrics());
+        return ResponseEntity.ok(dto);
     }
 }

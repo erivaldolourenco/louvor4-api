@@ -50,6 +50,9 @@ public class Song {
     @Column(name = "notes", length = 1000)
     private String notes;
 
+    @Column(name = "lyrics", columnDefinition = "TEXT")
+    private String lyrics;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -128,5 +131,13 @@ public class Song {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getLyrics() {
+        return lyrics;
+    }
+
+    public void setLyrics(String lyrics) {
+        this.lyrics = lyrics;
     }
 }

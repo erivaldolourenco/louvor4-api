@@ -14,6 +14,7 @@ import br.com.louvor4.api.repositories.MedleyItemRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
+import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 import br.com.louvor4.entitlement.services.EntitlementService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -150,5 +151,23 @@ public class SongServiceImpl implements SongService {
 
         audioFileRepository.deleteBySong_Id(songId);
         songRepository.delete(song);
+    }
+
+    @Override
+    public SongLyricsDTO getLyrics(UUID songId) {
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        return new SongLyricsDTO(song.getId(), song.getLyrics());
+    }
+
+    @Override
+    public SongLyricsDTO updateLyrics(UUID songId, String lyrics) {
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        song.setLyrics(lyrics);
+        Song saved = songRepository.save(song);
+        return new SongLyricsDTO(saved.getId(), saved.getLyrics());
     }
 }

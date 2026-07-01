@@ -12,6 +12,7 @@ import java.util.List;
 public interface EventSongMapper {
 
     @Mapping(target = "id", source = "id")
+    @Mapping(target = "songId", source = "song.id")
     @Mapping(target = "title", source = "song.title")
     @Mapping(target = "artist", source = "song.artist")
     @Mapping(target = "key", source = "song.key")

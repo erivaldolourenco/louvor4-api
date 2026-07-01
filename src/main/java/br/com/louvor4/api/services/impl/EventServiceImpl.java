@@ -620,6 +620,7 @@ public class EventServiceImpl implements EventService {
                 String audioUrl = audioUrlBySongId.get(item.getSong().getId());
                 EventSongDTO enriched = new EventSongDTO(
                         dto.eventSong().id(),
+                        dto.eventSong().songId(),
                         dto.eventSong().title(),
                         dto.eventSong().artist(),
                         dto.eventSong().key(),

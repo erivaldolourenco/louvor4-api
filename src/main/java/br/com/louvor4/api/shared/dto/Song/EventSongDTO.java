@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record EventSongDTO(
         UUID id,
+        UUID songId,
         String title,
         String artist,
         String key,

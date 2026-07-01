@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public interface EventSetlistItemMapper {
 
     @Mapping(target = "id", source = "id")
+    @Mapping(target = "songId", source = "song.id")
     @Mapping(target = "title", source = "song.title")
     @Mapping(target = "artist", source = "song.artist")
     @Mapping(target = "key", expression = "java(resolveKey(entity))")

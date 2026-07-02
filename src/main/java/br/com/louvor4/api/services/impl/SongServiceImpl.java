@@ -163,8 +163,14 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public SongLyricsDTO updateLyrics(UUID songId, String lyrics) {
+        User currentUser = currentUserProvider.get();
+
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        if (!currentUser.getId().equals(song.getUser().getId())) {
+            throw new ValidationException("Você não tem permissão para editar a letra desta música.");
+        }
 
         song.setLyrics(lyrics);
         Song saved = songRepository.save(song);

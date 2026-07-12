@@ -13,8 +13,10 @@ import br.com.louvor4.api.repositories.EventSongRepository;
 import br.com.louvor4.api.repositories.MedleyItemRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
+import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
+import br.com.louvor4.api.validations.ChordSheetValidation;
 import br.com.louvor4.entitlement.services.EntitlementService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class SongServiceImpl implements SongService {
     private final SongMapper songMapper;
     private final CurrentUserProvider currentUserProvider;
     private final EntitlementService entitlementService;
+    private final ChordSheetValidation chordSheetValidation;
 
     public SongServiceImpl(SongRepository songRepository,
                            AudioFileRepository audioFileRepository,
@@ -41,7 +44,8 @@ public class SongServiceImpl implements SongService {
                            EventSetlistItemRepository eventSetlistItemRepository,
                            SongMapper songMapper,
                            CurrentUserProvider currentUserProvider,
-                           EntitlementService entitlementService) {
+                           EntitlementService entitlementService,
+                           ChordSheetValidation chordSheetValidation) {
         this.songRepository = songRepository;
         this.audioFileRepository = audioFileRepository;
         this.medleyItemRepository = medleyItemRepository;
@@ -50,6 +54,7 @@ public class SongServiceImpl implements SongService {
         this.songMapper = songMapper;
         this.currentUserProvider = currentUserProvider;
         this.entitlementService = entitlementService;
+        this.chordSheetValidation = chordSheetValidation;
     }
 
     @Override
@@ -175,5 +180,51 @@ public class SongServiceImpl implements SongService {
         song.setLyrics(lyrics);
         Song saved = songRepository.save(song);
         return new SongLyricsDTO(saved.getId(), saved.getLyrics());
+    }
+
+    @Override
+    public ChordSheetDTO getChordSheet(UUID songId) {
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        return new ChordSheetDTO(song.getId(), song.getChordSheetJson());
+    }
+
+    @Override
+    public ChordSheetDTO updateChordSheet(UUID songId, String chordSheetJson) {
+        User currentUser = currentUserProvider.get();
+
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        if (!currentUser.getId().equals(song.getUser().getId())) {
+            throw new ValidationException("Você não tem permissão para editar a cifra desta música.");
+        }
+
+        chordSheetValidation.validate(chordSheetJson);
+
+        song.setChordSheetJson(chordSheetJson);
+        Song saved = songRepository.save(song);
+        return new ChordSheetDTO(saved.getId(), saved.getChordSheetJson());
+    }
+
+    @Override
+    public void deleteChordSheet(UUID songId) {
+        User currentUser = currentUserProvider.get();
+
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        if (!currentUser.getId().equals(song.getUser().getId())) {
+            throw new ValidationException("Você não tem permissão para remover a cifra desta música.");
+        }
+
+        song.setChordSheetJson(null);
+        songRepository.save(song);
+    }
+
+    @Override
+    public ChordSheetDTO importChordSheet(UUID songId, String chordSheetJson) {
+        return updateChordSheet(songId, chordSheetJson);
     }
 }

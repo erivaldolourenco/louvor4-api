@@ -5,7 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -52,6 +54,10 @@ public class Song {
 
     @Column(name = "lyrics", columnDefinition = "TEXT")
     private String lyrics;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "chord_sheet_json", columnDefinition = "jsonb")
+    private String chordSheetJson;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -139,5 +145,13 @@ public class Song {
 
     public void setLyrics(String lyrics) {
         this.lyrics = lyrics;
+    }
+
+    public String getChordSheetJson() {
+        return chordSheetJson;
+    }
+
+    public void setChordSheetJson(String chordSheetJson) {
+        this.chordSheetJson = chordSheetJson;
     }
 }

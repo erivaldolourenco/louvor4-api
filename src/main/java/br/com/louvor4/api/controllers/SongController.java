@@ -4,6 +4,7 @@ import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
+import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 import jakarta.validation.Valid;
@@ -71,6 +72,34 @@ public class SongController {
             @PathVariable UUID songId,
             @RequestBody @Valid SongLyricsDTO lyricsDto) {
         SongLyricsDTO dto = songService.updateLyrics(songId, lyricsDto.lyrics());
+        return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/{songId}/chord-sheet")
+    public ResponseEntity<ChordSheetDTO> getChordSheet(@PathVariable UUID songId) {
+        ChordSheetDTO dto = songService.getChordSheet(songId);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{songId}/chord-sheet")
+    public ResponseEntity<ChordSheetDTO> updateChordSheet(
+            @PathVariable UUID songId,
+            @RequestBody @Valid ChordSheetDTO chordSheetDto) {
+        ChordSheetDTO dto = songService.updateChordSheet(songId, chordSheetDto.chordSheetJson());
+        return ResponseEntity.ok(dto);
+    }
+
+    @DeleteMapping("/{songId}/chord-sheet")
+    public ResponseEntity<Void> deleteChordSheet(@PathVariable UUID songId) {
+        songService.deleteChordSheet(songId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{songId}/chord-sheet/import")
+    public ResponseEntity<ChordSheetDTO> importChordSheet(
+            @PathVariable UUID songId,
+            @RequestBody @Valid ChordSheetDTO chordSheetDto) {
+        ChordSheetDTO dto = songService.importChordSheet(songId, chordSheetDto.chordSheetJson());
         return ResponseEntity.ok(dto);
     }
 }

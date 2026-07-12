@@ -1,6 +1,7 @@
 package br.com.louvor4.api.services;
 
 
+import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 
@@ -15,4 +16,8 @@ public interface SongService {
     void delete(UUID songId);
     SongLyricsDTO getLyrics(UUID songId);
     SongLyricsDTO updateLyrics(UUID songId, String lyrics);
+    ChordSheetDTO getChordSheet(UUID songId);
+    ChordSheetDTO updateChordSheet(UUID songId, String chordSheetJson);
+    void deleteChordSheet(UUID songId);
+    ChordSheetDTO importChordSheet(UUID songId, String chordSheetJson);
 }

@@ -20,6 +20,7 @@ public interface EventSongMapper {
     @Mapping(target = "youTubeUrl", source = "song.youTubeUrl")
     @Mapping(target = "notes", source = "song.notes")
     @Mapping(target = "addedBy", source = "entity.addedBy.member.user.firstName")
+    @Mapping(target = "editChordSheetPermission", source = "song.editChordSheetPermission")
     EventSongDTO toSongDto(EventSong entity);
 
     List<EventSongDTO> toSongDtoList(List<EventSong> entities);

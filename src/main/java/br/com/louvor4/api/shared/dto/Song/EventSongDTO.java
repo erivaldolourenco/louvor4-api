@@ -12,6 +12,7 @@ public record EventSongDTO(
         String youTubeUrl,
         String notes,
         String addedBy,
-        String referenceAudioUrl
+        String referenceAudioUrl,
+        Boolean editChordSheetPermission
 ) {
 }

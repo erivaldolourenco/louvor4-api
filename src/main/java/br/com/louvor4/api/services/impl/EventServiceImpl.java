@@ -628,7 +628,8 @@ public class EventServiceImpl implements EventService {
                         dto.eventSong().youTubeUrl(),
                         dto.eventSong().notes(),
                         dto.eventSong().addedBy(),
-                        audioUrl
+                        audioUrl,
+                        dto.eventSong().editChordSheetPermission()
                 );
                 return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.addedByUserId(), dto.notes(), enriched, dto.eventMedley());
             }

@@ -59,6 +59,9 @@ public class Song {
     @Column(name = "chord_sheet_json", columnDefinition = "jsonb")
     private String chordSheetJson;
 
+    @Column(name = "edit_chord_sheet_permission")
+    private Boolean editChordSheetPermission = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -153,5 +156,13 @@ public class Song {
 
     public void setChordSheetJson(String chordSheetJson) {
         this.chordSheetJson = chordSheetJson;
+    }
+
+    public Boolean isEditChordSheetPermission() {
+        return editChordSheetPermission;
+    }
+
+    public void setEditChordSheetPermission(Boolean editChordSheetPermission) {
+        this.editChordSheetPermission = editChordSheetPermission;
     }
 }

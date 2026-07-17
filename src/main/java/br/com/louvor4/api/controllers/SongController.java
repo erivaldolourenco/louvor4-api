@@ -5,6 +5,7 @@ import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
+import br.com.louvor4.api.shared.dto.Song.ChordSheetEditPermissionDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 import jakarta.validation.Valid;
@@ -100,6 +101,14 @@ public class SongController {
             @PathVariable UUID songId,
             @RequestBody @Valid ChordSheetDTO chordSheetDto) {
         ChordSheetDTO dto = songService.importChordSheet(songId, chordSheetDto.chordSheetJson());
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{songId}/chord-sheet/edit-permission")
+    public ResponseEntity<ChordSheetEditPermissionDTO> editPermissionChordSheet(
+            @PathVariable UUID songId,
+            @RequestBody @Valid ChordSheetEditPermissionDTO editPermissionDto) {
+        ChordSheetEditPermissionDTO dto = songService.updateChordSheetEditPermission(songId, editPermissionDto.editPermission());
         return ResponseEntity.ok(dto);
     }
 }

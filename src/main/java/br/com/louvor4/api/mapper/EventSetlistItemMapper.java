@@ -26,6 +26,7 @@ public interface EventSetlistItemMapper {
     @Mapping(target = "notes", expression = "java(resolveNotes(entity))")
     @Mapping(target = "addedBy", source = "addedBy.member.user.firstName")
     @Mapping(target = "referenceAudioUrl", ignore = true)
+    @Mapping(target = "editChordSheetPermission", source = "song.editChordSheetPermission")
     EventSongDTO toSongDto(EventSetlistItem entity);
 
     List<EventSongDTO> toSongDtoList(List<EventSetlistItem> entities);

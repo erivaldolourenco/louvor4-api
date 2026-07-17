@@ -6,6 +6,8 @@ import br.com.louvor4.api.repositories.EventProgramItemRepository;
 import br.com.louvor4.api.repositories.EventRepository;
 import br.com.louvor4.api.services.EventRoteiroService;
 import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPageEventHelper;
 import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.draw.LineSeparator;
@@ -113,53 +115,77 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
     private void addHeader(Document doc, Event event) throws DocumentException {
         MusicProject project = event.getMusicProject();
 
-        // Logo
-        if (project.getProfileImage() != null && !project.getProfileImage().isBlank()) {
-            tryAddLogo(doc, project.getProfileImage());
-        }
+        PdfPTable header = new PdfPTable(2);
+        header.setWidthPercentage(100);
+        header.setWidths(new float[]{2.3f, 1f});
 
-        // Project name
-        Font projectFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, COLOR_BLACK);
-        Paragraph projectName = new Paragraph(project.getName(), projectFont);
-        projectName.setAlignment(Element.ALIGN_CENTER);
-        projectName.setSpacingBefore(8);
-        doc.add(projectName);
+        header.addCell(buildEventInfoCell(event));
+        header.addCell(buildProjectCell(project));
 
-        // Event title
-        Font eventTitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 15, COLOR_SUBTITLE);
+        doc.add(header);
+    }
+
+    private PdfPCell buildEventInfoCell(Event event) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPaddingRight(12);
+
+        Font eventTitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 17, COLOR_BLACK);
         Paragraph eventTitle = new Paragraph(event.getTitle(), eventTitleFont);
-        eventTitle.setAlignment(Element.ALIGN_CENTER);
-        eventTitle.setSpacingBefore(6);
-        doc.add(eventTitle);
+        eventTitle.setAlignment(Element.ALIGN_LEFT);
+        cell.addElement(eventTitle);
 
-        // Description
         if (event.getDescription() != null && !event.getDescription().isBlank()) {
             Font descFont = FontFactory.getFont(FontFactory.HELVETICA, 11, COLOR_DETAIL);
             Paragraph desc = new Paragraph(event.getDescription(), descFont);
-            desc.setAlignment(Element.ALIGN_CENTER);
-            desc.setSpacingBefore(3);
-            doc.add(desc);
+            desc.setAlignment(Element.ALIGN_LEFT);
+            desc.setSpacingBefore(4);
+            cell.addElement(desc);
         }
 
-        // Date · Time
         Font infoFont = FontFactory.getFont(FontFactory.HELVETICA, 11, COLOR_DETAIL);
         String dateStr = event.getStartAt().format(DATE_FMT);
         String timeStr = event.getStartAt().format(TIME_FMT);
         Paragraph dateTime = new Paragraph(dateStr + "  ·  " + timeStr, infoFont);
-        dateTime.setAlignment(Element.ALIGN_CENTER);
-        dateTime.setSpacingBefore(3);
-        doc.add(dateTime);
+        dateTime.setAlignment(Element.ALIGN_LEFT);
+        dateTime.setSpacingBefore(4);
+        cell.addElement(dateTime);
+
+        return cell;
     }
 
-    private void tryAddLogo(Document doc, String imageUrl) {
+    private PdfPCell buildProjectCell(MusicProject project) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        cell.setVerticalAlignment(Element.ALIGN_TOP);
+
+        if (project.getProfileImage() != null && !project.getProfileImage().isBlank()) {
+            Image logo = tryLoadImage(project.getProfileImage());
+            if (logo != null) {
+                logo.scaleToFit(70, 70);
+                logo.setAlignment(Image.ALIGN_RIGHT);
+                cell.addElement(logo);
+            }
+        }
+
+        Font projectFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, COLOR_SUBTITLE);
+        Paragraph projectName = new Paragraph(project.getName(), projectFont);
+        projectName.setAlignment(Element.ALIGN_RIGHT);
+        projectName.setSpacingBefore(4);
+        cell.addElement(projectName);
+
+        return cell;
+    }
+
+    private Image tryLoadImage(String imageUrl) {
         try (InputStream is = new URL(imageUrl).openStream()) {
             byte[] bytes = is.readAllBytes();
-            Image logo = Image.getInstance(bytes);
-            logo.scaleToFit(90, 90);
-            logo.setAlignment(Image.ALIGN_CENTER);
-            doc.add(logo);
+            return Image.getInstance(bytes);
         } catch (Exception ignored) {
             // URL inválida ou imagem indisponível — omite sem quebrar o PDF
+            return null;
         }
     }
 
@@ -169,7 +195,7 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
         int number = 1;
         for (EventProgramItem item : items) {
             addProgramItem(doc, item, number++);
-            addHorizontalRule(doc, 8, 8);
+            addHorizontalRule(doc, 3, 3);
         }
     }
 
@@ -190,23 +216,21 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
         Song song = setlistItem.getSong();
         if (song == null) return;
 
-        Font boldFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, COLOR_BLACK);
-        Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 11, COLOR_DETAIL);
+        Font boldFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, COLOR_BLACK);
+        Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 9.5f, COLOR_DETAIL);
 
         Paragraph title = new Paragraph(number + ". " + song.getTitle(), boldFont);
-        title.setSpacingBefore(4);
+        title.setSpacingBefore(3);
         doc.add(title);
 
-        Paragraph artist = new Paragraph("   " + song.getArtist(), normalFont);
-        artist.setSpacingBefore(2);
-        doc.add(artist);
-
+        String subtitle = song.getArtist();
         String details = buildDetailsLine(resolveKey(setlistItem), song.getBpm());
         if (details != null) {
-            Paragraph detailsPara = new Paragraph("   " + details, normalFont);
-            detailsPara.setSpacingBefore(2);
-            doc.add(detailsPara);
+            subtitle += "   ·   " + details;
         }
+        Paragraph subtitlePara = new Paragraph("   " + subtitle, normalFont);
+        subtitlePara.setSpacingBefore(1);
+        doc.add(subtitlePara);
     }
 
     private void addMedleyItem(Document doc, EventProgramItem item, int number) throws DocumentException {
@@ -216,35 +240,33 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
         Medley medley = setlistItem.getMedley();
         if (medley == null) return;
 
-        Font boldFont    = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, COLOR_BLACK);
-        Font subBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, COLOR_SUBTITLE);
-        Font subFont     = FontFactory.getFont(FontFactory.HELVETICA, 11, COLOR_DETAIL);
+        Font boldFont    = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, COLOR_BLACK);
+        Font subBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9.5f, COLOR_SUBTITLE);
 
         Paragraph heading = new Paragraph(number + ". " + medley.getName() + "  (Medley)", boldFont);
-        heading.setSpacingBefore(4);
+        heading.setSpacingBefore(3);
         doc.add(heading);
 
         for (MedleyItem mi : medley.getItems()) {
             Song song = mi.getSong();
             if (song == null) continue;
 
-            Paragraph songLine = new Paragraph("   ↳ " + song.getTitle() + " — " + song.getArtist(), subBoldFont);
-            songLine.setSpacingBefore(4);
-            doc.add(songLine);
-
+            String line = song.getTitle() + " — " + song.getArtist();
             String details = buildDetailsLine(mi.getKey(), song.getBpm());
             if (details != null) {
-                Paragraph detailsLine = new Paragraph("      " + details, subFont);
-                detailsLine.setSpacingBefore(1);
-                doc.add(detailsLine);
+                line += "   ·   " + details;
             }
+
+            Paragraph songLine = new Paragraph("   ↳ " + line, subBoldFont);
+            songLine.setSpacingBefore(2);
+            doc.add(songLine);
         }
     }
 
     private void addTextItem(Document doc, EventProgramItem item, int number) throws DocumentException {
-        Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 13, COLOR_SUBTITLE);
+        Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12, COLOR_SUBTITLE);
         Paragraph title = new Paragraph(number + ". " + item.getTitle(), normalFont);
-        title.setSpacingBefore(4);
+        title.setSpacingBefore(3);
         doc.add(title);
     }
 
@@ -252,7 +274,7 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
 
     private void addHorizontalRule(Document doc, float spacingBefore, float spacingAfter)
             throws DocumentException {
-        Paragraph rule = new Paragraph();
+        Paragraph rule = new Paragraph("", FontFactory.getFont(FontFactory.HELVETICA, 2));
         rule.setSpacingBefore(spacingBefore);
         rule.add(new Chunk(new LineSeparator(0.5f, 100f, COLOR_SEPARATOR, Element.ALIGN_CENTER, -2)));
         rule.setSpacingAfter(spacingAfter);

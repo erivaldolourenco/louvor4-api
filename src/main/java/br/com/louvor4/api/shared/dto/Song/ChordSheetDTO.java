@@ -4,5 +4,6 @@ import java.util.UUID;
 
 public record ChordSheetDTO(
         UUID songId,
-        String chordSheetJson
+        String chordSheetJson,
+        Boolean editPermission
 ) {}

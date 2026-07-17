@@ -22,6 +22,34 @@ class ChordSheetValidationTest {
     }
 
     @Test
+    void shouldAcceptPickupChordAtPositionMinusOne() {
+        String json = """
+                {"schemaVersion":1,"sections":[{"type":"verse","label":"Verso 1","lines":[
+                {"text":"Sobre o mar","chords":[
+                    {"position":-1,"chord":"G"},
+                    {"position":0,"chord":"C"},
+                    {"position":4,"chord":"D"}
+                ]}
+                ]}]}
+                """;
+
+        assertThatCode(() -> validation.validate(json)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectRegularSectionWhenChordPositionIsLessThanMinusOne() {
+        String json = """
+                {"schemaVersion":1,"sections":[{"type":"verse","label":"Verso 1","lines":[
+                {"text":"Sobre o mar","chords":[{"position":-2,"chord":"G"}]}
+                ]}]}
+                """;
+
+        assertThatThrownBy(() -> validation.validate(json))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Posição de acorde inválida");
+    }
+
+    @Test
     void shouldRejectRegularSectionWhenChordPositionExceedsTextLength() {
         String json = """
                 {"schemaVersion":1,"sections":[{"type":"verse","label":"Verso 1","lines":[

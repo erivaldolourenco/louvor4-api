@@ -16,6 +16,7 @@ public class ChordSheetValidation {
     private static final Set<Integer> SUPPORTED_SCHEMA_VERSIONS = Set.of(1);
     private static final Pattern CHORD_PATTERN = Pattern.compile("^[A-G](#|b)?[^/\\s]*(/[A-G](#|b)?)?$");
     private static final String CHORD_SEQUENCE_TYPE = "chord_sequence";
+    private static final int PICKUP_POSITION = -1;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -76,7 +77,7 @@ public class ChordSheetValidation {
                         if (!chordSequencePositions.add(position)) {
                             throw new ValidationException("Posição de acorde duplicada em chord_sequence: " + position + ".");
                         }
-                    } else if (position < 0 || position > text.length()) {
+                    } else if (position < PICKUP_POSITION || position > text.length()) {
                         throw new ValidationException(
                                 "Posição de acorde inválida: " + position + " para linha com " + text.length() + " caracteres.");
                     }

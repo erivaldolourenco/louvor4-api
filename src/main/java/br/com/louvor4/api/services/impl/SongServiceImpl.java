@@ -14,6 +14,7 @@ import br.com.louvor4.api.repositories.MedleyItemRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
+import br.com.louvor4.api.shared.dto.Song.ChordSheetEditPermissionDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 import br.com.louvor4.api.validations.ChordSheetValidation;
@@ -187,7 +188,7 @@ public class SongServiceImpl implements SongService {
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
 
-        return new ChordSheetDTO(song.getId(), song.getChordSheetJson());
+        return new ChordSheetDTO(song.getId(), song.getChordSheetJson(), song.isEditChordSheetPermission());
     }
 
     @Override
@@ -205,7 +206,7 @@ public class SongServiceImpl implements SongService {
 
         song.setChordSheetJson(chordSheetJson);
         Song saved = songRepository.save(song);
-        return new ChordSheetDTO(saved.getId(), saved.getChordSheetJson());
+        return new ChordSheetDTO(saved.getId(), saved.getChordSheetJson(), saved.isEditChordSheetPermission());
     }
 
     @Override
@@ -226,5 +227,21 @@ public class SongServiceImpl implements SongService {
     @Override
     public ChordSheetDTO importChordSheet(UUID songId, String chordSheetJson) {
         return updateChordSheet(songId, chordSheetJson);
+    }
+
+    @Override
+    public ChordSheetEditPermissionDTO updateChordSheetEditPermission(UUID songId, boolean editPermission) {
+        User currentUser = currentUserProvider.get();
+
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        if (!currentUser.getId().equals(song.getUser().getId())) {
+            throw new ValidationException("Você não tem permissão para alterar a permissão de edição da cifra desta música.");
+        }
+
+        song.setEditChordSheetPermission(editPermission);
+        Song saved = songRepository.save(song);
+        return new ChordSheetEditPermissionDTO(saved.isEditChordSheetPermission());
     }
 }

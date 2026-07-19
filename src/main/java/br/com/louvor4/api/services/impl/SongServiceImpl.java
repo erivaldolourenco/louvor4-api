@@ -198,7 +198,9 @@ public class SongServiceImpl implements SongService {
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
 
-        if (!currentUser.getId().equals(song.getUser().getId())) {
+        boolean isOwner = currentUser.getId().equals(song.getUser().getId());
+        boolean canEdit = isOwner || Boolean.TRUE.equals(song.isEditChordSheetPermission());
+        if (!canEdit) {
             throw new ValidationException("Você não tem permissão para editar a cifra desta música.");
         }
 

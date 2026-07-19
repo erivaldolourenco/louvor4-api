@@ -110,6 +110,22 @@ class SongServiceImplChordSheetTest {
     }
 
     @Test
+    void updateChordSheetShouldPersistWhenNotOwnerButEditPermissionGranted() {
+        song.setEditChordSheetPermission(true);
+        User otherUser = new User();
+        otherUser.setId(UUID.randomUUID());
+
+        when(currentUserProvider.get()).thenReturn(otherUser);
+        when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
+        when(songRepository.save(song)).thenReturn(song);
+
+        ChordSheetDTO result = service.updateChordSheet(songId, VALID_CHORD_SHEET_JSON);
+
+        verify(chordSheetValidation).validate(VALID_CHORD_SHEET_JSON);
+        assertThat(result.chordSheetJson()).isEqualTo(VALID_CHORD_SHEET_JSON);
+    }
+
+    @Test
     void updateChordSheetShouldPropagateValidationFailure() {
         when(currentUserProvider.get()).thenReturn(owner);
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));

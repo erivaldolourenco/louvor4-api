@@ -1,6 +1,7 @@
 package br.com.louvor4.api.services;
 
 import br.com.louvor4.api.enums.ProjectMemberRole;
+import br.com.louvor4.api.shared.dto.Event.CreateEventBatchDto;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
@@ -24,6 +25,7 @@ public interface MusicProjectService {
     void respondInvite(UUID projectId, ProjectInviteResponseDTO responseDto);
 
     CreateEventDto createEvent(UUID projectId, CreateEventDto eventDto);
+    List<CreateEventDto> createEventBatch(UUID projectId, CreateEventBatchDto eventDto);
     List<EventDetailDto> getEventsByProject(UUID projectId);
 
     void assignSkillsToMember(UUID projectId, UUID memberId, List<UUID> skillIds);

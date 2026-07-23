@@ -16,6 +16,7 @@ import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.entitlement.services.EntitlementService;
+import br.com.louvor4.api.shared.dto.Event.CreateEventBatchDto;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
@@ -315,6 +316,36 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         Event saved = eventRepository.save(event);
         eventReminderScheduler.schedule(saved);
         return eventMapper.toDto(saved);
+    }
+
+    @Transactional
+    @Override
+    public List<CreateEventDto> createEventBatch(UUID projectId, CreateEventBatchDto batchDto) {
+        if (batchDto.dates() == null || batchDto.dates().isEmpty()) {
+            throw new ValidationException("Informe ao menos uma data para criar os eventos em lote.");
+        }
+
+        MusicProject project = musicProjectRepository.findById(projectId)
+                .orElseThrow(() -> new ValidationException("Projeto não encontrado."));
+
+        List<CreateEventDto> created = new ArrayList<>();
+        for (String date : batchDto.dates()) {
+            CreateEventDto singleDto = new CreateEventDto(
+                    null,
+                    projectId,
+                    batchDto.title(),
+                    batchDto.description(),
+                    date,
+                    batchDto.startTime(),
+                    batchDto.location()
+            );
+            Event event = eventMapper.toEntity(singleDto);
+            event.setMusicProject(project);
+            Event saved = eventRepository.save(event);
+            eventReminderScheduler.schedule(saved);
+            created.add(eventMapper.toDto(saved));
+        }
+        return created;
     }
 
     @Override

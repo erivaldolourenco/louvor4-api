@@ -3,6 +3,7 @@ package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.services.MusicProjectService;
+import br.com.louvor4.api.shared.dto.Event.CreateEventBatchDto;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.MusicProject.*;
@@ -120,6 +121,15 @@ public class MusicProjectController {
     public ResponseEntity<Void> createEvent(@PathVariable UUID projectId, @RequestBody @Valid CreateEventDto eventDto) {
         musicProjectService.createEvent(projectId, eventDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/{projectId}/events-lote")
+    @PreAuthorize("@projectSecurity.isAdminOrOwner(#projectId)")
+    public ResponseEntity<List<CreateEventDto>> createEventBatch(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid CreateEventBatchDto eventDto) {
+        List<CreateEventDto> created = musicProjectService.createEventBatch(projectId, eventDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping("/{projectId}/events")

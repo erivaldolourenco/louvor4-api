@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/auth/login/google").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/refresh").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/logout").permitAll();

@@ -8,6 +8,7 @@ import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.RefreshTokenRepository;
 import br.com.louvor4.api.repositories.UserRepository;
+import br.com.louvor4.api.services.GoogleAuthService;
 import br.com.louvor4.api.services.PasswordResetService;
 import br.com.louvor4.entitlement.services.EntitlementService;
 import br.com.louvor4.api.shared.dto.AuthenticationDTO;
@@ -16,6 +17,7 @@ import br.com.louvor4.api.shared.dto.User.UserDTO;
 import br.com.louvor4.api.shared.dto.authentication.ForgotPasswordChannelsRequest;
 import br.com.louvor4.api.shared.dto.authentication.ForgotPasswordChannelsResponse;
 import br.com.louvor4.api.shared.dto.authentication.ForgotPasswordRequest;
+import br.com.louvor4.api.shared.dto.authentication.GoogleLoginRequest;
 import br.com.louvor4.api.shared.dto.authentication.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,7 @@ public class AuthenticationController {
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final UserRepository userRepository;
     private final EntitlementService entitlementService;
+    private final GoogleAuthService googleAuthService;
 
     public AuthenticationController(
             TokenService tokenService,
@@ -44,7 +47,8 @@ public class AuthenticationController {
             RefreshTokenRepository refreshTokenRepository,
             EmailVerificationTokenRepository emailVerificationTokenRepository,
             UserRepository userRepository,
-            EntitlementService entitlementService
+            EntitlementService entitlementService,
+            GoogleAuthService googleAuthService
     ) {
         this.tokenService = tokenService;
         this.authenticationManager = authenticationManager;
@@ -53,6 +57,7 @@ public class AuthenticationController {
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.userRepository = userRepository;
         this.entitlementService = entitlementService;
+        this.googleAuthService = googleAuthService;
     }
 
 
@@ -85,6 +90,34 @@ public class AuthenticationController {
                 entitlementService.getPlanName(userDetails.getUser().getId()),
                 userDetails.getUser().getProfileImage(),
                 userDetails.getUser().getProfileImageHash()
+                )
+        ));
+    }
+
+    @PostMapping("/login/google")
+    public ResponseEntity<LoginResponseDTO> loginWithGoogle(@RequestBody @Valid GoogleLoginRequest request) {
+        User user = googleAuthService.authenticate(request.idToken());
+        UserDetailsImpl userDetails = new UserDetailsImpl(user);
+        var accessToken = tokenService.generateToken(userDetails);
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUser(user);
+        refreshToken.setToken(tokenService.generateRefreshToken());
+        refreshToken.setExpiresAt(tokenService.genRefreshExpirationDate());
+        RefreshToken savedRefresh = refreshTokenRepository.save(refreshToken);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(new LoginResponseDTO(
+                accessToken,
+                savedRefresh.getToken(),
+                savedRefresh.getExpiresAt(),
+                new UserDTO(
+                        user.getId(),
+                        user.getFirstName(),
+                        user.getLastName(),
+                        user.getEmail(),
+                        entitlementService.getPlanName(user.getId()),
+                        user.getProfileImage(),
+                        user.getProfileImageHash()
                 )
         ));
     }

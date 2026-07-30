@@ -77,3 +77,7 @@ cloud:
 
 firebase:
   credentials: ${FIREBASE_JSON}
+
+google:
+  oauth:
+    client-ids: ${GOOGLE_OAUTH_CLIENT_IDS}

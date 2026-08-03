@@ -6,5 +6,7 @@ public record ProgramMusicResponse(
         UUID id,
         String title,
         String artist,
-        String youTubeUrl
+        String youTubeUrl,
+        String key,
+        String addBy
 ) {}

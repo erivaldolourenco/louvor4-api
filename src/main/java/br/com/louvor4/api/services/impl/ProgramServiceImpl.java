@@ -155,22 +155,12 @@ public class ProgramServiceImpl implements ProgramService {
 
         if (item.isMusic() && item.getSetlistItem() != null) {
             var song = item.getSetlistItem().getSong();
-            music = new ProgramMusicResponse(
-                    song != null ? song.getId() : null,
-                    song != null ? song.getTitle() : null,
-                    song != null ? song.getArtist() : null,
-                    song != null ? song.getYouTubeUrl() : null
-            );
+            music = song != null ? toMusicResponse(song) : null;
         } else if (item.isMedley() && item.getSetlistItem() != null) {
             Medley m = item.getSetlistItem().getMedley();
             if (m != null) {
                 var songs = m.getItems().stream()
-                        .map(mi -> new ProgramMusicResponse(
-                                mi.getSong().getId(),
-                                mi.getSong().getTitle(),
-                                mi.getSong().getArtist(),
-                                mi.getSong().getYouTubeUrl()
-                        ))
+                        .map(mi -> toMusicResponse(mi.getSong()))
                         .collect(java.util.stream.Collectors.toList());
                 medley = new ProgramMedleyResponse(m.getId(), m.getName(), songs);
             }
@@ -184,6 +174,20 @@ public class ProgramServiceImpl implements ProgramService {
                 item.isText() ? item.getDescription() : null,
                 music,
                 medley
+        );
+    }
+
+    private ProgramMusicResponse toMusicResponse(br.com.louvor4.api.models.Song song) {
+        var user = song.getUser();
+        String addBy = user != null ? user.getFirstName() + " " + user.getLastName() : null;
+
+        return new ProgramMusicResponse(
+                song.getId(),
+                song.getTitle(),
+                song.getArtist(),
+                song.getYouTubeUrl(),
+                song.getKey(),
+                addBy
         );
     }
 }

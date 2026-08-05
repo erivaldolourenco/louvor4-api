@@ -45,9 +45,23 @@ public class Song {
     @Column(name = "bpm")
     private Integer bpm;
 
-    @NotBlank
-    @Column(name = "youtube_url", nullable = false, length = 255)
+    @Column(name = "isrc", length = 32)
+    private String isrc;
+
+    @Column(name = "album", length = 150)
+    private String album;
+
+    @Column(name = "youtube_url", length = 255)
     private String youTubeUrl;
+
+    @Column(name = "spotify_url", length = 255)
+    private String spotifyUrl;
+
+    @Column(name = "deezer_url", length = 255)
+    private String deezerUrl;
+
+    @Column(name = "cover_url", length = 255)
+    private String coverUrl;
 
     @Column(name = "notes", length = 1000)
     private String notes;
@@ -126,12 +140,52 @@ public class Song {
         this.bpm = bpm;
     }
 
+    public String getIsrc() {
+        return isrc;
+    }
+
+    public void setIsrc(String isrc) {
+        this.isrc = isrc;
+    }
+
+    public String getAlbum() {
+        return album;
+    }
+
+    public void setAlbum(String album) {
+        this.album = album;
+    }
+
     public String getYouTubeUrl() {
         return youTubeUrl;
     }
 
     public void setYouTubeUrl(String youTubeUrl) {
         this.youTubeUrl = youTubeUrl;
+    }
+
+    public String getSpotifyUrl() {
+        return spotifyUrl;
+    }
+
+    public void setSpotifyUrl(String spotifyUrl) {
+        this.spotifyUrl = spotifyUrl;
+    }
+
+    public String getDeezerUrl() {
+        return deezerUrl;
+    }
+
+    public void setDeezerUrl(String deezerUrl) {
+        this.deezerUrl = deezerUrl;
+    }
+
+    public String getCoverUrl() {
+        return coverUrl;
+    }
+
+    public void setCoverUrl(String coverUrl) {
+        this.coverUrl = coverUrl;
     }
 
     public String getNotes() {

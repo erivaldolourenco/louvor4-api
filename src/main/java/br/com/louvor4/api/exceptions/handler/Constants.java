@@ -14,5 +14,6 @@ public class Constants {
 
     public static final String ERRO_AO_SALVAR_ARQUIVO = "Erro ao salvar arquivo";
 
+    public static final String ERRO_BUSCA_MUSICA_EXTERNA = "Erro ao buscar música em provedor externo";
 
 }

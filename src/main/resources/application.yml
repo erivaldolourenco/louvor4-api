@@ -81,3 +81,9 @@ firebase:
 google:
   oauth:
     client-ids: ${GOOGLE_OAUTH_CLIENT_IDS}
+
+# Credenciais do app Spotify (Client Credentials Flow). Não commitar valores reais —
+# defina SPOTIFY_CLIENT_ID e SPOTIFY_CLIENT_SECRET como variável de ambiente.
+spotify:
+  client-id: ${SPOTIFY_CLIENT_ID}
+  client-secret: ${SPOTIFY_CLIENT_SECRET}

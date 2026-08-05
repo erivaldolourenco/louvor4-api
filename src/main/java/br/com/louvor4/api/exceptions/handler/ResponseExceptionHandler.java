@@ -91,6 +91,16 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exceptionResponse);
     }
 
+    @ExceptionHandler(ExternalMusicException.class)
+    public final ResponseEntity<ExceptionResponse> externalMusicException(Exception ex, WebRequest request) {
+        logger.error("ExternalMusicException: {}", ex.getMessage(), ex);
+        ExceptionResponse exceptionResponse = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.BAD_GATEWAY.value())
+                .withTitle(ERRO_BUSCA_MUSICA_EXTERNA);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(exceptionResponse);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public final ResponseEntity<ExceptionResponse> dataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
         logger.error("DataIntegrityViolationException: {}", ex.getMessage(), ex);

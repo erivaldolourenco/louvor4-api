@@ -8,7 +8,12 @@ public record SongDTO(
         String artist,
         String key,
         Integer bpm,
+        String isrc,
+        String album,
         String youTubeUrl,
+        String spotifyUrl,
+        String deezerUrl,
+        String coverUrl,
         String notes,
         String referenceAudioUrl
 ) {}

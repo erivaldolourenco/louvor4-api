@@ -84,7 +84,12 @@ public class SongServiceImpl implements SongService {
                     song.getArtist(),
                     song.getKey(),
                     song.getBpm(),
+                    song.getIsrc(),
+                    song.getAlbum(),
                     song.getYouTubeUrl(),
+                    song.getSpotifyUrl(),
+                    song.getDeezerUrl(),
+                    song.getCoverUrl(),
                     song.getNotes(),
                     referenceAudioUrl
             );
@@ -104,7 +109,12 @@ public class SongServiceImpl implements SongService {
         song.setArtist(updateDto.artist());
         song.setKey(updateDto.key());
         song.setBpm(updateDto.bpm());
+        song.setIsrc(updateDto.isrc());
+        song.setAlbum(updateDto.album());
         song.setYouTubeUrl(updateDto.youTubeUrl());
+        song.setSpotifyUrl(updateDto.spotifyUrl());
+        song.setDeezerUrl(updateDto.deezerUrl());
+        song.setCoverUrl(updateDto.coverUrl());
         song.setNotes(updateDto.notes());
 
         Song saved = songRepository.save(song);
@@ -127,7 +137,12 @@ public class SongServiceImpl implements SongService {
                 song.getArtist(),
                 song.getKey(),
                 song.getBpm(),
+                song.getIsrc(),
+                song.getAlbum(),
                 song.getYouTubeUrl(),
+                song.getSpotifyUrl(),
+                song.getDeezerUrl(),
+                song.getCoverUrl(),
                 song.getNotes(),
                 referenceAudioUrl
         );

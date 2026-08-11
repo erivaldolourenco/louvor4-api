@@ -517,6 +517,7 @@ public class EventServiceImpl implements EventService {
                         p.getMember().getUser().getLastName(),
                         p.getMember().getUser().getProfileImage(),
                         p.getSkill() != null ? p.getSkill().getId() : null,
+                        p.getSkill() != null ? p.getSkill().getIconKey() : null,
                         p.getPermissions(),
                         p.getStatus()
                 ))

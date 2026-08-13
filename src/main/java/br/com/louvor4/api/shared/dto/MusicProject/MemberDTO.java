@@ -16,7 +16,7 @@ public class MemberDTO {
     private String profileImage;
     private ProjectMemberRole projectRole;
     private ProjectMemberStatus status;
-    private Set<String> skills;
+    private Set<ProjectSkillDTO> skills;
 
     public UUID getId() {
         return id;
@@ -90,11 +90,11 @@ public class MemberDTO {
         this.status = status;
     }
 
-    public Set<String> getSkills() {
+    public Set<ProjectSkillDTO> getSkills() {
         return skills;
     }
 
-    public void setSkills(Set<String> skills) {
+    public void setSkills(Set<ProjectSkillDTO> skills) {
         this.skills = skills;
     }
 }

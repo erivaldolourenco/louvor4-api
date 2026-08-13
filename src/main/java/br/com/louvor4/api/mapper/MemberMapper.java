@@ -3,6 +3,7 @@ package br.com.louvor4.api.mapper;
 import br.com.louvor4.api.models.MusicProjectMember;
 import br.com.louvor4.api.models.ProjectSkill;
 import br.com.louvor4.api.shared.dto.MusicProject.MemberDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.ProjectSkillDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -27,10 +28,10 @@ public interface MemberMapper {
         MemberDTO toDto(MusicProjectMember member);
 
     @Named("mapSkills")
-    default Set<String> mapSkills(Set<ProjectSkill> projectSkills) {
+    default Set<ProjectSkillDTO> mapSkills(Set<ProjectSkill> projectSkills) {
         if (projectSkills == null) return new HashSet<>();
         return projectSkills.stream()
-                .map(skill -> skill.getId().toString()) // Alterado de getName() para getId()
+                .map(ProjectSkillDTO::fromEntity)
                 .collect(Collectors.toSet());
     }
 }

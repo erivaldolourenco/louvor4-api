@@ -151,14 +151,8 @@ public class SongServiceImpl implements SongService {
     @Override
     @Transactional
     public void delete(UUID songId) {
-        User currentUser = currentUserProvider.get();
-
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
-
-        if (!currentUser.getId().equals(song.getUser().getId())) {
-            throw new ValidationException("Você não tem permissão para excluir esta música.");
-        }
 
         boolean usedInMedley = medleyItemRepository.existsBySong_Id(songId);
         boolean usedInEventSong = eventSongRepository.existsBySongId(songId);
@@ -184,14 +178,8 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public SongLyricsDTO updateLyrics(UUID songId, String lyrics) {
-        User currentUser = currentUserProvider.get();
-
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
-
-        if (!currentUser.getId().equals(song.getUser().getId())) {
-            throw new ValidationException("Você não tem permissão para editar a letra desta música.");
-        }
 
         song.setLyrics(lyrics);
         Song saved = songRepository.save(song);
@@ -208,16 +196,8 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public ChordSheetDTO updateChordSheet(UUID songId, String chordSheetJson) {
-        User currentUser = currentUserProvider.get();
-
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
-
-        boolean isOwner = currentUser.getId().equals(song.getUser().getId());
-        boolean canEdit = isOwner || Boolean.TRUE.equals(song.isEditChordSheetPermission());
-        if (!canEdit) {
-            throw new ValidationException("Você não tem permissão para editar a cifra desta música.");
-        }
 
         chordSheetValidation.validate(chordSheetJson);
 
@@ -228,14 +208,8 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public void deleteChordSheet(UUID songId) {
-        User currentUser = currentUserProvider.get();
-
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
-
-        if (!currentUser.getId().equals(song.getUser().getId())) {
-            throw new ValidationException("Você não tem permissão para remover a cifra desta música.");
-        }
 
         song.setChordSheetJson(null);
         songRepository.save(song);
@@ -248,14 +222,8 @@ public class SongServiceImpl implements SongService {
 
     @Override
     public ChordSheetEditPermissionDTO updateChordSheetEditPermission(UUID songId, boolean editPermission) {
-        User currentUser = currentUserProvider.get();
-
         Song song = songRepository.getSongById(songId)
                 .orElseThrow(() -> new ValidationException("Música não encontrada."));
-
-        if (!currentUser.getId().equals(song.getUser().getId())) {
-            throw new ValidationException("Você não tem permissão para alterar a permissão de edição da cifra desta música.");
-        }
 
         song.setEditChordSheetPermission(editPermission);
         Song saved = songRepository.save(song);

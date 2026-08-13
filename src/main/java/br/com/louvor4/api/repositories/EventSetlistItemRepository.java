@@ -25,6 +25,20 @@ public interface EventSetlistItemRepository extends JpaRepository<EventSetlistIt
     boolean existsBySong_Id(UUID songId);
 
     @Query("""
+            select distinct esi.event.musicProject.id
+            from EventSetlistItem esi
+            where esi.song.id = :songId
+            """)
+    List<UUID> findProjectIdsBySongId(@Param("songId") UUID songId);
+
+    @Query("""
+            select distinct esi.event.id
+            from EventSetlistItem esi
+            where esi.song.id = :songId
+            """)
+    List<UUID> findEventIdsBySongId(@Param("songId") UUID songId);
+
+    @Query("""
             select coalesce(max(esi.sequence), 0)
             from EventSetlistItem esi
             where esi.event.id = :eventId

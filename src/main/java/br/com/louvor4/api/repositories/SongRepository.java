@@ -13,4 +13,6 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     List<Song> getSongByUser_Id(UUID userId);
     Optional<Song> getSongById(UUID songId);
     long countByUser_Id(UUID userId);
+    boolean existsByIdAndUser_Id(UUID id, UUID userId);
+    boolean existsByIdAndEditChordSheetPermissionTrue(UUID id);
 }

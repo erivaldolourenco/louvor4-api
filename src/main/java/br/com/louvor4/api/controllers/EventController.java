@@ -41,7 +41,7 @@ public class EventController {
     }
 
     @PutMapping("/{eventId}")
-    @PreAuthorize("@projectSecurity.isAdminOrOwnerByEventId(#eventId)")
+    @PreAuthorize("@projectSecurity.canEditEvent(#eventId)")
     public ResponseEntity<Void> updateEvent(@PathVariable UUID eventId, @RequestBody @Valid UpdateEventDto eventDto) {
         eventService.updateEventBy(eventId, eventDto);
         return ResponseEntity.noContent().build();
@@ -53,8 +53,14 @@ public class EventController {
         return ResponseEntity.ok(eventService.getParticipants(eventId));
     }
 
+    @GetMapping("/{eventId}/me/permissions")
+    @PreAuthorize("@projectSecurity.isMemberByEventId(#eventId)")
+    public ResponseEntity<EventPermissionsResponseDTO> getMyPermissions(@PathVariable UUID eventId) {
+        return ResponseEntity.ok(eventService.getMyPermissions(eventId));
+    }
+
     @PostMapping("/{eventId}/participants")
-    @PreAuthorize("@projectSecurity.isAdminOrOwnerByEventId(#eventId)")
+    @PreAuthorize("@projectSecurity.canManageParticipants(#eventId)")
     public ResponseEntity<Void> addOrUpdateParticipant(@PathVariable UUID eventId, @RequestBody @Valid List<EventParticipantDTO> participantDto) {
         eventService.addOrUpdateParticipantsToEvent(eventId, participantDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();

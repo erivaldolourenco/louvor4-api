@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface MedleyRepository extends JpaRepository<Medley, UUID> {
     List<Medley> findByUser_Id(UUID userId);
     Optional<Medley> findMedleyById(UUID medleyId);
+    boolean existsByIdAndUser_Id(UUID id, UUID userId);
 }

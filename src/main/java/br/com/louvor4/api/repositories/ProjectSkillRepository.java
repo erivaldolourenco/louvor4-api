@@ -21,4 +21,7 @@ public interface ProjectSkillRepository extends JpaRepository<ProjectSkill, UUID
     @Transactional
     @Query("DELETE FROM ProjectSkill p WHERE p.musicProject.id = :projectId")
     void deleteAllByMusicProjectId(@Param("projectId") UUID projectId);
+
+    @Query("select p.musicProject.id from ProjectSkill p where p.id = :skillId")
+    UUID findProjectIdById(@Param("skillId") UUID skillId);
 }

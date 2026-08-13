@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,6 +36,7 @@ public class MedleyController {
     }
 
     @PutMapping("/{id}/update")
+    @PreAuthorize("@projectSecurity.isMedleyOwner(#id)")
     public ResponseEntity<MedleyResponse> update(
             @PathVariable UUID id,
             @RequestBody @Valid UpdateMedleyRequest request) {
@@ -43,12 +45,14 @@ public class MedleyController {
     }
 
     @DeleteMapping("/{id}/delete")
+    @PreAuthorize("@projectSecurity.isMedleyOwner(#id)")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         medleyService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/{medleyId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@projectSecurity.isMedleyOwner(#medleyId)")
     public ResponseEntity<AudioFileDTO> uploadAudio(
             @PathVariable UUID medleyId,
             @RequestParam AudioType type,

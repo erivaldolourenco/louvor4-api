@@ -3,6 +3,7 @@ package br.com.louvor4.api.services;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.EventPermissionsResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
@@ -40,5 +41,6 @@ public interface EventService {
 
     void updateEventBy(UUID eventId, @Valid UpdateEventDto eventDto);
 
+    EventPermissionsResponseDTO getMyPermissions(UUID eventId);
 
 }

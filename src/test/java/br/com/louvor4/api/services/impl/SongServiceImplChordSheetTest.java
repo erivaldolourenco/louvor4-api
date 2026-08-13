@@ -20,7 +20,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -82,8 +81,7 @@ class SongServiceImplChordSheetTest {
     }
 
     @Test
-    void updateChordSheetShouldPersistWhenOwnerAndValid() {
-        when(currentUserProvider.get()).thenReturn(owner);
+    void updateChordSheetShouldPersistWhenValid() {
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
         when(songRepository.save(song)).thenReturn(song);
 
@@ -95,39 +93,7 @@ class SongServiceImplChordSheetTest {
     }
 
     @Test
-    void updateChordSheetShouldThrowWhenNotOwner() {
-        User otherUser = new User();
-        otherUser.setId(UUID.randomUUID());
-
-        when(currentUserProvider.get()).thenReturn(otherUser);
-        when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
-
-        assertThatThrownBy(() -> service.updateChordSheet(songId, VALID_CHORD_SHEET_JSON))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("permissão");
-
-        verify(chordSheetValidation, never()).validate(anyString());
-    }
-
-    @Test
-    void updateChordSheetShouldPersistWhenNotOwnerButEditPermissionGranted() {
-        song.setEditChordSheetPermission(true);
-        User otherUser = new User();
-        otherUser.setId(UUID.randomUUID());
-
-        when(currentUserProvider.get()).thenReturn(otherUser);
-        when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
-        when(songRepository.save(song)).thenReturn(song);
-
-        ChordSheetDTO result = service.updateChordSheet(songId, VALID_CHORD_SHEET_JSON);
-
-        verify(chordSheetValidation).validate(VALID_CHORD_SHEET_JSON);
-        assertThat(result.chordSheetJson()).isEqualTo(VALID_CHORD_SHEET_JSON);
-    }
-
-    @Test
     void updateChordSheetShouldPropagateValidationFailure() {
-        when(currentUserProvider.get()).thenReturn(owner);
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
         doThrow(new ValidationException("JSON de cifra mal formado."))
                 .when(chordSheetValidation).validate("invalid-json");
@@ -140,9 +106,8 @@ class SongServiceImplChordSheetTest {
     }
 
     @Test
-    void deleteChordSheetShouldClearFieldWhenOwner() {
+    void deleteChordSheetShouldClearField() {
         song.setChordSheetJson(VALID_CHORD_SHEET_JSON);
-        when(currentUserProvider.get()).thenReturn(owner);
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
 
         service.deleteChordSheet(songId);
@@ -152,23 +117,7 @@ class SongServiceImplChordSheetTest {
     }
 
     @Test
-    void deleteChordSheetShouldThrowWhenNotOwner() {
-        User otherUser = new User();
-        otherUser.setId(UUID.randomUUID());
-
-        when(currentUserProvider.get()).thenReturn(otherUser);
-        when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
-
-        assertThatThrownBy(() -> service.deleteChordSheet(songId))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("permissão");
-
-        verify(songRepository, never()).save(any());
-    }
-
-    @Test
     void importChordSheetShouldDelegateToUpdateChordSheet() {
-        when(currentUserProvider.get()).thenReturn(owner);
         when(songRepository.getSongById(songId)).thenReturn(Optional.of(song));
         when(songRepository.save(song)).thenReturn(song);
 

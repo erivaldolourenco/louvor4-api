@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -182,5 +183,24 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public final ResponseEntity<ExceptionResponse> accessDeniedException(AccessDeniedException ex, WebRequest request) {
+        logger.warn("AccessDeniedException: {}", ex.getMessage(), ex);
+        ExceptionResponse response = ExceptionResponse.create()
+                .withDetails("Você não tem permissão para realizar esta ação.")
+                .withStatus(HttpStatus.FORBIDDEN.value())
+                .withTitle(ACESSO_NEGADO);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public final ResponseEntity<ExceptionResponse> forbiddenException(ForbiddenException ex, WebRequest request) {
+        logger.warn("ForbiddenException: {}", ex.getMessage(), ex);
+        ExceptionResponse response = ExceptionResponse.create()
+                .withDetails(ex.getMessage())
+                .withStatus(HttpStatus.FORBIDDEN.value())
+                .withTitle(ACESSO_NEGADO);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
 
 }

@@ -1,13 +1,13 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
+import br.com.louvor4.api.config.security.ProjectSecurity;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
-import br.com.louvor4.api.enums.ProjectMemberRole;
-import br.com.louvor4.api.enums.ProjectMemberStatus;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.enums.AudioType;
+import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.EventMapper;
@@ -24,6 +24,7 @@ import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
+import br.com.louvor4.api.shared.dto.Event.EventPermissionsResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.EventMedleyDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
@@ -62,6 +63,7 @@ public class EventServiceImpl implements EventService {
     private final ProgramService programService;
     private final EventReminderScheduler eventReminderScheduler;
     private final AudioFileRepository audioFileRepository;
+    private final ProjectSecurity projectSecurity;
 
     private final EventValidation eventValidation = new EventValidation();
 
@@ -73,7 +75,8 @@ public class EventServiceImpl implements EventService {
             MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
             ProgramService programService,
             EventReminderScheduler eventReminderScheduler,
-            AudioFileRepository audioFileRepository
+            AudioFileRepository audioFileRepository,
+            ProjectSecurity projectSecurity
     ) {
         this.eventRepository = eventRepository;
         this.eventParticipantRepository = eventParticipantRepository;
@@ -89,6 +92,7 @@ public class EventServiceImpl implements EventService {
         this.userUnavailabilityRepository = userUnavailabilityRepository;
         this.strategyResolver = strategyResolver;
         this.programService = programService;
+        this.projectSecurity = projectSecurity;
         this.eventReminderScheduler = eventReminderScheduler;
         this.audioFileRepository = audioFileRepository;
     }
@@ -579,9 +583,11 @@ public class EventServiceImpl implements EventService {
 
         EventParticipant participant = eventParticipantRepository
                 .findByEventIdAndMemberUserId(eventId, user.getId())
-                .orElseThrow(() -> new ValidationException("Usuário não está escalado como participante deste evento."));
+                .orElseThrow(() -> new ForbiddenException("Usuário não está escalado como participante deste evento."));
 
-        eventValidation.canAddSong(participant);
+        if (!projectSecurity.isAdminOrOwnerByEventId(eventId)) {
+            eventValidation.require(participant, EventPermission.ADD_SONG);
+        }
 
         return participant;
     }
@@ -660,23 +666,18 @@ public class EventServiceImpl implements EventService {
 
         eventValidation.validateSetlistItemBelongsToEvent(setlistItem, eventId);
 
-        UUID projectId = setlistItem.getEvent().getMusicProject().getId();
-        boolean isAdmin = musicProjectMemberRepository
-                .findByMusicProject_IdAndUser_IdAndStatus(projectId, user.getId(), ProjectMemberStatus.ACTIVE)
-                .map(m -> m.getProjectRole() == ProjectMemberRole.OWNER
-                        || m.getProjectRole() == ProjectMemberRole.ADMIN)
-                .orElse(false);
+        boolean isAdmin = projectSecurity.isAdminOrOwnerByEventId(eventId);
 
         if (!isAdmin) {
             EventParticipant participant = eventParticipantRepository
                     .findByEventIdAndMemberUserId(eventId, user.getId())
-                    .orElseThrow(() -> new ValidationException("Você não tem permissão para remover músicas neste evento."));
+                    .orElseThrow(() -> new ForbiddenException("Você não tem permissão para remover músicas neste evento."));
 
-            eventValidation.canAddSong(participant);
+            eventValidation.require(participant, EventPermission.ADD_SONG);
 
             if (setlistItem.getAddedBy() == null
                     || !participant.getId().equals(setlistItem.getAddedBy().getId())) {
-                throw new ValidationException("Você só pode remover músicas que você mesmo adicionou.");
+                throw new ForbiddenException("Você só pode remover músicas que você mesmo adicionou.");
             }
         }
 
@@ -707,5 +708,19 @@ public class EventServiceImpl implements EventService {
         eventReminderScheduler.reschedule(saved);
     }
 
+    @Override
+    public EventPermissionsResponseDTO getMyPermissions(UUID eventId) {
+        if (projectSecurity.isAdminOrOwnerByEventId(eventId)) {
+            return new EventPermissionsResponseDTO(true, EnumSet.allOf(EventPermission.class));
+        }
+
+        UUID userId = currentUserProvider.get().getId();
+        Set<EventPermission> permissions = eventParticipantRepository
+                .findByEventIdAndMemberUserId(eventId, userId)
+                .map(EventParticipant::getPermissions)
+                .orElse(EnumSet.noneOf(EventPermission.class));
+
+        return new EventPermissionsResponseDTO(false, permissions);
+    }
 
 }

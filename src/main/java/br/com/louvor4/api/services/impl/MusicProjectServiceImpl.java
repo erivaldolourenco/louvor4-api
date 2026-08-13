@@ -6,6 +6,7 @@ import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
 import br.com.louvor4.api.enums.SetlistItemType;
+import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.*;
 import br.com.louvor4.api.models.*;
@@ -546,7 +547,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
 
         ProjectMemberRole currentRole = getMemberRole(projectId);
         if (currentRole == ProjectMemberRole.MEMBER) {
-            throw new ValidationException("Você não tem permissão para remover membros.");
+            throw new ForbiddenException("Você não tem permissão para remover membros.");
         }
         if (member.getProjectRole() == ProjectMemberRole.OWNER) {
             throw new ValidationException("Não é possível remover o proprietário do projeto.");
@@ -576,10 +577,10 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         User currentUser = currentUserProvider.get();
         MusicProjectMember member = musicProjectMemberRepository
                 .findByMusicProject_IdAndUser_Id(projectId, currentUser.getId())
-                .orElseThrow(() -> new ValidationException("Você não é membro deste projeto."));
+                .orElseThrow(() -> new ForbiddenException("Você não é membro deste projeto."));
 
         if (member.getProjectRole() != ProjectMemberRole.OWNER) {
-            throw new ValidationException("Apenas o proprietário pode excluir o projeto.");
+            throw new ForbiddenException("Apenas o proprietário pode excluir o projeto.");
         }
 
         // Soft-delete participações e eventos para preservar histórico dos membros

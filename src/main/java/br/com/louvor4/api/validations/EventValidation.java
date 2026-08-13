@@ -1,6 +1,7 @@
 package br.com.louvor4.api.validations;
 
 import br.com.louvor4.api.enums.EventPermission;
+import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.EventParticipant;
 import br.com.louvor4.api.models.EventSetlistItem;
@@ -31,10 +32,21 @@ public class EventValidation {
         }
     }
 
-    public void canAddSong(EventParticipant participant){
-        if (!participant.getPermissions().contains(EventPermission.ADD_SONG)) {
-            throw new ValidationException("Você não tem permissão para remover músicas neste evento.");
+    public void require(EventParticipant participant, EventPermission permission) {
+        if (!participant.getPermissions().contains(permission)) {
+            throw new ForbiddenException("Você não tem permissão para " + describe(permission) + " neste evento.");
         }
+    }
+
+    private String describe(EventPermission permission) {
+        return switch (permission) {
+            case ADD_SONG -> "adicionar músicas";
+            case REMOVE_SONG -> "remover músicas";
+            case EDIT_SETLIST -> "editar o repertório";
+            case MANAGE_PARTICIPANTS -> "gerenciar participantes";
+            case EDIT_EVENT -> "editar o evento";
+            case EDIT_CHORD_SHEET -> "editar a cifra";
+        };
     }
 
     public void validateSetlistItemBelongsToEvent(EventSetlistItem setlistItem, UUID eventId){

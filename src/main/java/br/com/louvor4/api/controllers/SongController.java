@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,7 @@ public class SongController {
     }
 
     @GetMapping("/{songId}")
+    @PreAuthorize("@projectSecurity.isMemberBySongId(#songId)")
     public ResponseEntity<SongDTO> get(@PathVariable UUID songId) {
         SongDTO dto = songService.get(songId);
         return ResponseEntity.ok(dto);
@@ -42,12 +44,14 @@ public class SongController {
     }
 
     @PutMapping("/update")
+    @PreAuthorize("@projectSecurity.isSongOwner(#updateDto.id())")
     public ResponseEntity<SongDTO> update(@RequestBody @Valid SongDTO updateDto) {
         SongDTO dto = songService.update(updateDto);
         return ResponseEntity.ok(dto);
     }
 
     @PostMapping(value = "/{songId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@projectSecurity.isSongOwner(#songId)")
     public ResponseEntity<AudioFileDTO> uploadAudio(
             @PathVariable UUID songId,
             @RequestParam AudioType type,
@@ -57,18 +61,21 @@ public class SongController {
     }
 
     @DeleteMapping("/{songId}/delete")
+    @PreAuthorize("@projectSecurity.isSongOwner(#songId)")
     public ResponseEntity<Void> delete(@PathVariable UUID songId) {
         songService.delete(songId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{songId}/lyrics")
+    @PreAuthorize("@projectSecurity.isMemberBySongId(#songId)")
     public ResponseEntity<SongLyricsDTO> getLyrics(@PathVariable UUID songId) {
         SongLyricsDTO dto = songService.getLyrics(songId);
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/{songId}/lyrics")
+    @PreAuthorize("@projectSecurity.isSongOwner(#songId)")
     public ResponseEntity<SongLyricsDTO> updateLyrics(
             @PathVariable UUID songId,
             @RequestBody @Valid SongLyricsDTO lyricsDto) {
@@ -77,12 +84,14 @@ public class SongController {
     }
 
     @GetMapping("/{songId}/chord-sheet")
+    @PreAuthorize("@projectSecurity.isMemberBySongId(#songId)")
     public ResponseEntity<ChordSheetDTO> getChordSheet(@PathVariable UUID songId) {
         ChordSheetDTO dto = songService.getChordSheet(songId);
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/{songId}/chord-sheet")
+    @PreAuthorize("@projectSecurity.canEditSongChordSheet(#songId)")
     public ResponseEntity<ChordSheetDTO> updateChordSheet(
             @PathVariable UUID songId,
             @RequestBody @Valid ChordSheetDTO chordSheetDto) {
@@ -91,12 +100,14 @@ public class SongController {
     }
 
     @DeleteMapping("/{songId}/chord-sheet")
+    @PreAuthorize("@projectSecurity.isSongOwner(#songId)")
     public ResponseEntity<Void> deleteChordSheet(@PathVariable UUID songId) {
         songService.deleteChordSheet(songId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{songId}/chord-sheet/import")
+    @PreAuthorize("@projectSecurity.canEditSongChordSheet(#songId)")
     public ResponseEntity<ChordSheetDTO> importChordSheet(
             @PathVariable UUID songId,
             @RequestBody @Valid ChordSheetDTO chordSheetDto) {
@@ -105,6 +116,7 @@ public class SongController {
     }
 
     @PutMapping("/{songId}/chord-sheet/edit-permission")
+    @PreAuthorize("@projectSecurity.isSongOwner(#songId)")
     public ResponseEntity<ChordSheetEditPermissionDTO> editPermissionChordSheet(
             @PathVariable UUID songId,
             @RequestBody @Valid ChordSheetEditPermissionDTO editPermissionDto) {

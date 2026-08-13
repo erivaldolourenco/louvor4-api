@@ -2,6 +2,7 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.AudioType;
+import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Medley;
@@ -74,7 +75,7 @@ public class MedleyServiceImpl implements MedleyService {
         for (CreateMedleyItemRequest itemRequest : request.items()) {
             Song song = songsById.get(itemRequest.songId());
             if (song == null || song.getUser() == null || !owner.getId().equals(song.getUser().getId())) {
-                throw new ValidationException("Você só pode usar músicas cadastradas por você.");
+                throw new ForbiddenException("Você só pode usar músicas cadastradas por você.");
             }
 
             MedleyItem medleyItem = new MedleyItem();
@@ -107,10 +108,6 @@ public class MedleyServiceImpl implements MedleyService {
         Medley medley = medleyRepository.findMedleyById(medleyId)
                 .orElseThrow(() -> new ValidationException("Medley não encontrado."));
 
-        if (!owner.getId().equals(medley.getUser().getId())) {
-            throw new ValidationException("Você não tem permissão para editar este medley.");
-        }
-
         validateRequestItems(request.items());
 
         List<UUID> songIds = request.items().stream()
@@ -129,7 +126,7 @@ public class MedleyServiceImpl implements MedleyService {
         for (CreateMedleyItemRequest itemRequest : request.items()) {
             Song song = songsById.get(itemRequest.songId());
             if (song == null || song.getUser() == null || !owner.getId().equals(song.getUser().getId())) {
-                throw new ValidationException("Você só pode usar músicas cadastradas por você.");
+                throw new ForbiddenException("Você só pode usar músicas cadastradas por você.");
             }
 
             MedleyItem medleyItem = new MedleyItem();
@@ -153,14 +150,8 @@ public class MedleyServiceImpl implements MedleyService {
     @Override
     @Transactional
     public void delete(UUID medleyId) {
-        User owner = currentUserProvider.get();
-
         Medley medley = medleyRepository.findMedleyById(medleyId)
                 .orElseThrow(() -> new ValidationException("Medley não encontrado."));
-
-        if (!owner.getId().equals(medley.getUser().getId())) {
-            throw new ValidationException("Você não tem permissão para deletar este medley.");
-        }
 
         medleyRepository.delete(medley);
     }

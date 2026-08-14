@@ -6,15 +6,18 @@ import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.SongMapper;
 import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Song;
+import br.com.louvor4.api.models.SongCategory;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.EventSetlistItemRepository;
 import br.com.louvor4.api.repositories.EventSongRepository;
 import br.com.louvor4.api.repositories.MedleyItemRepository;
+import br.com.louvor4.api.repositories.SongCategoryRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetEditPermissionDTO;
+import br.com.louvor4.api.shared.dto.Song.SongCategoryDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 import br.com.louvor4.api.validations.ChordSheetValidation;
@@ -22,8 +25,11 @@ import br.com.louvor4.entitlement.services.EntitlementService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class SongServiceImpl implements SongService {
@@ -33,6 +39,7 @@ public class SongServiceImpl implements SongService {
     private final MedleyItemRepository medleyItemRepository;
     private final EventSongRepository eventSongRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
+    private final SongCategoryRepository songCategoryRepository;
     private final SongMapper songMapper;
     private final CurrentUserProvider currentUserProvider;
     private final EntitlementService entitlementService;
@@ -43,6 +50,7 @@ public class SongServiceImpl implements SongService {
                            MedleyItemRepository medleyItemRepository,
                            EventSongRepository eventSongRepository,
                            EventSetlistItemRepository eventSetlistItemRepository,
+                           SongCategoryRepository songCategoryRepository,
                            SongMapper songMapper,
                            CurrentUserProvider currentUserProvider,
                            EntitlementService entitlementService,
@@ -52,10 +60,17 @@ public class SongServiceImpl implements SongService {
         this.medleyItemRepository = medleyItemRepository;
         this.eventSongRepository = eventSongRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
+        this.songCategoryRepository = songCategoryRepository;
         this.songMapper = songMapper;
         this.currentUserProvider = currentUserProvider;
         this.entitlementService = entitlementService;
         this.chordSheetValidation = chordSheetValidation;
+    }
+
+    private Set<SongCategoryDTO> mapCategories(Song song) {
+        return song.getCategories().stream()
+                .map(SongCategoryDTO::fromEntity)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -91,7 +106,8 @@ public class SongServiceImpl implements SongService {
                     song.getDeezerUrl(),
                     song.getCoverUrl(),
                     song.getNotes(),
-                    referenceAudioUrl
+                    referenceAudioUrl,
+                    mapCategories(song)
             );
         }).toList();
     }
@@ -144,8 +160,29 @@ public class SongServiceImpl implements SongService {
                 song.getDeezerUrl(),
                 song.getCoverUrl(),
                 song.getNotes(),
-                referenceAudioUrl
+                referenceAudioUrl,
+                mapCategories(song)
         );
+    }
+
+    @Override
+    @Transactional
+    public SongDTO assignCategories(UUID songId, Set<UUID> categoryIds) {
+        Song song = songRepository.getSongById(songId)
+                .orElseThrow(() -> new ValidationException("Música não encontrada."));
+
+        Set<UUID> ids = categoryIds == null ? Set.of() : categoryIds;
+        Set<SongCategory> categories = new HashSet<>(songCategoryRepository.findAllById(ids));
+
+        boolean allBelongToOwner = categories.stream()
+                .allMatch(c -> c.getUser().getId().equals(song.getUser().getId()));
+        if (categories.size() != ids.size() || !allBelongToOwner) {
+            throw new ValidationException("Uma ou mais categorias informadas não existem ou não pertencem a você.");
+        }
+
+        song.setCategories(categories);
+        Song saved = songRepository.save(song);
+        return songMapper.toDto(saved);
     }
 
     @Override

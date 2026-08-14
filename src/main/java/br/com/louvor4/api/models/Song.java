@@ -10,6 +10,8 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -75,6 +77,14 @@ public class Song {
 
     @Column(name = "edit_chord_sheet_permission")
     private Boolean editChordSheetPermission = false;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "song_category_assignments",
+            joinColumns = @JoinColumn(name = "song_id"),
+            inverseJoinColumns = @JoinColumn(name = "song_category_id")
+    )
+    private Set<SongCategory> categories = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -218,5 +228,13 @@ public class Song {
 
     public void setEditChordSheetPermission(Boolean editChordSheetPermission) {
         this.editChordSheetPermission = editChordSheetPermission;
+    }
+
+    public Set<SongCategory> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<SongCategory> categories) {
+        this.categories = categories;
     }
 }

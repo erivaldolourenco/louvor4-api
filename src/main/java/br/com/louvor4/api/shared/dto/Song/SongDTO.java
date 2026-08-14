@@ -1,5 +1,6 @@
 package br.com.louvor4.api.shared.dto.Song;
 
+import java.util.Set;
 import java.util.UUID;
 
 public record SongDTO(
@@ -15,5 +16,6 @@ public record SongDTO(
         String deezerUrl,
         String coverUrl,
         String notes,
-        String referenceAudioUrl
+        String referenceAudioUrl,
+        Set<SongCategoryDTO> categories
 ) {}

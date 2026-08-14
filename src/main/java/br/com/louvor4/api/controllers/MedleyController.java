@@ -7,6 +7,7 @@ import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
 import br.com.louvor4.api.shared.dto.Medley.CreateMedleyRequest;
 import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
 import br.com.louvor4.api.shared.dto.Medley.UpdateMedleyRequest;
+import br.com.louvor4.api.shared.dto.Song.AssignSongCategoriesDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,6 +43,15 @@ public class MedleyController {
             @RequestBody @Valid UpdateMedleyRequest request) {
         MedleyResponse updated = medleyService.update(id, request);
         return ResponseEntity.ok(updated);
+    }
+
+    @PutMapping("/{id}/categories")
+    @PreAuthorize("@projectSecurity.isMedleyOwner(#id)")
+    public ResponseEntity<MedleyResponse> assignCategories(
+            @PathVariable UUID id,
+            @RequestBody @Valid AssignSongCategoriesDTO assignDto) {
+        MedleyResponse dto = medleyService.assignCategories(id, assignDto.categoryIds());
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}/delete")

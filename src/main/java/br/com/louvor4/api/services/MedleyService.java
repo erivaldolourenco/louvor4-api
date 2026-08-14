@@ -5,11 +5,13 @@ import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
 import br.com.louvor4.api.shared.dto.Medley.UpdateMedleyRequest;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface MedleyService {
     MedleyResponse create(CreateMedleyRequest request);
     List<MedleyResponse> listFromCurrentUser();
     MedleyResponse update(UUID medleyId, UpdateMedleyRequest request);
+    MedleyResponse assignCategories(UUID medleyId, Set<UUID> categoryIds);
     void delete(UUID medleyId);
 }

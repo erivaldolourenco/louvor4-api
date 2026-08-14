@@ -1,6 +1,8 @@
 package br.com.louvor4.api.mapper;
 
 import br.com.louvor4.api.models.Song;
+import br.com.louvor4.api.models.SongCategory;
+import br.com.louvor4.api.shared.dto.Song.SongCategoryDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,6 +14,7 @@ public interface SongMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
+    @Mapping(target = "categories", ignore = true)
     Song toEntity(SongDTO dto);
 
     @Mapping(target = "referenceAudioUrl", ignore = true)
@@ -19,4 +22,8 @@ public interface SongMapper {
 
     @Mapping(target = "referenceAudioUrl", ignore = true)
     List<SongDTO> toDtoList(List<Song> entities);
+
+    default SongCategoryDTO toCategoryDto(SongCategory category) {
+        return SongCategoryDTO.fromEntity(category);
+    }
 }

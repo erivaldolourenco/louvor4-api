@@ -4,6 +4,7 @@ import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.SongService;
 import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
+import br.com.louvor4.api.shared.dto.Song.AssignSongCategoriesDTO;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetEditPermissionDTO;
 import br.com.louvor4.api.shared.dto.Song.SongDTO;
@@ -47,6 +48,15 @@ public class SongController {
     @PreAuthorize("@projectSecurity.isSongOwner(#updateDto.id())")
     public ResponseEntity<SongDTO> update(@RequestBody @Valid SongDTO updateDto) {
         SongDTO dto = songService.update(updateDto);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{songId}/categories")
+    @PreAuthorize("@projectSecurity.isSongOwner(#songId)")
+    public ResponseEntity<SongDTO> assignCategories(
+            @PathVariable UUID songId,
+            @RequestBody @Valid AssignSongCategoriesDTO assignDto) {
+        SongDTO dto = songService.assignCategories(songId, assignDto.categoryIds());
         return ResponseEntity.ok(dto);
     }
 

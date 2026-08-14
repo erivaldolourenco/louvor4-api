@@ -9,6 +9,7 @@ import br.com.louvor4.api.repositories.EventSetlistItemRepository;
 import br.com.louvor4.api.repositories.MedleyRepository;
 import br.com.louvor4.api.repositories.MusicProjectMemberRepository;
 import br.com.louvor4.api.repositories.ProjectSkillRepository;
+import br.com.louvor4.api.repositories.SongCategoryRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +26,7 @@ public class ProjectSecurity {
     private final EventParticipantRepository eventParticipantRepository;
     private final MedleyRepository medleyRepository;
     private final ProjectSkillRepository projectSkillRepository;
+    private final SongCategoryRepository songCategoryRepository;
 
     public ProjectSecurity(MusicProjectMemberRepository memberRepository,
                            CurrentUserProvider currentUserProvider,
@@ -33,7 +35,8 @@ public class ProjectSecurity {
                            EventSetlistItemRepository eventSetlistItemRepository,
                            EventParticipantRepository eventParticipantRepository,
                            MedleyRepository medleyRepository,
-                           ProjectSkillRepository projectSkillRepository) {
+                           ProjectSkillRepository projectSkillRepository,
+                           SongCategoryRepository songCategoryRepository) {
         this.memberRepository = memberRepository;
         this.currentUserProvider = currentUserProvider;
         this.eventRepository = eventRepository;
@@ -42,6 +45,13 @@ public class ProjectSecurity {
         this.eventParticipantRepository = eventParticipantRepository;
         this.medleyRepository = medleyRepository;
         this.projectSkillRepository = projectSkillRepository;
+        this.songCategoryRepository = songCategoryRepository;
+    }
+
+    public boolean isSongCategoryOwner(UUID categoryId) {
+        if (categoryId == null) return false;
+        UUID userId = currentUserProvider.get().getId();
+        return songCategoryRepository.existsByIdAndUser_Id(categoryId, userId);
     }
 
     public boolean isMember(UUID projectId) {

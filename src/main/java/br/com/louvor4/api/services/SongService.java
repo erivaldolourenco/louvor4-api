@@ -7,6 +7,7 @@ import br.com.louvor4.api.shared.dto.Song.SongDTO;
 import br.com.louvor4.api.shared.dto.Song.SongLyricsDTO;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface SongService {
@@ -14,6 +15,7 @@ public interface SongService {
     List<SongDTO> getSongsFromUser();
     SongDTO update(SongDTO updateDto);
     SongDTO get(UUID songId);
+    SongDTO assignCategories(UUID songId, Set<UUID> categoryIds);
     void delete(UUID songId);
     SongLyricsDTO getLyrics(UUID songId);
     SongLyricsDTO updateLyrics(UUID songId, String lyrics);

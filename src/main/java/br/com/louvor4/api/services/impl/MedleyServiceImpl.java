@@ -8,9 +8,11 @@ import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Medley;
 import br.com.louvor4.api.models.MedleyItem;
 import br.com.louvor4.api.models.Song;
+import br.com.louvor4.api.models.SongCategory;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.MedleyRepository;
+import br.com.louvor4.api.repositories.SongCategoryRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.MedleyService;
 import br.com.louvor4.api.shared.dto.Medley.CreateMedleyItemRequest;
@@ -18,6 +20,7 @@ import br.com.louvor4.api.shared.dto.Medley.CreateMedleyRequest;
 import br.com.louvor4.api.shared.dto.Medley.MedleyItemResponse;
 import br.com.louvor4.api.shared.dto.Medley.MedleyResponse;
 import br.com.louvor4.api.shared.dto.Medley.UpdateMedleyRequest;
+import br.com.louvor4.api.shared.dto.Song.SongCategoryDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,15 +39,18 @@ public class MedleyServiceImpl implements MedleyService {
 
     private final MedleyRepository medleyRepository;
     private final SongRepository songRepository;
+    private final SongCategoryRepository songCategoryRepository;
     private final CurrentUserProvider currentUserProvider;
     private final AudioFileRepository audioFileRepository;
 
     public MedleyServiceImpl(MedleyRepository medleyRepository,
                              SongRepository songRepository,
+                             SongCategoryRepository songCategoryRepository,
                              CurrentUserProvider currentUserProvider,
                              AudioFileRepository audioFileRepository) {
         this.medleyRepository = medleyRepository;
         this.songRepository = songRepository;
+        this.songCategoryRepository = songCategoryRepository;
         this.currentUserProvider = currentUserProvider;
         this.audioFileRepository = audioFileRepository;
     }
@@ -149,6 +155,27 @@ public class MedleyServiceImpl implements MedleyService {
 
     @Override
     @Transactional
+    public MedleyResponse assignCategories(UUID medleyId, Set<UUID> categoryIds) {
+        Medley medley = medleyRepository.findMedleyById(medleyId)
+                .orElseThrow(() -> new ValidationException("Medley não encontrado."));
+
+        User owner = currentUserProvider.get();
+        Set<UUID> ids = categoryIds == null ? Set.of() : categoryIds;
+        Set<SongCategory> categories = new HashSet<>(songCategoryRepository.findAllById(ids));
+
+        boolean allBelongToOwner = categories.stream()
+                .allMatch(c -> c.getUser().getId().equals(owner.getId()));
+        if (categories.size() != ids.size() || !allBelongToOwner) {
+            throw new ValidationException("Uma ou mais categorias informadas não existem ou não pertencem a você.");
+        }
+
+        medley.setCategories(categories);
+        Medley saved = medleyRepository.save(medley);
+        return toResponse(saved);
+    }
+
+    @Override
+    @Transactional
     public void delete(UUID medleyId) {
         Medley medley = medleyRepository.findMedleyById(medleyId)
                 .orElseThrow(() -> new ValidationException("Medley não encontrado."));
@@ -206,6 +233,10 @@ public class MedleyServiceImpl implements MedleyService {
                 ))
                 .toList();
 
+        Set<SongCategoryDTO> categoryDtos = medley.getCategories().stream()
+                .map(SongCategoryDTO::fromEntity)
+                .collect(Collectors.toSet());
+
         return new MedleyResponse(
                 medley.getId(),
                 medley.getName(),
@@ -214,7 +245,8 @@ public class MedleyServiceImpl implements MedleyService {
                 medley.getCreatedAt(),
                 medley.getUpdatedAt(),
                 itemResponses,
-                referenceAudioUrl
+                referenceAudioUrl,
+                categoryDtos
         );
     }
 }

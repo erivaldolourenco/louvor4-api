@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
@@ -21,7 +23,9 @@ import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -60,6 +64,14 @@ public class Medley {
     @OneToMany(mappedBy = "medley", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sequence ASC")
     private List<MedleyItem> items = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "medley_category_assignments",
+            joinColumns = @JoinColumn(name = "medley_id"),
+            inverseJoinColumns = @JoinColumn(name = "song_category_id")
+    )
+    private Set<SongCategory> categories = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -127,6 +139,14 @@ public class Medley {
 
     public void setItems(List<MedleyItem> items) {
         this.items = items != null ? items : new ArrayList<>();
+    }
+
+    public Set<SongCategory> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<SongCategory> categories) {
+        this.categories = categories;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -137,6 +137,8 @@ public interface EventSetlistItemMapper {
                 item.getSong().getTitle(),
                 item.getSong().getArtist(),
                 item.getSong().getYouTubeUrl(),
+                item.getSong().getSpotifyUrl(),
+                item.getSong().getDeezerUrl(),
                 item.getKey(),
                 item.getNotes(),
                 item.getSequence()

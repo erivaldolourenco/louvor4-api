@@ -8,6 +8,8 @@ public record MedleyItemResponse(
         String songTitle,
         String songArtist,
         String youTubeUrl,
+        String spotifyUrl,
+        String deezerUrl,
         String key,
         String notes,
         Integer sequence

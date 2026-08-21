@@ -53,6 +53,22 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
     @Query("UPDATE EventParticipant ep SET ep.deletedAt = CURRENT_TIMESTAMP WHERE ep.event.id IN :eventIds AND ep.deletedAt IS NULL")
     void softDeleteByEventIds(@Param("eventIds") List<UUID> eventIds);
 
+    @Modifying
+    @Transactional
+    @Query("UPDATE EventParticipant ep SET ep.deletedAt = CURRENT_TIMESTAMP WHERE ep.id IN :ids AND ep.deletedAt IS NULL")
+    void softDeleteByIds(@Param("ids") List<UUID> ids);
+
+    // Bypassa @SQLRestriction via SQL nativo: precisamos achar a linha soft-deletada
+    // para o mesmo (event_id, project_member_id) e reaproveitá-la, já que
+    // uq_event_member_skill não exclui registros com deleted_at preenchido.
+    @Query(value = "SELECT id FROM event_participants WHERE event_id = :eventId AND project_member_id = :memberId AND deleted_at IS NOT NULL LIMIT 1", nativeQuery = true)
+    Optional<UUID> findDeletedIdByEventIdAndMemberId(@Param("eventId") UUID eventId, @Param("memberId") UUID memberId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE event_participants SET deleted_at = NULL WHERE id = :id", nativeQuery = true)
+    void reviveById(@Param("id") UUID id);
+
     // Consulta nativa para histórico: inclui eventos de projetos deletados (bypassa @SQLRestriction)
     @Query(
         value = """

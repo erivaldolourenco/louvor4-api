@@ -108,7 +108,9 @@ public class EventServiceImpl implements EventService {
         List<EventParticipant> currentList = eventParticipantRepository.findByEventId(eventId);
 
         if (incoming.isEmpty()) {
-            if (!currentList.isEmpty()) eventParticipantRepository.deleteAllInBatch(currentList);
+            if (!currentList.isEmpty()) {
+                eventParticipantRepository.softDeleteByIds(currentList.stream().map(EventParticipant::getId).toList());
+            }
             return;
         }
 
@@ -135,16 +137,31 @@ public class EventServiceImpl implements EventService {
                 toSave.add(existing);
             } else {
                 validateMemberAvailabilityForEvent(event, member);
-                EventParticipant newParticipant = createParticipant(event, member, skill, perms);
-                toSave.add(newParticipant);
-                newParticipants.add(newParticipant);
+
+                Optional<UUID> deletedId = eventParticipantRepository.findDeletedIdByEventIdAndMemberId(eventId, memberId);
+                if (deletedId.isPresent()) {
+                    eventParticipantRepository.reviveById(deletedId.get());
+                    EventParticipant revived = eventParticipantRepository.findById(deletedId.get())
+                            .orElseThrow(() -> new NotFoundException("Participante não encontrado."));
+                    revived.setSkill(skill);
+                    revived.setPermissions(perms);
+                    revived.setStatus(EventParticipantStatus.PENDING);
+                    toSave.add(revived);
+                    newParticipants.add(revived);
+                } else {
+                    EventParticipant newParticipant = createParticipant(event, member, skill, perms);
+                    toSave.add(newParticipant);
+                    newParticipants.add(newParticipant);
+                }
             }
         }
 
         List<EventParticipant> toDelete = currentList.stream()
                 .filter(p -> !incomingMemberIds.contains(p.getMember().getId()))
                 .toList();
-        if (!toDelete.isEmpty()) eventParticipantRepository.deleteAllInBatch(toDelete);
+        if (!toDelete.isEmpty()) {
+            eventParticipantRepository.softDeleteByIds(toDelete.stream().map(EventParticipant::getId).toList());
+        }
 
         eventParticipantRepository.saveAll(toSave);
 

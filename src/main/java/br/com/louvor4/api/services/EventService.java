@@ -4,7 +4,7 @@ import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.EventPermissionsResponseDTO;
-import br.com.louvor4.api.shared.dto.Event.PublicSetlistItemDTO;
+import br.com.louvor4.api.shared.dto.Event.PublicEventSetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Event.UserEventDetailDto;
@@ -36,7 +36,7 @@ public interface EventService {
 
     List<SetlistDTO> getSetlist(UUID eventId);
 
-    List<PublicSetlistItemDTO> getPublicSetlist(UUID eventId);
+    PublicEventSetlistDTO getPublicSetlist(UUID eventId);
 
     void removeSetlistItemFromEvent(UUID eventId, UUID setlistItemId);
 

@@ -100,7 +100,7 @@ public class EventController {
     }
 
     @GetMapping("/{eventId}/public-setlist")
-    public ResponseEntity<List<PublicSetlistItemDTO>> getPublicSetlist(@PathVariable UUID eventId) {
+    public ResponseEntity<PublicEventSetlistDTO> getPublicSetlist(@PathVariable UUID eventId) {
         return ResponseEntity.ok(eventService.getPublicSetlist(eventId));
     }
 

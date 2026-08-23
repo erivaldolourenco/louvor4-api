@@ -51,6 +51,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/users/create").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/events/*/public-setlist").permitAll();
                     if (isDevProfileActive()) {
                         authorize.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     }

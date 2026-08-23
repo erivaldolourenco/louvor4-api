@@ -1,8 +1,13 @@
 package br.com.louvor4.api.mapper;
 
 import br.com.louvor4.api.models.EventSetlistItem;
+import br.com.louvor4.api.models.Medley;
 import br.com.louvor4.api.models.MedleyItem;
+import br.com.louvor4.api.models.Song;
 import br.com.louvor4.api.shared.dto.Event.EventMedleyDTO;
+import br.com.louvor4.api.shared.dto.Event.PublicSetlistItemDTO;
+import br.com.louvor4.api.shared.dto.Event.PublicSetlistMedleyDTO;
+import br.com.louvor4.api.shared.dto.Event.PublicSetlistSongDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Medley.MedleyItemResponse;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
@@ -11,6 +16,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
@@ -124,6 +130,77 @@ public interface EventSetlistItemMapper {
                         .collect(Collectors.toList()),
                 null
         );
+    }
+
+    default PublicSetlistItemDTO toPublicSetlistItemDto(EventSetlistItem entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        return new PublicSetlistItemDTO(
+                entity.getType(),
+                entity.isSong() ? toPublicSongDto(entity) : null,
+                entity.isMedley() ? toPublicMedleyDto(entity.getMedley()) : null
+        );
+    }
+
+    default List<PublicSetlistItemDTO> toPublicSetlistDtoList(List<EventSetlistItem> entities) {
+        if (entities == null) {
+            return List.of();
+        }
+
+        return entities.stream()
+                .map(this::toPublicSetlistItemDto)
+                .collect(Collectors.toList());
+    }
+
+    default PublicSetlistSongDTO toPublicSongDto(EventSetlistItem entity) {
+        if (entity == null || entity.getSong() == null) {
+            return null;
+        }
+
+        Song song = entity.getSong();
+        return new PublicSetlistSongDTO(
+                song.getArtist(),
+                song.getTitle(),
+                resolveKey(entity),
+                song.getBpm(),
+                song.getYouTubeUrl(),
+                song.getSpotifyUrl(),
+                song.getDeezerUrl()
+        );
+    }
+
+    default PublicSetlistSongDTO toPublicSongDto(MedleyItem item) {
+        if (item == null || item.getSong() == null) {
+            return null;
+        }
+
+        Song song = item.getSong();
+        return new PublicSetlistSongDTO(
+                song.getArtist(),
+                song.getTitle(),
+                item.getKey() != null ? item.getKey() : song.getKey(),
+                song.getBpm(),
+                song.getYouTubeUrl(),
+                song.getSpotifyUrl(),
+                song.getDeezerUrl()
+        );
+    }
+
+    default PublicSetlistMedleyDTO toPublicMedleyDto(Medley medley) {
+        if (medley == null) {
+            return null;
+        }
+
+        List<PublicSetlistSongDTO> songs = medley.getItems() == null
+                ? List.of()
+                : medley.getItems().stream()
+                .map(this::toPublicSongDto)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return new PublicSetlistMedleyDTO(medley.getName(), songs);
     }
 
     default MedleyItemResponse toMedleyItemResponse(MedleyItem item) {

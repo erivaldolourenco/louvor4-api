@@ -26,6 +26,7 @@ import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.EventPermissionsResponseDTO;
 import br.com.louvor4.api.shared.dto.Event.EventMedleyDTO;
+import br.com.louvor4.api.shared.dto.Event.PublicSetlistItemDTO;
 import br.com.louvor4.api.shared.dto.Event.SetlistDTO;
 import br.com.louvor4.api.shared.dto.Event.UpdateEventDto;
 import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
@@ -671,6 +672,14 @@ public class EventServiceImpl implements EventService {
             }
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PublicSetlistItemDTO> getPublicSetlist(UUID eventId) {
+        findEventOrThrow(eventId);
+        List<EventSetlistItem> setlistItems = eventSetlistItemRepository
+                .findByEventIdOrderBySequenceAsc(eventId);
+        return eventSetlistItemMapper.toPublicSetlistDtoList(setlistItems);
     }
 
     @Override

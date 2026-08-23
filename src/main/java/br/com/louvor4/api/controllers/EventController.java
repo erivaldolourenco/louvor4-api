@@ -99,6 +99,11 @@ public class EventController {
         return ResponseEntity.ok(setlist);
     }
 
+    @GetMapping("/{eventId}/public-setlist")
+    public ResponseEntity<List<PublicSetlistItemDTO>> getPublicSetlist(@PathVariable UUID eventId) {
+        return ResponseEntity.ok(eventService.getPublicSetlist(eventId));
+    }
+
     @GetMapping("/{eventId}/roteiro/pdf")
     @PreAuthorize("@projectSecurity.isMemberByEventId(#eventId)")
     public ResponseEntity<byte[]> getRoteiroAsPdf(@PathVariable UUID eventId) {

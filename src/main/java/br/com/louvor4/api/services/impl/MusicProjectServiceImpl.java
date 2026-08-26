@@ -56,11 +56,12 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final MemberMapper memberMapper;
     private final EventParticipantRepository eventParticipantRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
+    private final EventProgramItemRepository eventProgramItemRepository;
     private final UserUnavailabilityProjectRepository userUnavailabilityProjectRepository;
     private final EventReminderScheduler eventReminderScheduler;
     private final EntitlementService entitlementService;
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler, EntitlementService entitlementService) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, EventProgramItemRepository eventProgramItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler, EntitlementService entitlementService) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -77,6 +78,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.memberMapper = memberMapper;
         this.eventParticipantRepository = eventParticipantRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
+        this.eventProgramItemRepository = eventProgramItemRepository;
         this.userUnavailabilityProjectRepository = userUnavailabilityProjectRepository;
         this.eventReminderScheduler = eventReminderScheduler;
         this.entitlementService = entitlementService;
@@ -229,7 +231,9 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     @Override
     public List<MemberDTO> getMembers(UUID projectId) {
         List<MusicProjectMember> musicProjectMembers = musicProjectMemberRepository
-                .findByMusicProject_IdAndStatus(projectId, ProjectMemberStatus.ACTIVE);
+                .findByMusicProject_IdAndStatusIn(
+                        projectId,
+                        List.of(ProjectMemberStatus.ACTIVE, ProjectMemberStatus.PENDING_INVITE));
         return musicProjectMemberMapper.toDtoList(musicProjectMembers);
     }
 
@@ -556,16 +560,33 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         LocalDateTime now = LocalDateTime.now();
         List<EventParticipant> futureParticipants = eventParticipantRepository
                 .findByMember_IdAndEvent_StartAtGreaterThan(memberId, now);
-        if (!futureParticipants.isEmpty()) {
-            List<UUID> futureParticipantIds = futureParticipants.stream()
-                    .map(EventParticipant::getId)
-                    .toList();
-            eventSetlistItemRepository.deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
-            eventParticipantRepository.deleteAllInBatch(futureParticipants);
-        }
+        removeFutureParticipations(futureParticipants, now);
 
         member.setStatus(ProjectMemberStatus.REMOVED);
         musicProjectMemberRepository.save(member);
+    }
+
+    // Remove, de eventos futuros, o vínculo do membro: primeiro os itens do roteiro
+    // (event_program_items) que apontam pro item do repertório, depois o próprio item
+    // do repertório (event_setlist_items) e por fim a participação (event_participants).
+    // A ordem importa por causa das FKs: event_program_items -> event_setlist_items -> event_participants.
+    private void removeFutureParticipations(List<EventParticipant> futureParticipants, LocalDateTime now) {
+        if (futureParticipants.isEmpty()) {
+            return;
+        }
+
+        List<UUID> futureParticipantIds = futureParticipants.stream()
+                .map(EventParticipant::getId)
+                .toList();
+
+        List<UUID> futureSetlistItemIds = eventSetlistItemRepository
+                .findIdsByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
+        if (!futureSetlistItemIds.isEmpty()) {
+            eventProgramItemRepository.deleteBySetlistItemIdIn(futureSetlistItemIds);
+        }
+
+        eventSetlistItemRepository.deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
+        eventParticipantRepository.deleteAllInBatch(futureParticipants);
     }
 
     @Override
@@ -617,13 +638,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         LocalDateTime now = LocalDateTime.now();
         List<EventParticipant> futureParticipants = eventParticipantRepository
                 .findByMember_IdAndEvent_StartAtGreaterThan(member.getId(), now);
-        if (!futureParticipants.isEmpty()) {
-            List<UUID> futureParticipantIds = futureParticipants.stream()
-                    .map(EventParticipant::getId)
-                    .toList();
-            eventSetlistItemRepository.deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
-            eventParticipantRepository.deleteAllInBatch(futureParticipants);
-        }
+        removeFutureParticipations(futureParticipants, now);
 
         member.setStatus(ProjectMemberStatus.REMOVED);
         musicProjectMemberRepository.save(member);

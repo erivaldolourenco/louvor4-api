@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,7 @@ public interface MusicProjectMemberRepository extends JpaRepository<MusicProject
     List<MusicProjectMember> findByUser_IdAndStatus(UUID userId, ProjectMemberStatus status);
     Optional<MusicProjectMember> findByMusicProject_IdAndUser_IdAndStatus(UUID projectId, UUID userId, ProjectMemberStatus status);
     List<MusicProjectMember> findByMusicProject_IdAndStatus(UUID projectId, ProjectMemberStatus status);
+    List<MusicProjectMember> findByMusicProject_IdAndStatusIn(UUID projectId, Collection<ProjectMemberStatus> statuses);
 
     @Modifying
     @Transactional

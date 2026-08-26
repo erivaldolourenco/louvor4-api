@@ -17,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class GoogleAuthServiceImpl implements GoogleAuthService {
@@ -85,7 +87,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
 
         User user = new User();
         user.setEmail(email);
-        user.setUsername(email);
+        user.setUsername(generateUsernameFromEmail(email));
         user.setFirstName(firstName != null ? firstName : "Usuário");
         user.setLastName(lastName != null ? lastName : "");
         user.setAuthProvider(AuthProvider.GOOGLE);
@@ -95,6 +97,39 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
         User saved = userRepository.save(user);
         createFreeSubscription(saved);
         return saved;
+    }
+
+    private String generateUsernameFromEmail(String email) {
+        int atIndex = email.indexOf('@');
+        String base = atIndex > 0 ? email.substring(0, atIndex) : email;
+
+        if (!userRepository.existsByUsername(base)) {
+            return base;
+        }
+
+        LocalDate today = LocalDate.now();
+
+        String withYear = base + today.getYear();
+        if (!userRepository.existsByUsername(withYear)) {
+            return withYear;
+        }
+
+        String withYearMonth = base + String.format("%d%02d", today.getYear(), today.getMonthValue());
+        if (!userRepository.existsByUsername(withYearMonth)) {
+            return withYearMonth;
+        }
+
+        String withYearMonthDay = base + String.format("%d%02d%02d", today.getYear(), today.getMonthValue(), today.getDayOfMonth());
+        if (!userRepository.existsByUsername(withYearMonthDay)) {
+            return withYearMonthDay;
+        }
+
+        String withRandomSuffix;
+        do {
+            withRandomSuffix = base + ThreadLocalRandom.current().nextInt(100_000, 1_000_000);
+        } while (userRepository.existsByUsername(withRandomSuffix));
+
+        return withRandomSuffix;
     }
 
     private void createFreeSubscription(User user) {

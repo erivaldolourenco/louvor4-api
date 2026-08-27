@@ -44,6 +44,8 @@ api:
       secret: ${JWT_SECRET}
 
 app:
+  internal:
+    jobs-token: ${INTERNAL_JOBS_TOKEN}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}

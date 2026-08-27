@@ -14,6 +14,7 @@ import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -45,6 +46,7 @@ public class EventReminderServiceImpl implements EventReminderService {
         this.emailService = emailService;
     }
 
+    @Async
     @Override
     public void processDue() {
         recoverStuck();

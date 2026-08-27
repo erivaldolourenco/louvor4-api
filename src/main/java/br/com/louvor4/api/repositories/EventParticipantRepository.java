@@ -22,6 +22,15 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
 
     List<EventParticipant> findByMember_User_IdAndStatusAndEvent_StartAtGreaterThanEqualOrderByEvent_StartAtAsc(UUID userId, EventParticipantStatus status, LocalDateTime now);
     List<EventParticipant> findByEventId(UUID eventId);
+
+    @Query("""
+            select distinct ep
+            from EventParticipant ep
+            join fetch ep.member m
+            join fetch m.user u
+            where ep.event.id = :eventId
+            """)
+    List<EventParticipant> findByEventIdWithMemberAndUser(@Param("eventId") UUID eventId);
     List<EventParticipant> findByEventIdIn(List<UUID> eventIds);
     List<EventParticipant> findByMember_Id(UUID memberId);
     List<EventParticipant> findByMember_IdAndEvent_StartAtGreaterThan(UUID memberId, java.time.LocalDateTime now);

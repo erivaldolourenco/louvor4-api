@@ -80,7 +80,7 @@ public class EventReminderServiceImpl implements EventReminderService {
 
     private void sendForReminder(EventReminder reminder) {
         List<EventParticipant> participants =
-                participantRepository.findByEventId(reminder.getEvent().getId());
+                participantRepository.findByEventIdWithMemberAndUser(reminder.getEvent().getId());
 
         for (EventParticipant p : participants) {
             if (p.getStatus() == EventParticipantStatus.ACCEPTED) {

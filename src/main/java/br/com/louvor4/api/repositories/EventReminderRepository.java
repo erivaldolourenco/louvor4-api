@@ -14,8 +14,13 @@ import java.util.UUID;
 
 public interface EventReminderRepository extends JpaRepository<EventReminder, UUID> {
 
+    @Query("""
+        SELECT r FROM EventReminder r
+        JOIN FETCH r.event
+        WHERE r.status = :status AND r.scheduledFor <= :now
+        """)
     List<EventReminder> findByStatusAndScheduledForLessThanEqual(
-            ReminderStatus status, LocalDateTime now);
+            @Param("status") ReminderStatus status, @Param("now") LocalDateTime now);
 
     List<EventReminder> findByEventIdAndStatusIn(UUID eventId, List<ReminderStatus> statuses);
 

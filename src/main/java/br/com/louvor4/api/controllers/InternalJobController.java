@@ -2,10 +2,15 @@ package br.com.louvor4.api.controllers;
 
 import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.services.EventReminderService;
+import br.com.louvor4.api.services.PushSenderService;
+import br.com.louvor4.api.shared.dto.notification.TestPushNotificationRequest;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,12 +27,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalJobController {
 
     private final EventReminderService eventReminderService;
+    private final PushSenderService pushSenderService;
 
     @Value("${app.internal.jobs-token}")
     private String jobsToken;
 
-    public InternalJobController(EventReminderService eventReminderService) {
+    public InternalJobController(EventReminderService eventReminderService, PushSenderService pushSenderService) {
         this.eventReminderService = eventReminderService;
+        this.pushSenderService = pushSenderService;
     }
 
     @PostMapping("/event-reminders/process")
@@ -36,6 +43,16 @@ public class InternalJobController {
     ) {
         validateToken(token);
         eventReminderService.processDue();
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+    }
+
+    @PostMapping("/push-notifications/test")
+    public ResponseEntity<Void> sendTestPushNotification(
+            @RequestHeader(value = "X-Internal-Token", required = false) String token,
+            @RequestBody @Valid TestPushNotificationRequest request
+    ) throws FirebaseMessagingException {
+        validateToken(token);
+        pushSenderService.sendToUser(request.userId(), request.title(), request.message(), request.imageUrl());
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 

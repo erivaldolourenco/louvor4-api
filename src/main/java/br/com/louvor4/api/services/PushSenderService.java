@@ -6,4 +6,6 @@ import java.util.UUID;
 
 public interface PushSenderService {
     void sendToUser(UUID userId, String title, String message) throws FirebaseMessagingException;
+
+    void sendToUser(UUID userId, String title, String message, String imageUrl) throws FirebaseMessagingException;
 }

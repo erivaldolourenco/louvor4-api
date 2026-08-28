@@ -22,6 +22,12 @@ public class PushSenderServiceImpl implements PushSenderService {
     @Async
     @Override
     public void sendToUser(UUID userId, String title, String message) {
+        sendToUser(userId, title, message, null);
+    }
+
+    @Async
+    @Override
+    public void sendToUser(UUID userId, String title, String message, String imageUrl) {
         List<NotificationDevice> devices = deviceRepository.findAllByUserIdAndEnabledTrue(userId);
         if (devices.isEmpty()) return;
 
@@ -29,12 +35,16 @@ public class PushSenderServiceImpl implements PushSenderService {
                 .map(NotificationDevice::getFcmToken)
                 .toList();
 
+        Notification.Builder notificationBuilder = Notification.builder()
+                .setTitle(title)
+                .setBody(message);
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            notificationBuilder.setImage(imageUrl);
+        }
+
         MulticastMessage multicastMessage = MulticastMessage.builder()
                 .addAllTokens(tokens)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(message)
-                        .build())
+                .setNotification(notificationBuilder.build())
                 .setAndroidConfig(AndroidConfig.builder()
                         .setPriority(AndroidConfig.Priority.HIGH)
                         .build())

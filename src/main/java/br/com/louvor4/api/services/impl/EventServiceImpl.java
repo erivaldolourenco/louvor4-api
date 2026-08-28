@@ -204,6 +204,44 @@ public class EventServiceImpl implements EventService {
         }
     }
 
+    private void notifySetlistChanged(Event event, List<String> itemTitles, NotificationType type, boolean added) {
+        if (itemTitles.isEmpty()) return;
+
+        UUID actorUserId = currentUserProvider.get().getId();
+        List<EventParticipant> participants =
+                eventParticipantRepository.findByEventIdWithMemberAndUser(event.getId());
+
+        boolean plural = itemTitles.size() > 1;
+        String resumo = String.join(", ", itemTitles);
+        String sujeito = plural ? "As músicas " : "A música ";
+        String verbo = added
+                ? (plural ? " foram adicionadas ao evento." : " foi adicionada ao evento.")
+                : (plural ? " foram removidas do evento." : " foi removida do evento.");
+
+        String title = event.getTitle() + " — repertório atualizado";
+        String message = sujeito + resumo + verbo;
+
+        for (EventParticipant participant : participants) {
+            UUID userId = participant.getMember().getUser().getId();
+            if (userId.equals(actorUserId)) continue;
+
+            userNotificationService.createNotification(new CreateUserNotificationRequest(
+                    type,
+                    userId,
+                    title,
+                    message,
+                    participant.getId(),
+                    null
+            ));
+
+            eventPublisher.publishEvent(new PushNotificationEvent(userId, title, message));
+        }
+    }
+
+    private String describeSetlistItem(EventSetlistItem item) {
+        return item.isSong() ? item.getSong().getTitle() : item.getMedley().getName();
+    }
+
     private void updateParticipationStatus(UUID participantId, EventParticipantStatus status) {
         if (participantId == null) {
             throw new ValidationException("Id do participante é obrigatório.");
@@ -545,6 +583,7 @@ public class EventServiceImpl implements EventService {
             throw new ValidationException("A lista de músicas é obrigatória.");
         }
 
+        Event event = findEventOrThrow(eventId);
         EventParticipant participant =  validateEventParticipant(eventId);
 
         Set<UUID> setListItemIds = new LinkedHashSet<>();
@@ -587,6 +626,9 @@ public class EventServiceImpl implements EventService {
         for (EventSetlistItem saved : toSave) {
             programService.onSetlistItemAdded(saved);
         }
+
+        List<String> addedTitles = toSave.stream().map(this::describeSetlistItem).toList();
+        notifySetlistChanged(event, addedTitles, NotificationType.EVENT_SONG_ADDED, true);
     }
 
     private EventParticipant validateEventParticipant(UUID eventId){
@@ -708,8 +750,13 @@ public class EventServiceImpl implements EventService {
             }
         }
 
+        Event event = setlistItem.getEvent();
+        String removedTitle = describeSetlistItem(setlistItem);
+
         programService.onSetlistItemRemoved(setlistItem.getId());
         eventSetlistItemRepository.delete(setlistItem);
+
+        notifySetlistChanged(event, List.of(removedTitle), NotificationType.EVENT_SONG_REMOVED, false);
     }
 
     @Transactional

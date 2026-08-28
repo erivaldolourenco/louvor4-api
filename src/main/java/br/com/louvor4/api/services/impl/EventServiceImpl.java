@@ -7,6 +7,7 @@ import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.enums.AudioType;
+import br.com.louvor4.api.notification.push.PushNotificationEvent;
 import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
@@ -18,7 +19,6 @@ import br.com.louvor4.api.repositories.projections.EventCountProjection;
 import br.com.louvor4.api.repositories.projections.PastEventParticipantProjection;
 import br.com.louvor4.api.services.EventReminderScheduler;
 import br.com.louvor4.api.services.EventService;
-import br.com.louvor4.api.services.PushSenderService;
 import br.com.louvor4.api.services.ProgramService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.shared.dto.Event.EventDetailDto;
@@ -36,6 +36,7 @@ import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
 import br.com.louvor4.api.strategy.event.EventSetlistItemStrategy;
 import br.com.louvor4.api.strategy.event.EventSetlistItemStrategyResolver;
 import br.com.louvor4.api.validations.EventValidation;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -57,7 +58,7 @@ public class EventServiceImpl implements EventService {
     private final ProjectSkillRepository projectSkillRepository;
     private final SongRepository songRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
-    private final PushSenderService senderService;
+    private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final UserUnavailabilityRepository userUnavailabilityRepository;
     private final EventSetlistItemStrategyResolver strategyResolver;
@@ -73,7 +74,7 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
-            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, PushSenderService senderService, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
+            MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, ApplicationEventPublisher eventPublisher, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
             ProgramService programService,
             EventReminderScheduler eventReminderScheduler,
             AudioFileRepository audioFileRepository,
@@ -88,7 +89,7 @@ public class EventServiceImpl implements EventService {
         this.projectSkillRepository = projectSkillRepository;
         this.songRepository = songRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
-        this.senderService = senderService;
+        this.eventPublisher = eventPublisher;
         this.userNotificationService = userNotificationService;
         this.userUnavailabilityRepository = userUnavailabilityRepository;
         this.strategyResolver = strategyResolver;
@@ -199,11 +200,7 @@ public class EventServiceImpl implements EventService {
                     null
             ));
 
-            try {
-                senderService.sendToUser(userId, title, message);
-            } catch (Exception e) {
-                System.err.println("Falha ao enviar push para usuário: " + e.getMessage());
-            }
+            eventPublisher.publishEvent(new PushNotificationEvent(userId, title, message));
         }
     }
 
@@ -274,11 +271,7 @@ public class EventServiceImpl implements EventService {
                 null
         ));
 
-        try {
-            senderService.sendToUser(ownerUserId, title, message);
-        } catch (Exception e) {
-            System.err.println("Falha ao enviar push para o responsável do projeto: " + e.getMessage());
-        }
+        eventPublisher.publishEvent(new PushNotificationEvent(ownerUserId, title, message));
     }
 
     private String buildParticipantNotificationMessage(Event event, EventParticipant participant) {

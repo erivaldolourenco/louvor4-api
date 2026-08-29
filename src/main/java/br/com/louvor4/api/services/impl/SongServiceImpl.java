@@ -93,8 +93,13 @@ public class SongServiceImpl implements SongService {
                     .findBySong_IdAndType(song.getId(), AudioType.REFERENCE)
                     .map(AudioFile::getAudioUrl)
                     .orElse(null);
+            String vsAudioUrl = audioFileRepository
+                    .findBySong_IdAndType(song.getId(), AudioType.VS)
+                    .map(AudioFile::getAudioUrl)
+                    .orElse(null);
             return new SongDTO(
                     song.getId(),
+                    song.getUser().getId(),
                     song.getTitle(),
                     song.getArtist(),
                     song.getKey(),
@@ -107,6 +112,7 @@ public class SongServiceImpl implements SongService {
                     song.getCoverUrl(),
                     song.getNotes(),
                     referenceAudioUrl,
+                    vsAudioUrl,
                     mapCategories(song)
             );
         }).toList();
@@ -146,9 +152,14 @@ public class SongServiceImpl implements SongService {
                 .findBySong_IdAndType(song.getId(), AudioType.REFERENCE)
                 .map(AudioFile::getAudioUrl)
                 .orElse(null);
+        String vsAudioUrl = audioFileRepository
+                .findBySong_IdAndType(song.getId(), AudioType.VS)
+                .map(AudioFile::getAudioUrl)
+                .orElse(null);
 
         return new SongDTO(
                 song.getId(),
+                song.getUser().getId(),
                 song.getTitle(),
                 song.getArtist(),
                 song.getKey(),
@@ -161,6 +172,7 @@ public class SongServiceImpl implements SongService {
                 song.getCoverUrl(),
                 song.getNotes(),
                 referenceAudioUrl,
+                vsAudioUrl,
                 mapCategories(song)
         );
     }

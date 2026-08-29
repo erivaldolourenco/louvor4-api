@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record SongDTO(
         UUID id,
+        UUID userId,
         String title,
         String artist,
         String key,
@@ -17,5 +18,6 @@ public record SongDTO(
         String coverUrl,
         String notes,
         String referenceAudioUrl,
+        String vsAudioUrl,
         Set<SongCategoryDTO> categories
 ) {}

@@ -16,6 +16,7 @@ public record EventSongDTO(
         String notes,
         String addedBy,
         String referenceAudioUrl,
+        String vsAudioUrl,
         Boolean editChordSheetPermission
 ) {
 }

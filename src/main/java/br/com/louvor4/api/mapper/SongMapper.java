@@ -17,10 +17,14 @@ public interface SongMapper {
     @Mapping(target = "categories", ignore = true)
     Song toEntity(SongDTO dto);
 
+    @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "referenceAudioUrl", ignore = true)
+    @Mapping(target = "vsAudioUrl", ignore = true)
     SongDTO toDto(Song entity);
 
+    @Mapping(target = "userId", source = "user.id")
     @Mapping(target = "referenceAudioUrl", ignore = true)
+    @Mapping(target = "vsAudioUrl", ignore = true)
     List<SongDTO> toDtoList(List<Song> entities);
 
     default SongCategoryDTO toCategoryDto(SongCategory category) {

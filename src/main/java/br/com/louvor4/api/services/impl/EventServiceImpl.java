@@ -663,6 +663,11 @@ public class EventServiceImpl implements EventService {
                 .stream()
                 .collect(Collectors.toMap(af -> af.getSong().getId(), AudioFile::getAudioUrl));
 
+        Map<UUID, String> vsAudioUrlBySongId = audioFileRepository
+                .findBySong_IdInAndType(songIds, AudioType.VS)
+                .stream()
+                .collect(Collectors.toMap(af -> af.getSong().getId(), AudioFile::getAudioUrl));
+
         List<UUID> medleyIds = setlistItems.stream()
                 .filter(EventSetlistItem::isMedley)
                 .map(item -> item.getMedley() != null ? item.getMedley().getId() : null)
@@ -678,6 +683,7 @@ public class EventServiceImpl implements EventService {
             SetlistDTO dto = eventSetlistItemMapper.toSetlistDto(item);
             if (item.isSong() && item.getSong() != null && dto.eventSong() != null) {
                 String audioUrl = audioUrlBySongId.get(item.getSong().getId());
+                String vsAudioUrl = vsAudioUrlBySongId.get(item.getSong().getId());
                 EventSongDTO enriched = new EventSongDTO(
                         dto.eventSong().id(),
                         dto.eventSong().songId(),
@@ -692,6 +698,7 @@ public class EventServiceImpl implements EventService {
                         dto.eventSong().notes(),
                         dto.eventSong().addedBy(),
                         audioUrl,
+                        vsAudioUrl,
                         dto.eventSong().editChordSheetPermission()
                 );
                 return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.addedByUserId(), dto.notes(), enriched, dto.eventMedley());

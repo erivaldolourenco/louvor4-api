@@ -17,5 +17,6 @@ public record EventDetailDto(
     String projectImageUrl,
     Integer participantsCount,
     Integer repertoireCount,
-    List<String> participantsProfileImages
+    List<String> participantsProfileImages,
+    Boolean hasRepertoire
 ){}

@@ -1,8 +1,10 @@
 package br.com.louvor4.api.validations;
 
 import br.com.louvor4.api.enums.EventPermission;
+import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.models.Event;
 import br.com.louvor4.api.models.EventParticipant;
 import br.com.louvor4.api.models.EventSetlistItem;
 import br.com.louvor4.api.shared.dto.Event.EventParticipantDTO;
@@ -47,6 +49,12 @@ public class EventValidation {
             case EDIT_EVENT -> "editar o evento";
             case EDIT_CHORD_SHEET -> "editar a cifra";
         };
+    }
+
+    public void requireRepertoireModule(Event event) {
+        if (event.getMusicProject().getType() == MusicProjectType.MEDIA) {
+            throw new ForbiddenException("Projetos do tipo mídia não possuem repertório.");
+        }
     }
 
     public void validateSetlistItemBelongsToEvent(EventSetlistItem setlistItem, UUID eventId){

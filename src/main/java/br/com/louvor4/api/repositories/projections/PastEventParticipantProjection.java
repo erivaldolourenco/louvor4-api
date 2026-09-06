@@ -15,4 +15,5 @@ public interface PastEventParticipantProjection {
     String getProjectProfileImage();
     Integer getParticipantsCount();
     Integer getRepertoireCount();
+    String getProjectType();
 }

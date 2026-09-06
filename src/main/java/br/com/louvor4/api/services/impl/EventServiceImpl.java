@@ -4,6 +4,7 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.config.security.ProjectSecurity;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
+import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.enums.AudioType;
@@ -488,7 +489,8 @@ public class EventServiceImpl implements EventService {
                         songCountByEvent.getOrDefault(event.getId(), 0),
                         participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
                         participant != null ? participant.getId() : null,
-                        participant != null ? participant.getStatus() : null
+                        participant != null ? participant.getStatus() : null,
+                        event.getMusicProject().getType() != MusicProjectType.MEDIA
                     );
                 })
                 .toList();
@@ -529,7 +531,8 @@ public class EventServiceImpl implements EventService {
                         p.getRepertoireCount() != null ? p.getRepertoireCount() : 0,
                         participantsImagesByEvent.getOrDefault(UUID.fromString(p.getEventId()), List.of()),
                         UUID.fromString(p.getParticipantId()),
-                        EventParticipantStatus.valueOf(p.getParticipantStatus())
+                        EventParticipantStatus.valueOf(p.getParticipantStatus()),
+                        !MusicProjectType.MEDIA.name().equals(p.getProjectType())
                 ))
                 .toList();
 
@@ -584,6 +587,7 @@ public class EventServiceImpl implements EventService {
         }
 
         Event event = findEventOrThrow(eventId);
+        eventValidation.requireRepertoireModule(event);
         EventParticipant participant =  validateEventParticipant(eventId);
 
         Set<UUID> setListItemIds = new LinkedHashSet<>();
@@ -744,6 +748,7 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new NotFoundException("Item do setlist não encontrado no evento."));
 
         eventValidation.validateSetlistItemBelongsToEvent(setlistItem, eventId);
+        eventValidation.requireRepertoireModule(setlistItem.getEvent());
 
         boolean isAdmin = projectSecurity.isAdminOrOwnerByEventId(eventId);
 

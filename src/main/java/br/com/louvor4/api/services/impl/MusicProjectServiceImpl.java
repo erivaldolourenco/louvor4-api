@@ -2,6 +2,7 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.FileCategory;
+import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
@@ -384,7 +385,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
                         eventRepository.countSongsByEventId(event.getId(), SetlistItemType.SONG),
-                        participantsImagesByEvent.getOrDefault(event.getId(), List.of())
+                        participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
+                        event.getMusicProject().getType() != MusicProjectType.MEDIA
                 ))
                 .toList();
     }

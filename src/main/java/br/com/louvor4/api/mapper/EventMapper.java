@@ -31,6 +31,7 @@ public interface EventMapper {
     @Mapping(target = "date", expression = "java(toLocalDate(entity.getStartAt()))")
     @Mapping(target = "time", expression = "java(toLocalTime(entity.getStartAt()))")
     @Mapping(target = "participantsProfileImages", expression = "java(java.util.Collections.emptyList())")
+    @Mapping(target = "hasRepertoire", expression = "java(entity.getMusicProject().getType() != br.com.louvor4.api.enums.MusicProjectType.MEDIA)")
     EventDetailDto toDetailDto(Event entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

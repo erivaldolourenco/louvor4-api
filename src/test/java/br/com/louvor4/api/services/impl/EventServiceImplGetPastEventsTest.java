@@ -93,6 +93,7 @@ class EventServiceImplGetPastEventsTest {
         when(projection.getParticipantsCount()).thenReturn(5);
         when(projection.getRepertoireCount()).thenReturn(3);
         when(projection.getParticipantStatus()).thenReturn(EventParticipantStatus.ACCEPTED.name());
+        when(projection.getProjectType()).thenReturn("MINISTRY");
 
         Page<PastEventParticipantProjection> repoPage = new PageImpl<>(List.of(projection), pageable, 1);
         when(eventParticipantRepository.findPastByUserIncludingDeletedProjects(
@@ -104,7 +105,40 @@ class EventServiceImplGetPastEventsTest {
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).title()).isEqualTo("Culto Passado");
+        assertThat(result.getContent().get(0).hasRepertoire()).isTrue();
         assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getPastEventsByUser_marksMediaProjectEventsWithoutRepertoire() {
+        UUID eventId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
+        UUID participantId = UUID.randomUUID();
+
+        PastEventParticipantProjection projection = mock(PastEventParticipantProjection.class);
+        when(projection.getEventId()).thenReturn(eventId.toString());
+        when(projection.getProjectId()).thenReturn(projectId.toString());
+        when(projection.getParticipantId()).thenReturn(participantId.toString());
+        when(projection.getEventTitle()).thenReturn("Culto de Transmissão");
+        when(projection.getEventDescription()).thenReturn("Descrição");
+        when(projection.getEventStartAt()).thenReturn(LocalDateTime.now().minusDays(7));
+        when(projection.getEventLocation()).thenReturn("Igreja");
+        when(projection.getProjectName()).thenReturn("Equipe de Mídia");
+        when(projection.getProjectProfileImage()).thenReturn(null);
+        when(projection.getParticipantsCount()).thenReturn(5);
+        when(projection.getRepertoireCount()).thenReturn(0);
+        when(projection.getParticipantStatus()).thenReturn(EventParticipantStatus.ACCEPTED.name());
+        when(projection.getProjectType()).thenReturn("MEDIA");
+
+        Page<PastEventParticipantProjection> repoPage = new PageImpl<>(List.of(projection), pageable, 1);
+        when(eventParticipantRepository.findPastByUserIncludingDeletedProjects(
+                eq(userId), any(LocalDateTime.class), eq(pageable)))
+                .thenReturn(repoPage);
+        when(eventParticipantRepository.findProfileImagesByEventIds(any())).thenReturn(List.of());
+
+        Page<UserEventDetailDto> result = service.getPastEventsByUser(pageable);
+
+        assertThat(result.getContent().get(0).hasRepertoire()).isFalse();
     }
 
     @Test

@@ -96,7 +96,8 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
                     WHERE ep2.event_id = e.id)::integer AS participantsCount,
                    (SELECT count(DISTINCT esi.song_id)
                     FROM event_setlist_items esi
-                    WHERE esi.event_id = e.id AND esi.song_id IS NOT NULL)::integer AS repertoireCount
+                    WHERE esi.event_id = e.id AND esi.song_id IS NOT NULL)::integer AS repertoireCount,
+                   mp.type                          AS projectType
             FROM event_participants ep
             JOIN events e  ON e.id  = ep.event_id
             JOIN music_project_members m  ON m.id  = ep.project_member_id

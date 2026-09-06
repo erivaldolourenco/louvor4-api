@@ -21,6 +21,7 @@ public record UserEventDetailDto(
         Integer repertoireCount,
         List<String> participantsProfileImages,
         UUID participantId,
-        EventParticipantStatus participantStatus
+        EventParticipantStatus participantStatus,
+        Boolean hasRepertoire
 ) {
 }

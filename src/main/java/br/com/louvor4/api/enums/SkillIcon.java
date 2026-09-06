@@ -8,7 +8,11 @@ public enum SkillIcon {
     DRUMS("drum"),
     MIC_VOCAL("mic-vocal"),
     BASS_GUITAR("bass-guitar"),
-    MUSIC("music");
+    MUSIC("music"),
+    CAMERA("camera"),
+    COMPUTER("computer"),
+    MOBILE_PHONE("mobile-phone"),
+    NOTEBOOK_MUSIC("notebook-music");
 
     private final String key;
 

@@ -23,6 +23,8 @@ import br.com.louvor4.api.shared.dto.notification.UnreadNotificationCountRespons
 import br.com.louvor4.api.shared.dto.notification.UserNotificationItemResponse;
 import br.com.louvor4.api.shared.dto.notification.UserNotificationListResponse;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -42,6 +44,8 @@ import static br.com.louvor4.api.shared.Messages.USER_CREATED_TITLE;
 @RestController
 @RequestMapping("users")
 public class UserController {
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
     private final UserService userService;
     private final MusicProjectService musicProjectService;
     private final EventService eventService;
@@ -102,6 +106,8 @@ public class UserController {
     public ResponseEntity<String> updateProfileImage(
             @RequestPart("profileImage") MultipartFile profileImage
     ) {
+        log.info("updateProfileImage recebido: filename={}, contentType={}, size={}",
+                profileImage.getOriginalFilename(), profileImage.getContentType(), profileImage.getSize());
         String url = userService.updateImage(profileImage);
         return ResponseEntity.ok(url);
     }

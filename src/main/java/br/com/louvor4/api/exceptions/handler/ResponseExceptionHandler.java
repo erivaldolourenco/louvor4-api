@@ -30,6 +30,14 @@ public class ResponseExceptionHandler extends ResponseEntityExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(ResponseExceptionHandler.class);
 
     @Override
+    protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,
+                                                              HttpStatusCode statusCode, WebRequest request) {
+        logger.warn("Spring MVC exception [{}] on {} ({}): {}",
+                ex.getClass().getSimpleName(), request.getDescription(false), statusCode, ex.getMessage(), ex);
+        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+    }
+
+    @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
                                                                   HttpHeaders headers, HttpStatusCode status,
                                                                   WebRequest request) {

@@ -59,6 +59,7 @@ public class EventServiceImpl implements EventService {
     private final ProjectSkillRepository projectSkillRepository;
     private final SongRepository songRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
+    private final EventProgramItemRepository eventProgramItemRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final UserNotificationService userNotificationService;
     private final UserUnavailabilityRepository userUnavailabilityRepository;
@@ -76,6 +77,7 @@ public class EventServiceImpl implements EventService {
             EventRepository eventRepository,
             EventParticipantRepository eventParticipantRepository,
             MusicProjectMemberRepository musicProjectMemberRepository, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, CurrentUserProvider currentUserProvider, ProjectSkillRepository projectSkillRepository, SongRepository songRepository, EventSetlistItemRepository eventSetlistItemRepository, ApplicationEventPublisher eventPublisher, UserNotificationService userNotificationService, UserUnavailabilityRepository userUnavailabilityRepository, EventSetlistItemStrategyResolver strategyResolver,
+            EventProgramItemRepository eventProgramItemRepository,
             ProgramService programService,
             EventReminderScheduler eventReminderScheduler,
             AudioFileRepository audioFileRepository,
@@ -90,6 +92,7 @@ public class EventServiceImpl implements EventService {
         this.projectSkillRepository = projectSkillRepository;
         this.songRepository = songRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
+        this.eventProgramItemRepository = eventProgramItemRepository;
         this.eventPublisher = eventPublisher;
         this.userNotificationService = userNotificationService;
         this.userUnavailabilityRepository = userUnavailabilityRepository;
@@ -112,7 +115,7 @@ public class EventServiceImpl implements EventService {
 
         if (incoming.isEmpty()) {
             if (!currentList.isEmpty()) {
-                eventParticipantRepository.softDeleteByIds(currentList.stream().map(EventParticipant::getId).toList());
+                removeParticipants(currentList);
             }
             return;
         }
@@ -163,12 +166,32 @@ public class EventServiceImpl implements EventService {
                 .filter(p -> !incomingMemberIds.contains(p.getMember().getId()))
                 .toList();
         if (!toDelete.isEmpty()) {
-            eventParticipantRepository.softDeleteByIds(toDelete.stream().map(EventParticipant::getId).toList());
+            removeParticipants(toDelete);
         }
 
         eventParticipantRepository.saveAll(toSave);
 
         notifyNewParticipants(event, newParticipants);
+    }
+
+    // O participante é soft-deletado (@SQLRestriction esconde a linha), então tudo que aponta pra ele
+    // precisa sair junto: senão o item do repertório fica com addedBy "invisível" e o carregamento lazy
+    // estoura EntityNotFoundException (404 em GET /events/{id}/setlist), enquanto o roteiro continua
+    // mostrando a música. Ordem por causa das FKs: event_program_items -> event_setlist_items.
+    private void removeParticipants(List<EventParticipant> participants) {
+        if (participants.isEmpty()) {
+            return;
+        }
+
+        List<UUID> participantIds = participants.stream().map(EventParticipant::getId).toList();
+
+        List<UUID> setlistItemIds = eventSetlistItemRepository.findIdsByAddedBy_IdIn(participantIds);
+        if (!setlistItemIds.isEmpty()) {
+            eventProgramItemRepository.deleteBySetlistItemIdIn(setlistItemIds);
+        }
+        eventSetlistItemRepository.deleteByAddedBy_IdIn(participantIds);
+
+        eventParticipantRepository.softDeleteByIds(participantIds);
     }
 
     @Override

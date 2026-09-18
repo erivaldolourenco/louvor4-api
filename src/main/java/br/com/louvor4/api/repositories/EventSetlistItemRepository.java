@@ -20,7 +20,16 @@ public interface EventSetlistItemRepository extends JpaRepository<EventSetlistIt
 
     List<EventSetlistItem> findByEventIdInAndType(List<UUID> eventIds, SetlistItemType type);
 
-    void deleteByAddedBy_IdIn(List<UUID> participantIds);
+    // Usado ao remover participantes de um evento (soft delete): o item do repertório não pode
+    // sobreviver apontando pra um participante que o @SQLRestriction esconde, senão o carregamento
+    // lazy de addedBy estoura EntityNotFoundException ao montar o setlist.
+    @Query("select esi.id from EventSetlistItem esi where esi.addedBy.id in :participantIds")
+    List<UUID> findIdsByAddedBy_IdIn(@Param("participantIds") List<UUID> participantIds);
+
+    @Modifying
+    @Transactional
+    @Query("delete from EventSetlistItem esi where esi.addedBy.id in :participantIds")
+    void deleteByAddedBy_IdIn(@Param("participantIds") List<UUID> participantIds);
 
     // @Modifying para executar como DELETE imediato: a versão derivada (deleteBy...) apenas
     // marca as entidades para remoção no persistence context, sem flush. Como os call sites

@@ -3,6 +3,7 @@ package br.com.louvor4.api.services.impl;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.ReminderStatus;
+import br.com.louvor4.api.models.Event;
 import br.com.louvor4.api.models.EventParticipant;
 import br.com.louvor4.api.models.EventReminder;
 import br.com.louvor4.api.repositories.EventParticipantRepository;
@@ -18,6 +19,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ public class EventReminderServiceImpl implements EventReminderService {
 
     private static final Logger log = LoggerFactory.getLogger(EventReminderServiceImpl.class);
     private static final int STUCK_PROCESSING_MINUTES = 10;
+    private static final DateTimeFormatter REMINDER_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM");
 
     private final EventReminderRepository reminderRepository;
     private final EventParticipantRepository participantRepository;
@@ -93,8 +96,13 @@ public class EventReminderServiceImpl implements EventReminderService {
 
     private void sendReminderToAccepted(EventReminder reminder, EventParticipant participant) {
         UUID userId = participant.getMember().getUser().getId();
-        String title = "Lembrete: " + reminder.getEvent().getTitle();
-        String message = reminder.getEvent().getTitle() + " acontece amanhã. Até lá!";
+        Event event = reminder.getEvent();
+        String title = "Lembrete: " + event.getTitle() + " - " + event.getStartAt().format(REMINDER_DATE_FORMAT);
+        String skillName = participant.getSkill() != null ? participant.getSkill().getName() : null;
+        String message = skillName != null
+                ? "Lembrete: " + event.getTitle() + " acontece amanhã e você está escalado na função \""
+                        + skillName + "\". Até lá!"
+                : "Lembrete: " + event.getTitle() + " acontece amanhã e você está escalado. Até lá!";
         sendAll(userId, participant.getMember().getUser().getEmail(), title, message);
     }
 

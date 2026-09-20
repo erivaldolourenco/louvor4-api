@@ -28,6 +28,7 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
             from EventParticipant ep
             join fetch ep.member m
             join fetch m.user u
+            left join fetch ep.skill
             where ep.event.id = :eventId
             """)
     List<EventParticipant> findByEventIdWithMemberAndUser(@Param("eventId") UUID eventId);

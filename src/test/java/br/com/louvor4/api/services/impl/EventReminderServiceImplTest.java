@@ -81,7 +81,7 @@ class EventReminderServiceImplTest {
 
         service.processDue();
 
-        verify(participantRepository, never()).findByEventId(any());
+        verify(participantRepository, never()).findByEventIdWithMemberAndUser(any());
     }
 
     @Test
@@ -90,7 +90,7 @@ class EventReminderServiceImplTest {
                 eq(ReminderStatus.PENDING), any()))
                 .thenReturn(List.of(reminder));
         when(reminderRepository.tryUpdateStatus(any(), any(), any(), any())).thenReturn(1);
-        when(participantRepository.findByEventId(event.getId()))
+        when(participantRepository.findByEventIdWithMemberAndUser(event.getId()))
                 .thenReturn(List.of(acceptedParticipant, pendingParticipant));
 
         service.processDue();
@@ -101,13 +101,35 @@ class EventReminderServiceImplTest {
     }
 
     @Test
+    void processDue_acceptedReminderMentionsDateAndSkill() throws Exception {
+        event.setStartAt(LocalDateTime.of(2026, 9, 20, 9, 0));
+        ProjectSkill skill = new ProjectSkill();
+        skill.setName("Vocal");
+        acceptedParticipant.setSkill(skill);
+
+        when(reminderRepository.findByStatusAndScheduledForLessThanEqual(
+                eq(ReminderStatus.PENDING), any()))
+                .thenReturn(List.of(reminder));
+        when(reminderRepository.tryUpdateStatus(any(), any(), any(), any())).thenReturn(1);
+        when(participantRepository.findByEventIdWithMemberAndUser(event.getId()))
+                .thenReturn(List.of(acceptedParticipant));
+
+        service.processDue();
+
+        verify(pushSenderService).sendToUser(
+                user.getId(),
+                "Lembrete: Culto Domingo - 20/09",
+                "Lembrete: Culto Domingo acontece amanhã e você está escalado na função \"Vocal\". Até lá!");
+    }
+
+    @Test
     void processDue_marksSentEvenWhenPushThrows() throws Exception {
         // Push is @Async in production and cannot throw synchronously — treated as best-effort
         when(reminderRepository.findByStatusAndScheduledForLessThanEqual(
                 eq(ReminderStatus.PENDING), any()))
                 .thenReturn(List.of(reminder));
         when(reminderRepository.tryUpdateStatus(any(), any(), any(), any())).thenReturn(1);
-        when(participantRepository.findByEventId(event.getId()))
+        when(participantRepository.findByEventIdWithMemberAndUser(event.getId()))
                 .thenReturn(List.of(acceptedParticipant));
         doThrow(new RuntimeException("Firebase down"))
                 .when(pushSenderService).sendToUser(any(), anyString(), anyString());
@@ -124,7 +146,7 @@ class EventReminderServiceImplTest {
                 eq(ReminderStatus.PENDING), any()))
                 .thenReturn(List.of(reminder));
         when(reminderRepository.tryUpdateStatus(any(), any(), any(), any())).thenReturn(1);
-        when(participantRepository.findByEventId(event.getId()))
+        when(participantRepository.findByEventIdWithMemberAndUser(event.getId()))
                 .thenReturn(List.of(acceptedParticipant));
         doThrow(new RuntimeException("Brevo down"))
                 .when(emailService).sendEventReminder(anyString(), anyString(), anyString());

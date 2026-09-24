@@ -2,6 +2,7 @@ package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.NotificationType;
+import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.*;
@@ -16,6 +17,8 @@ import br.com.louvor4.api.shared.dto.MusicProject.AddMemberDTO;
 import br.com.louvor4.api.shared.dto.MusicProject.ProjectInviteDTO;
 import br.com.louvor4.api.shared.dto.MusicProject.ProjectInviteResponseDTO;
 import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
+import br.com.louvor4.entitlement.exceptions.PlanLimitExceededException;
+import br.com.louvor4.entitlement.services.EntitlementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +35,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +57,7 @@ class MusicProjectServiceImplTest {
     @Mock MemberMapper memberMapper;
     @Mock EventParticipantRepository eventParticipantRepository;
     @Mock EventSetlistItemRepository eventSetlistItemRepository;
+    @Mock EntitlementService entitlementService;
 
     @InjectMocks MusicProjectServiceImpl service;
 
@@ -90,6 +95,7 @@ class MusicProjectServiceImplTest {
         when(musicProjectMemberRepository.existsByMusicProject_IdAndUser_IdAndStatus(projectId, invitedUserId, ProjectMemberStatus.ACTIVE)).thenReturn(false);
         when(musicProjectMemberRepository.existsByMusicProject_IdAndUser_IdAndStatus(projectId, invitedUserId, ProjectMemberStatus.PENDING_INVITE)).thenReturn(false);
         when(currentUserProvider.get()).thenReturn(admin);
+        stubMemberLimit(admin, 10, 3);
         when(userService.findUserById(invitedUserId)).thenReturn(invitedUser);
         when(musicProjectRepository.getMusicProjectById(projectId)).thenReturn(project);
         when(musicProjectMemberRepository.findByMusicProject_IdAndUser_IdAndStatus(projectId, invitedUserId, ProjectMemberStatus.DECLINED)).thenReturn(Optional.empty());
@@ -136,6 +142,74 @@ class MusicProjectServiceImplTest {
         assertThatThrownBy(() -> service.addMember(projectId, dto))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("convite pendente");
+    }
+
+    // --- limite max_project_members (plano do dono do projeto) ---
+
+    private void stubMemberLimit(User owner, int limit, long currentMembers) {
+        MusicProjectMember ownerMember = new MusicProjectMember();
+        ownerMember.setUser(owner);
+        ownerMember.setProjectRole(ProjectMemberRole.OWNER);
+        when(musicProjectMemberRepository.findFirstByMusicProject_IdAndProjectRoleAndStatus(
+                projectId, ProjectMemberRole.OWNER, ProjectMemberStatus.ACTIVE)).thenReturn(Optional.of(ownerMember));
+        when(entitlementService.getLimit(owner.getId(), "max_project_members")).thenReturn(limit);
+        lenient().when(musicProjectMemberRepository.countByMusicProject_IdAndStatusIn(
+                projectId, List.of(ProjectMemberStatus.ACTIVE, ProjectMemberStatus.PENDING_INVITE))).thenReturn(currentMembers);
+    }
+
+    private AddMemberDTO inviteJoao() {
+        AddMemberDTO dto = new AddMemberDTO();
+        dto.setUsername("joao");
+        when(userService.findByUsername("joao")).thenReturn(invitedUser);
+        when(musicProjectMemberRepository.existsByMusicProject_IdAndUser_IdAndStatus(projectId, invitedUserId, ProjectMemberStatus.ACTIVE)).thenReturn(false);
+        when(musicProjectMemberRepository.existsByMusicProject_IdAndUser_IdAndStatus(projectId, invitedUserId, ProjectMemberStatus.PENDING_INVITE)).thenReturn(false);
+        return dto;
+    }
+
+    @Test
+    void addMemberShouldBlockWhenActivePlusPendingReachOwnerLimit() {
+        AddMemberDTO dto = inviteJoao();
+        when(currentUserProvider.get()).thenReturn(admin);
+        stubMemberLimit(admin, 10, 10);
+
+        assertThatThrownBy(() -> service.addMember(projectId, dto))
+                .isInstanceOf(PlanLimitExceededException.class)
+                .hasMessageContaining("máximo: 10");
+
+        verify(musicProjectMemberRepository, never()).save(any());
+        verify(userNotificationService, never()).createNotification(any());
+    }
+
+    @Test
+    void addMemberShouldUseOwnerPlanAndExplainItWhenInviterIsNotTheOwner() {
+        User owner = new User();
+        owner.setId(UUID.randomUUID());
+        AddMemberDTO dto = inviteJoao();
+        when(currentUserProvider.get()).thenReturn(admin);
+        stubMemberLimit(owner, 5, 5);
+
+        assertThatThrownBy(() -> service.addMember(projectId, dto))
+                .isInstanceOf(PlanLimitExceededException.class)
+                .hasMessage("Este projeto atingiu o limite de membros do plano do proprietário (máximo: 5).");
+
+        verify(entitlementService, never()).getLimit(eq(adminId), any());
+    }
+
+    @Test
+    void addMemberShouldAllowUnlimitedPlan() {
+        AddMemberDTO dto = inviteJoao();
+        when(currentUserProvider.get()).thenReturn(admin);
+        stubMemberLimit(admin, -1, 500);
+        when(userService.findUserById(invitedUserId)).thenReturn(invitedUser);
+        when(musicProjectRepository.getMusicProjectById(projectId)).thenReturn(project);
+        when(musicProjectMemberRepository.findByMusicProject_IdAndUser_IdAndStatus(projectId, invitedUserId, ProjectMemberStatus.DECLINED)).thenReturn(Optional.empty());
+        MusicProjectMember savedMember = new MusicProjectMember();
+        savedMember.setId(UUID.randomUUID());
+        when(musicProjectMemberRepository.save(any())).thenReturn(savedMember);
+
+        service.addMember(projectId, dto);
+
+        verify(musicProjectMemberRepository).save(any());
     }
 
     @Test

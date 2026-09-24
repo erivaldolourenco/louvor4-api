@@ -19,6 +19,11 @@ public class        PlanLimitExceededException extends RuntimeException {
         super(buildMessage(key, limit));
     }
 
+    /** Para limites que não são do plano do usuário logado (ex.: plano do dono do projeto). */
+    public PlanLimitExceededException(String message) {
+        super(message);
+    }
+
     private static String buildMessage(String key, int limit) {
         String label = KEY_LABELS.getOrDefault(key, key);
         if (limit == 0) {

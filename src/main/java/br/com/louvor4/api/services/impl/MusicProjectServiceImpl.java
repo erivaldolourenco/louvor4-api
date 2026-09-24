@@ -17,6 +17,7 @@ import br.com.louvor4.api.services.MusicProjectService;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.services.UserNotificationService;
 import br.com.louvor4.api.services.UserService;
+import br.com.louvor4.entitlement.exceptions.PlanLimitExceededException;
 import br.com.louvor4.entitlement.services.EntitlementService;
 import br.com.louvor4.api.shared.dto.Event.CreateEventBatchDto;
 import br.com.louvor4.api.shared.dto.Event.CreateEventDto;
@@ -179,6 +180,29 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 .toList();
     }
 
+    // max_project_members vem do plano do DONO do projeto, não de quem convida.
+    // Convites pendentes contam (reservam a vaga), senão daria pra convidar sem limite e todos aceitarem depois.
+    private void enforceMemberLimit(UUID projectId, User inviter) {
+        Optional<MusicProjectMember> owner = musicProjectMemberRepository
+                .findFirstByMusicProject_IdAndProjectRoleAndStatus(projectId, ProjectMemberRole.OWNER, ProjectMemberStatus.ACTIVE);
+        if (owner.isEmpty()) {
+            return;
+        }
+        UUID ownerId = owner.get().getUser().getId();
+        int limit = entitlementService.getLimit(ownerId, "max_project_members");
+        if (limit == -1) {
+            return;
+        }
+        long current = musicProjectMemberRepository.countByMusicProject_IdAndStatusIn(
+                projectId, List.of(ProjectMemberStatus.ACTIVE, ProjectMemberStatus.PENDING_INVITE));
+        if (current >= limit) {
+            throw ownerId.equals(inviter.getId())
+                    ? new PlanLimitExceededException("max_project_members", limit)
+                    : new PlanLimitExceededException(
+                            "Este projeto atingiu o limite de membros do plano do proprietário (máximo: " + limit + ").");
+        }
+    }
+
     @Override
     @Transactional
     public void addMember(UUID projectId, AddMemberDTO addDto) {
@@ -197,6 +221,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         }
 
         User creator = currentUserProvider.get();
+        enforceMemberLimit(projectId, creator);
+
         User userMember = userService.findUserById(user.getId());
         MusicProject musicProject = musicProjectRepository.getMusicProjectById(projectId);
 

@@ -15,7 +15,12 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "songs")
+@Table(
+        name = "songs",
+        indexes = {
+                @Index(name = "idx_songs_owner_id", columnList = "owner_id")
+        }
+)
 public class Song {
     @Id
     @GeneratedValue

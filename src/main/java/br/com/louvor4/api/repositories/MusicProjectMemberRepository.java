@@ -30,6 +30,9 @@ public interface MusicProjectMemberRepository extends JpaRepository<MusicProject
     Optional<MusicProjectMember> findByMusicProject_IdAndUser_IdAndStatus(UUID projectId, UUID userId, ProjectMemberStatus status);
     List<MusicProjectMember> findByMusicProject_IdAndStatus(UUID projectId, ProjectMemberStatus status);
     List<MusicProjectMember> findByMusicProject_IdAndStatusIn(UUID projectId, Collection<ProjectMemberStatus> statuses);
+    long countByMusicProject_IdAndStatusIn(UUID projectId, Collection<ProjectMemberStatus> statuses);
+    Optional<MusicProjectMember> findFirstByMusicProject_IdAndProjectRoleAndStatus(
+            UUID projectId, br.com.louvor4.api.enums.ProjectMemberRole projectRole, ProjectMemberStatus status);
 
     @Modifying
     @Transactional

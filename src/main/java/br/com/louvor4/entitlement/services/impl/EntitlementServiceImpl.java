@@ -1,6 +1,8 @@
 package br.com.louvor4.entitlement.services.impl;
 
 import br.com.louvor4.entitlement.enums.SubscriptionStatus;
+import br.com.louvor4.entitlement.exceptions.EntitlementMisconfiguredException;
+import br.com.louvor4.entitlement.exceptions.NoActiveSubscriptionException;
 import br.com.louvor4.entitlement.exceptions.PlanLimitExceededException;
 import br.com.louvor4.entitlement.models.Subscription;
 import br.com.louvor4.entitlement.models.UsageCounter;
@@ -24,6 +26,8 @@ public class EntitlementServiceImpl implements EntitlementService {
     private final PlanEntitlementRepository planEntitlementRepository;
     private final UsageCounterRepository usageCounterRepository;
 
+    private static final String DEFAULT_FLAG_VALUE = "false";
+
     private final ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
 
     public EntitlementServiceImpl(SubscriptionRepository subscriptionRepository,
@@ -45,14 +49,13 @@ public class EntitlementServiceImpl implements EntitlementService {
     public boolean hasFeature(UUID userId, String key) {
         Subscription sub = findActiveSubscription(userId);
         String value = resolve(sub.getId(), sub.getPlan().getId(), key);
-        return Boolean.parseBoolean(value);
+        return Boolean.parseBoolean(value != null ? value : DEFAULT_FLAG_VALUE);
     }
 
     @Override
     public int getLimit(UUID userId, String key) {
         Subscription sub = findActiveSubscription(userId);
-        String value = resolve(sub.getId(), sub.getPlan().getId(), key);
-        return Integer.parseInt(value);
+        return resolveNumber(sub, key);
     }
 
     @Override
@@ -67,8 +70,7 @@ public class EntitlementServiceImpl implements EntitlementService {
     @Transactional
     public void consumeQuota(UUID userId, String key) {
         Subscription sub = findActiveSubscription(userId);
-        String value = resolve(sub.getId(), sub.getPlan().getId(), key);
-        int quota = Integer.parseInt(value);
+        int quota = resolveNumber(sub, key);
 
         if (quota == -1) return;
         if (quota == 0) throw new PlanLimitExceededException(key, 0);
@@ -99,21 +101,34 @@ public class EntitlementServiceImpl implements EntitlementService {
         cache.keySet().removeIf(k -> k.startsWith(prefix));
     }
 
+    /**
+     * Override do cliente → valor do plano. Retorna null quando nenhum dos dois existe;
+     * nesse caso nada é cacheado, para que corrigir o banco tenha efeito sem reiniciar a API.
+     */
     private String resolve(UUID subscriptionId, UUID planId, String key) {
         String cacheKey = subscriptionId + ":" + key;
-        return cache.computeIfAbsent(cacheKey, k -> {
-            return overrideRepository.findActiveOverride(subscriptionId, key)
-                    .map(o -> o.getValue())
-                    .orElseGet(() -> planEntitlementRepository
-                            .findByPlanIdAndEntitlementKey(planId, key)
-                            .map(pe -> pe.getValue())
-                            .orElse("false"));
-        });
+        return cache.computeIfAbsent(cacheKey, k -> overrideRepository.findActiveOverride(subscriptionId, key)
+                .map(o -> o.getValue())
+                .orElseGet(() -> planEntitlementRepository
+                        .findByPlanIdAndEntitlementKey(planId, key)
+                        .map(pe -> pe.getValue())
+                        .orElse(null)));
+    }
+
+    private int resolveNumber(Subscription sub, String key) {
+        String value = resolve(sub.getId(), sub.getPlan().getId(), key);
+        if (value == null) {
+            throw new EntitlementMisconfiguredException(sub.getPlan().getName(), key, null);
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            throw new EntitlementMisconfiguredException(sub.getPlan().getName(), key, value);
+        }
     }
 
     private Subscription findActiveSubscription(UUID userId) {
         return subscriptionRepository.findActiveByUserId(userId, SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Nenhuma assinatura ativa encontrada para o usuário: " + userId));
+                .orElseThrow(() -> new NoActiveSubscriptionException(userId));
     }
 }

@@ -6,6 +6,7 @@ import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.enums.NotificationType;
+import br.com.louvor4.api.enums.ProjectMemberStatus;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.notification.push.PushNotificationEvent;
@@ -133,7 +134,7 @@ public class EventServiceImpl implements EventService {
             incomingMemberIds.add(memberId);
             EventParticipant existing = currentByMemberId.get(memberId);
 
-            MusicProjectMember member = (existing != null) ? existing.getMember() : findMemberOrThrow(memberId);
+            MusicProjectMember member = (existing != null) ? existing.getMember() : findMemberOrThrow(memberId, event);
             ProjectSkill skill = (dto.getSkillId() != null) ? validateAndGetSkill(member, dto.getSkillId()) : null;
             Set<EventPermission> perms = normalizePermissions(dto.getPermissions());
 
@@ -142,6 +143,12 @@ public class EventServiceImpl implements EventService {
                 existing.setPermissions(perms);
                 toSave.add(existing);
             } else {
+                // Só membros ACTIVE entram na escala. Participações que já existem (ex.: conta excluída,
+                // membro que saiu do projeto) continuam editáveis no bloco acima.
+                if (member.getStatus() != ProjectMemberStatus.ACTIVE) {
+                    throw new ValidationException(
+                            "Só é possível escalar membros ativos do projeto. Membros com convite pendente precisam aceitar o convite primeiro.");
+                }
                 validateMemberAvailabilityForEvent(event, member);
 
                 Optional<UUID> deletedId = eventParticipantRepository.findDeletedIdByEventIdAndMemberId(eventId, memberId);
@@ -375,8 +382,11 @@ public class EventServiceImpl implements EventService {
         return eventRepository.findById(eventId) .orElseThrow(() -> new ValidationException("Evento não encontrado.") );
     }
 
-    private MusicProjectMember findMemberOrThrow(UUID memberId) {
+    // Membro de outro projeto recebe a mesma mensagem de "não encontrado", para não revelar que o id existe.
+    private MusicProjectMember findMemberOrThrow(UUID memberId, Event event) {
+        UUID eventProjectId = event.getMusicProject().getId();
         return musicProjectMemberRepository.findById(memberId)
+                .filter(member -> member.getMusicProject().getId().equals(eventProjectId))
                 .orElseThrow(() -> new ValidationException("Membro não encontrado"));
     }
 
@@ -598,7 +608,8 @@ public class EventServiceImpl implements EventService {
                         p.getSkill() != null ? p.getSkill().getId() : null,
                         p.getSkill() != null ? p.getSkill().getIconKey() : null,
                         p.getPermissions(),
-                        p.getStatus()
+                        p.getStatus(),
+                        p.getMember().getUser().getDeletedAt() != null
                 ))
                 .toList();
     }

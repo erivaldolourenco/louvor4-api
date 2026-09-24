@@ -7,6 +7,7 @@ import br.com.louvor4.api.models.EmailVerificationToken;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.UserRepository;
+import br.com.louvor4.api.services.AccountDeletionService;
 import br.com.louvor4.api.services.EmailService;
 import br.com.louvor4.api.services.MedleyService;
 import br.com.louvor4.api.services.SongService;
@@ -49,6 +50,7 @@ public class UserServiceImpl implements UserService {
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PlansRepository plansRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final AccountDeletionService accountDeletionService;
 
     public UserServiceImpl(
             UserRepository userRepository,
@@ -60,7 +62,8 @@ public class UserServiceImpl implements UserService {
             EmailService emailService,
             EmailVerificationTokenRepository emailVerificationTokenRepository,
             PlansRepository plansRepository,
-            SubscriptionRepository subscriptionRepository
+            SubscriptionRepository subscriptionRepository,
+            AccountDeletionService accountDeletionService
     ) {
         this.userRepository = userRepository;
         this.songService = songService;
@@ -72,6 +75,7 @@ public class UserServiceImpl implements UserService {
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.plansRepository = plansRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.accountDeletionService = accountDeletionService;
     }
 
     @Override
@@ -199,6 +203,6 @@ public class UserServiceImpl implements UserService {
     @org.springframework.transaction.annotation.Transactional
     public void deleteAccount() {
         User user = currentUserProvider.get();
-        userRepository.delete(user);
+        accountDeletionService.deleteAccount(user);
     }
 }

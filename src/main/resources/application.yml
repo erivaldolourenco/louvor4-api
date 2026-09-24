@@ -58,6 +58,7 @@ app:
       api-key: ${BREVO_API_KEY}
       url: ${BREVO_API_URL}
     verify-url: ${VERIFY_URL}
+    account-deletion-confirm-url: ${ACCOUNT_DELETION_CONFIRM_URL}
   sms:
     provider: twilio
     twilio:

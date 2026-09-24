@@ -16,6 +16,7 @@ public record EventParticipantResponseDTO(
         UUID skillId,
         SkillIcon skillIconKey,
         Set<EventPermission>permissions,
-        EventParticipantStatus status
+        EventParticipantStatus status,
+        boolean accountDeleted
 ) {
 }

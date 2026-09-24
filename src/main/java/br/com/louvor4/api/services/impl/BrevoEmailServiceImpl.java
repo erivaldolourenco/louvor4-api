@@ -32,6 +32,9 @@ public class BrevoEmailServiceImpl implements EmailService {
     @Value("${app.email.verify-url}")
     private String verifyUrl;
 
+    @Value("${app.email.account-deletion-confirm-url}")
+    private String accountDeletionConfirmUrl;
+
     private final EmailConfig emailConfig;
     private final RestTemplate restTemplate;
 
@@ -99,6 +102,43 @@ public class BrevoEmailServiceImpl implements EmailService {
             }
         } catch (Exception e) {
             System.err.println("Erro ao enviar e-mail de verificação via Brevo: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendAccountDeletionConfirmation(String to, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", apiKey);
+
+        String link = accountDeletionConfirmUrl + "?token=" + token;
+        Map<String, Object> body = Map.of(
+                "sender", Map.of("email", emailConfig.getFromEmail(), "name", "Louvor4"),
+                "to", List.of(Map.of("email", to)),
+                "subject", "Confirmação de exclusão de conta - Louvor4",
+                "htmlContent", "<html><body>" +
+                        "<h1>Confirmar exclusão de conta</h1>" +
+                        "<p>Recebemos um pedido para excluir sua conta e todos os seus dados pessoais do Louvor4.</p>" +
+                        "<p>Se foi você, clique no botão abaixo para confirmar. Essa ação não pode ser desfeita.</p>" +
+                        "<p><a href=\"" + link + "\" " +
+                        "style=\"display:inline-block;padding:12px 18px;background:#e53935;color:#fff;text-decoration:none;border-radius:6px;\">" +
+                        "Excluir minha conta</a></p>" +
+                        "<p>Se não conseguir clicar, copie e cole este link:</p>" +
+                        "<p>" + link + "</p>" +
+                        "<p>Se você não fez esse pedido, ignore este e-mail.</p>" +
+                        "<p>O link expira em 24 horas.</p>" +
+                        "</body></html>"
+        );
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("E-mail de confirmação de exclusão de conta enviado via Brevo para: {}", to);
+            }
+        } catch (Exception e) {
+            log.error("Erro ao enviar e-mail de confirmação de exclusão de conta para {}: {}", to, e.getMessage());
         }
     }
 

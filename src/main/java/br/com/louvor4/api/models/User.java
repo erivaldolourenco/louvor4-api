@@ -3,7 +3,6 @@ package br.com.louvor4.api.models;
 import br.com.louvor4.api.enums.AuthProvider;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
@@ -11,8 +10,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users")
+// Sem @SQLRestriction: usuários excluídos (já anonimizados como "Usuário removido") precisam continuar
+// carregáveis pelas associações (participações e membros em eventos passados). As buscas de
+// login/cadastro filtram deleted_at explicitamente no UserRepository.
 @SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
-@SQLRestriction("deleted_at IS NULL")
 public class User {
 
     @Id

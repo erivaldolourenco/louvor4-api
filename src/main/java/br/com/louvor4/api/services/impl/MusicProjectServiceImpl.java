@@ -61,8 +61,9 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     private final UserUnavailabilityProjectRepository userUnavailabilityProjectRepository;
     private final EventReminderScheduler eventReminderScheduler;
     private final EntitlementService entitlementService;
+    private final ProjectMembershipRemover projectMembershipRemover;
 
-    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, EventProgramItemRepository eventProgramItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler, EntitlementService entitlementService) {
+    public MusicProjectServiceImpl(MusicProjectRepository musicProjectRepository, MusicProjectMemberRepository musicProjectMemberRepository, CurrentUserProvider currentUserProvider, StorageService storageService, UserService userService, UserNotificationService userNotificationService, MusicProjectMemberMapper musicProjectMemberMapper, EventMapper eventMapper, EventSetlistItemMapper eventSetlistItemMapper, EventParticipantMapper eventParticipantMapper, EventOverviewMapper eventOverviewMapper, EventRepository eventRepository, ProjectSkillRepository projectSkillRepository, MemberMapper memberMapper, EventParticipantRepository eventParticipantRepository, EventSetlistItemRepository eventSetlistItemRepository, EventProgramItemRepository eventProgramItemRepository, UserUnavailabilityProjectRepository userUnavailabilityProjectRepository, EventReminderScheduler eventReminderScheduler, EntitlementService entitlementService, ProjectMembershipRemover projectMembershipRemover) {
         this.musicProjectRepository = musicProjectRepository;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.currentUserProvider = currentUserProvider;
@@ -83,6 +84,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         this.userUnavailabilityProjectRepository = userUnavailabilityProjectRepository;
         this.eventReminderScheduler = eventReminderScheduler;
         this.entitlementService = entitlementService;
+        this.projectMembershipRemover = projectMembershipRemover;
     }
 
     @Override
@@ -559,36 +561,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
             throw new ValidationException("Não é possível remover o proprietário do projeto.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        List<EventParticipant> futureParticipants = eventParticipantRepository
-                .findByMember_IdAndEvent_StartAtGreaterThan(memberId, now);
-        removeFutureParticipations(futureParticipants, now);
-
-        member.setStatus(ProjectMemberStatus.REMOVED);
-        musicProjectMemberRepository.save(member);
-    }
-
-    // Remove, de eventos futuros, o vínculo do membro: primeiro os itens do roteiro
-    // (event_program_items) que apontam pro item do repertório, depois o próprio item
-    // do repertório (event_setlist_items) e por fim a participação (event_participants).
-    // A ordem importa por causa das FKs: event_program_items -> event_setlist_items -> event_participants.
-    private void removeFutureParticipations(List<EventParticipant> futureParticipants, LocalDateTime now) {
-        if (futureParticipants.isEmpty()) {
-            return;
-        }
-
-        List<UUID> futureParticipantIds = futureParticipants.stream()
-                .map(EventParticipant::getId)
-                .toList();
-
-        List<UUID> futureSetlistItemIds = eventSetlistItemRepository
-                .findIdsByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
-        if (!futureSetlistItemIds.isEmpty()) {
-            eventProgramItemRepository.deleteBySetlistItemIdIn(futureSetlistItemIds);
-        }
-
-        eventSetlistItemRepository.deleteByAddedBy_IdInAndEvent_StartAtGreaterThan(futureParticipantIds, now);
-        eventParticipantRepository.deleteAllInBatch(futureParticipants);
+        projectMembershipRemover.remove(member);
     }
 
     @Override
@@ -637,13 +610,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
             throw new ValidationException("O proprietário não pode sair do projeto. Transfira a propriedade antes.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        List<EventParticipant> futureParticipants = eventParticipantRepository
-                .findByMember_IdAndEvent_StartAtGreaterThan(member.getId(), now);
-        removeFutureParticipations(futureParticipants, now);
-
-        member.setStatus(ProjectMemberStatus.REMOVED);
-        musicProjectMemberRepository.save(member);
+        projectMembershipRemover.remove(member);
     }
 
     @Override

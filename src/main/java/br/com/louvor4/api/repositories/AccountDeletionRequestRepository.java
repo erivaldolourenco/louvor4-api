@@ -1,6 +1,6 @@
 package br.com.louvor4.api.repositories;
 
-import br.com.louvor4.api.models.RefreshToken;
+import br.com.louvor4.api.models.AccountDeletionRequest;
 import br.com.louvor4.api.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -12,10 +12,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
-    Optional<RefreshToken> findByToken(String token);
+public interface AccountDeletionRequestRepository extends JpaRepository<AccountDeletionRequest, UUID> {
+    Optional<AccountDeletionRequest> findByToken(String token);
 
     @Modifying
-    @Query("DELETE FROM RefreshToken t WHERE t.user = :user")
+    @Query("DELETE FROM AccountDeletionRequest r WHERE r.user = :user")
     void deleteByUser(@Param("user") User user);
 }

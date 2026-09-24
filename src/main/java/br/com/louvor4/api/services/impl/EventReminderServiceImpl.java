@@ -86,6 +86,10 @@ public class EventReminderServiceImpl implements EventReminderService {
                 participantRepository.findByEventIdWithMemberAndUser(reminder.getEvent().getId());
 
         for (EventParticipant p : participants) {
+            // Conta excluída: a participação fica na escala como "Conta excluída", mas não recebe lembrete
+            if (p.getMember().getUser().getDeletedAt() != null) {
+                continue;
+            }
             if (p.getStatus() == EventParticipantStatus.ACCEPTED) {
                 sendReminderToAccepted(reminder, p);
             } else if (p.getStatus() == EventParticipantStatus.PENDING) {

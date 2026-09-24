@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface NotificationDeviceRepository extends JpaRepository<NotificationDevice, UUID> {
     Optional<NotificationDevice> findByFcmToken(String fcmToken);
     List<NotificationDevice> findAllByUserIdAndEnabledTrue(UUID userId);
+    long deleteByUserId(UUID userId);
 }

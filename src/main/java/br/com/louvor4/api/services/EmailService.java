@@ -4,4 +4,5 @@ public interface EmailService {
     void sendPasswordResetCode(String to, String code);
     void sendEmailVerificationCode(String to, String code);
     void sendEventReminder(String to, String subject, String message);
+    void sendAccountDeletionConfirmation(String to, String token);
 }

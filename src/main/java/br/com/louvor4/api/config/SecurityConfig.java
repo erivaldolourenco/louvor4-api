@@ -51,6 +51,8 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/users/create").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/account-deletion-requests").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/account-deletion-requests/confirm").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/events/*/public-setlist").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/internal/jobs/**").permitAll();
                     if (isDevProfileActive()) {

@@ -4,6 +4,8 @@ import br.com.louvor4.api.enums.EventParticipantStatus;
 import br.com.louvor4.api.models.EventParticipant;
 import br.com.louvor4.api.repositories.projections.EventCountProjection;
 import br.com.louvor4.api.repositories.projections.EventProfileImageProjection;
+import br.com.louvor4.api.repositories.projections.InviteStatsProjection;
+import br.com.louvor4.api.repositories.projections.MemberScheduleStatsProjection;
 import br.com.louvor4.api.repositories.projections.PastEventParticipantProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -139,5 +141,48 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
             where ep.event.id in :eventIds
             """)
     List<EventProfileImageProjection> findProfileImagesByEventIds(@Param("eventIds") List<UUID> eventIds);
+
+    @Query("""
+            select m.id as memberId, u.id as userId, u.firstName as firstName, u.lastName as lastName,
+                   u.profileImage as profileImage, s.id as skillId, s.name as skillName, s.iconKey as skillIconKey,
+                   year(e.startAt) as eventYear, month(e.startAt) as eventMonth, count(ep.id) as total
+            from EventParticipant ep
+            join ep.event e
+            join ep.member m
+            join m.user u
+            left join ep.skill s
+            where e.musicProject.id = :projectId
+              and e.deletedAt is null
+              and ep.status = :status
+              and e.startAt >= :start
+              and e.startAt < :end
+            group by m.id, u.id, u.firstName, u.lastName, u.profileImage, s.id, s.name, s.iconKey,
+                     year(e.startAt), month(e.startAt)
+            """)
+    List<MemberScheduleStatsProjection> countByMemberSkillAndMonth(
+            @Param("projectId") UUID projectId,
+            @Param("status") EventParticipantStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    @Query("""
+            select m.id as memberId, u.id as userId, u.firstName as firstName, u.lastName as lastName,
+                   u.profileImage as profileImage, year(e.startAt) as eventYear, month(e.startAt) as eventMonth,
+                   ep.status as status, count(ep.id) as total
+            from EventParticipant ep
+            join ep.event e
+            join ep.member m
+            join m.user u
+            where e.musicProject.id = :projectId
+              and e.deletedAt is null
+              and e.startAt >= :start
+              and e.startAt < :end
+            group by m.id, u.id, u.firstName, u.lastName, u.profileImage,
+                     year(e.startAt), month(e.startAt), ep.status
+            """)
+    List<InviteStatsProjection> countInvitesByMemberMonthAndStatus(
+            @Param("projectId") UUID projectId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 
 }

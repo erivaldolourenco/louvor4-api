@@ -7,8 +7,10 @@ import br.com.louvor4.api.repositories.EventParticipantRepository;
 import br.com.louvor4.api.repositories.EventProgramItemRepository;
 import br.com.louvor4.api.repositories.EventSetlistItemRepository;
 import br.com.louvor4.api.repositories.MusicProjectMemberRepository;
+import br.com.louvor4.api.repositories.ProjectResponsibilityAssignmentRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,15 +26,18 @@ public class ProjectMembershipRemover {
     private final EventParticipantRepository eventParticipantRepository;
     private final EventSetlistItemRepository eventSetlistItemRepository;
     private final EventProgramItemRepository eventProgramItemRepository;
+    private final ProjectResponsibilityAssignmentRepository responsibilityAssignmentRepository;
 
     public ProjectMembershipRemover(MusicProjectMemberRepository musicProjectMemberRepository,
                                     EventParticipantRepository eventParticipantRepository,
                                     EventSetlistItemRepository eventSetlistItemRepository,
-                                    EventProgramItemRepository eventProgramItemRepository) {
+                                    EventProgramItemRepository eventProgramItemRepository,
+                                    ProjectResponsibilityAssignmentRepository responsibilityAssignmentRepository) {
         this.musicProjectMemberRepository = musicProjectMemberRepository;
         this.eventParticipantRepository = eventParticipantRepository;
         this.eventSetlistItemRepository = eventSetlistItemRepository;
         this.eventProgramItemRepository = eventProgramItemRepository;
+        this.responsibilityAssignmentRepository = responsibilityAssignmentRepository;
     }
 
     public void remove(MusicProjectMember member) {
@@ -40,6 +45,8 @@ public class ProjectMembershipRemover {
         List<EventParticipant> futureParticipants = eventParticipantRepository
                 .findByMember_IdAndEvent_StartAtGreaterThan(member.getId(), now);
         removeFutureParticipations(futureParticipants, now);
+        // Responsabilidades: períodos que ainda não começaram saem; o atual e os passados ficam no histórico
+        responsibilityAssignmentRepository.deleteNotStartedByMemberId(member.getId(), LocalDate.now());
 
         member.setStatus(ProjectMemberStatus.REMOVED);
         musicProjectMemberRepository.save(member);

@@ -11,6 +11,7 @@ import br.com.louvor4.api.repositories.EmailVerificationTokenRepository;
 import br.com.louvor4.api.repositories.MusicProjectMemberRepository;
 import br.com.louvor4.api.repositories.NotificationDeviceRepository;
 import br.com.louvor4.api.repositories.PasswordResetTokenRepository;
+import br.com.louvor4.api.repositories.ProjectResponsibilityAssignmentRepository;
 import br.com.louvor4.api.repositories.RefreshTokenRepository;
 import br.com.louvor4.api.repositories.UserNotificationRepository;
 import br.com.louvor4.api.repositories.UserRepository;
@@ -20,6 +21,7 @@ import br.com.louvor4.api.services.EmailService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +39,7 @@ public class AccountDeletionServiceImpl implements AccountDeletionService {
     private final AccountDeletionRequestRepository accountDeletionRequestRepository;
     private final EmailService emailService;
     private final MusicProjectMemberRepository musicProjectMemberRepository;
+    private final ProjectResponsibilityAssignmentRepository responsibilityAssignmentRepository;
 
     public AccountDeletionServiceImpl(
             UserRepository userRepository,
@@ -48,7 +51,8 @@ public class AccountDeletionServiceImpl implements AccountDeletionService {
             UserUnavailabilityRepository userUnavailabilityRepository,
             AccountDeletionRequestRepository accountDeletionRequestRepository,
             EmailService emailService,
-            MusicProjectMemberRepository musicProjectMemberRepository
+            MusicProjectMemberRepository musicProjectMemberRepository,
+            ProjectResponsibilityAssignmentRepository responsibilityAssignmentRepository
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -60,6 +64,7 @@ public class AccountDeletionServiceImpl implements AccountDeletionService {
         this.accountDeletionRequestRepository = accountDeletionRequestRepository;
         this.emailService = emailService;
         this.musicProjectMemberRepository = musicProjectMemberRepository;
+        this.responsibilityAssignmentRepository = responsibilityAssignmentRepository;
     }
 
     @Override
@@ -85,6 +90,9 @@ public class AccountDeletionServiceImpl implements AccountDeletionService {
                 .toList();
         memberships.forEach(member -> member.setStatus(ProjectMemberStatus.REMOVED));
         musicProjectMemberRepository.saveAll(memberships);
+        // Responsabilidades agendadas (ainda não começaram) saem; a atual e as passadas ficam no histórico
+        // como "Usuário removido", igual às participações em eventos.
+        responsibilityAssignmentRepository.deleteNotStartedByUserId(userId, LocalDate.now());
 
         user.setFirstName("Usuário");
         user.setLastName("removido");

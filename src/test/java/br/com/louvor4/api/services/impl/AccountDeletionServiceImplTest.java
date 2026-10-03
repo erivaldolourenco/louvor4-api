@@ -49,6 +49,7 @@ class AccountDeletionServiceImplTest {
     @Mock AccountDeletionRequestRepository accountDeletionRequestRepository;
     @Mock EmailService emailService;
     @Mock MusicProjectMemberRepository musicProjectMemberRepository;
+    @Mock br.com.louvor4.api.repositories.ProjectResponsibilityAssignmentRepository responsibilityAssignmentRepository;
     @InjectMocks AccountDeletionServiceImpl service;
 
     private User user;

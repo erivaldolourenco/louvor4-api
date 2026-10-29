@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -95,7 +96,7 @@ class EventReminderServiceImplTest {
 
         service.processDue();
 
-        verify(pushSenderService, times(2)).sendToUser(eq(user.getId()), anyString(), anyString());
+        verify(pushSenderService, times(2)).sendToUser(eq(user.getId()), anyString(), anyString(), isNull(), anyMap());
         verify(userNotificationService, times(2)).createNotification(any());
         verify(reminderRepository).markAsSent(any(), any());
     }
@@ -118,8 +119,10 @@ class EventReminderServiceImplTest {
 
         verify(pushSenderService).sendToUser(
                 user.getId(),
-                "Lembrete: Culto Domingo - 20/09",
-                "Lembrete: Culto Domingo acontece amanhã e você está escalado na função \"Vocal\". Até lá!");
+                "⏰ É amanhã: Culto Domingo",
+                "Dom, 20/09 às 9h. Você está escalado na função Vocal. Até lá!",
+                null,
+                Map.of("type", "EVENT_REMINDER", "eventId", event.getId().toString()));
     }
 
     @Test
@@ -132,7 +135,7 @@ class EventReminderServiceImplTest {
         when(participantRepository.findByEventIdWithMemberAndUser(event.getId()))
                 .thenReturn(List.of(acceptedParticipant));
         doThrow(new RuntimeException("Firebase down"))
-                .when(pushSenderService).sendToUser(any(), anyString(), anyString());
+                .when(pushSenderService).sendToUser(any(), anyString(), anyString(), any(), anyMap());
 
         service.processDue();
 

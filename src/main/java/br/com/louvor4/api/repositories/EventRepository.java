@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,13 +28,15 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     Integer countParticipantsByEventId(@Param("eventId") UUID eventId);
 
     @Query("""
-        select count(distinct es.song.id)
+        select count(distinct coalesce(s.id, ps.id))
         from EventSetlistItem es
+        left join es.song s
+        left join es.projectSong ps
         where es.event.id = :eventId
-          and es.type = :type
-          and es.song is not null
+          and es.type in :types
+          and (s.id is not null or ps.id is not null)
     """)
-    Integer countSongsByEventId(@Param("eventId") UUID eventId, @Param("type") SetlistItemType type);
+    Integer countSongsByEventId(@Param("eventId") UUID eventId, @Param("types") Collection<SetlistItemType> types);
 
     @Query("SELECT e.musicProject.id FROM Event e WHERE e.id = :eventId")
     UUID findProjectIdByEventId(@Param("eventId") UUID eventId);

@@ -154,8 +154,12 @@ public class ProgramServiceImpl implements ProgramService {
         ProgramMedleyResponse medley = null;
 
         if (item.isMusic() && item.getSetlistItem() != null) {
-            var song = item.getSetlistItem().getSong();
-            music = song != null ? toMusicResponse(song) : null;
+            var setlistItem = item.getSetlistItem();
+            if (setlistItem.getSong() != null) {
+                music = toMusicResponse(setlistItem.getSong());
+            } else if (setlistItem.getProjectSong() != null) {
+                music = toMusicResponse(setlistItem.getProjectSong());
+            }
         } else if (item.isMedley() && item.getSetlistItem() != null) {
             Medley m = item.getSetlistItem().getMedley();
             if (m != null) {
@@ -174,6 +178,18 @@ public class ProgramServiceImpl implements ProgramService {
                 item.isText() ? item.getDescription() : null,
                 music,
                 medley
+        );
+    }
+
+    // Música do projeto não tem dono pessoal: addBy fica vazio.
+    private ProgramMusicResponse toMusicResponse(br.com.louvor4.api.models.ProjectSong song) {
+        return new ProgramMusicResponse(
+                song.getId(),
+                song.getTitle(),
+                song.getArtist(),
+                song.getYouTubeUrl(),
+                song.getKey(),
+                null
         );
     }
 

@@ -25,6 +25,7 @@ public interface MemberMapper {
         @Mapping(target = "projectRole", source = "projectRole")
         @Mapping(target = "status", source = "status")
         @Mapping(target = "skills", source = "projectSkills", qualifiedByName = "mapSkills")
+        @Mapping(target = "permissions", source = "permissions")
         MemberDTO toDto(MusicProjectMember member);
 
     @Named("mapSkills")

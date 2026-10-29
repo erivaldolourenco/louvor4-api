@@ -171,6 +171,12 @@ public class MusicProjectController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/{projectId}/me/permissions")
+    @PreAuthorize("@projectSecurity.isMember(#projectId)")
+    public ResponseEntity<ProjectPermissionsResponseDTO> getMyPermissions(@PathVariable UUID projectId) {
+        return ResponseEntity.ok(musicProjectService.getMyPermissions(projectId));
+    }
+
     @GetMapping("/{projectId}/member-role")
     @PreAuthorize("@projectSecurity.isMember(#projectId)")
     public ResponseEntity<ProjectMemberRole> getMemberRole(@PathVariable UUID projectId) {

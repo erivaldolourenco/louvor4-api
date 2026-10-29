@@ -4,6 +4,7 @@ import br.com.louvor4.api.config.security.CurrentUserProvider;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
+import br.com.louvor4.api.enums.ProjectPermission;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.mapper.*;
 import br.com.louvor4.api.models.MusicProject;
@@ -16,6 +17,8 @@ import br.com.louvor4.api.services.UserService;
 import br.com.louvor4.api.shared.dto.MusicProject.AddMemberDTO;
 import br.com.louvor4.api.shared.dto.MusicProject.ProjectInviteDTO;
 import br.com.louvor4.api.shared.dto.MusicProject.ProjectInviteResponseDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.ProjectPermissionsResponseDTO;
+import br.com.louvor4.api.shared.dto.MusicProject.UpdateMemberRequest;
 import br.com.louvor4.api.shared.dto.notification.CreateUserNotificationRequest;
 import br.com.louvor4.entitlement.exceptions.PlanLimitExceededException;
 import br.com.louvor4.entitlement.services.EntitlementService;
@@ -30,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -307,5 +311,78 @@ class MusicProjectServiceImplTest {
         assertThatThrownBy(() -> service.respondInvite(projectId, dto))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Convite não encontrado");
+    }
+
+    // --- permissões do membro ---
+
+    private MusicProjectMember memberOf(MusicProject p, ProjectMemberRole role) {
+        MusicProjectMember member = new MusicProjectMember();
+        member.setId(UUID.randomUUID());
+        member.setMusicProject(p);
+        member.setProjectRole(role);
+        return member;
+    }
+
+    @Test
+    void updateMemberShouldReplacePermissionsWhenSent() {
+        MusicProjectMember member = memberOf(project, ProjectMemberRole.MEMBER);
+        when(musicProjectMemberRepository.findById(member.getId())).thenReturn(Optional.of(member));
+        when(musicProjectMemberRepository.save(member)).thenReturn(member);
+
+        service.updateMember(projectId, member.getId(),
+                new UpdateMemberRequest(ProjectMemberRole.MEMBER, Set.of(), Set.of(ProjectPermission.MANAGE_SONGS)));
+
+        assertThat(member.getPermissions()).containsExactly(ProjectPermission.MANAGE_SONGS);
+    }
+
+    @Test
+    void updateMemberShouldKeepPermissionsWhenFieldIsNull() {
+        MusicProjectMember member = memberOf(project, ProjectMemberRole.MEMBER);
+        member.getPermissions().add(ProjectPermission.MANAGE_SONGS);
+        when(musicProjectMemberRepository.findById(member.getId())).thenReturn(Optional.of(member));
+        when(musicProjectMemberRepository.save(member)).thenReturn(member);
+
+        service.updateMember(projectId, member.getId(),
+                new UpdateMemberRequest(ProjectMemberRole.MEMBER, Set.of(), null));
+
+        assertThat(member.getPermissions()).containsExactly(ProjectPermission.MANAGE_SONGS);
+    }
+
+    @Test
+    void updateMemberShouldRejectMemberFromAnotherProject() {
+        MusicProject otherProject = new MusicProject();
+        otherProject.setId(UUID.randomUUID());
+        MusicProjectMember member = memberOf(otherProject, ProjectMemberRole.MEMBER);
+        when(musicProjectMemberRepository.findById(member.getId())).thenReturn(Optional.of(member));
+
+        assertThatThrownBy(() -> service.updateMember(projectId, member.getId(),
+                new UpdateMemberRequest(ProjectMemberRole.ADMIN, Set.of(), Set.of(ProjectPermission.MANAGE_SONGS))))
+                .isInstanceOf(ValidationException.class);
+        verify(musicProjectMemberRepository, never()).save(any());
+    }
+
+    @Test
+    void getMyPermissionsShouldReturnAllForAdmin() {
+        when(currentUserProvider.get()).thenReturn(admin);
+        when(musicProjectMemberRepository.findByMusicProject_IdAndUser_IdAndStatus(projectId, adminId, ProjectMemberStatus.ACTIVE))
+                .thenReturn(Optional.of(memberOf(project, ProjectMemberRole.ADMIN)));
+
+        ProjectPermissionsResponseDTO dto = service.getMyPermissions(projectId);
+
+        assertThat(dto.isProjectAdmin()).isTrue();
+        assertThat(dto.permissions()).containsExactlyInAnyOrder(ProjectPermission.values());
+    }
+
+    @Test
+    void getMyPermissionsShouldReturnOwnPermissionsForMember() {
+        when(currentUserProvider.get()).thenReturn(admin);
+        when(musicProjectMemberRepository.findByMusicProject_IdAndUser_IdAndStatus(projectId, adminId, ProjectMemberStatus.ACTIVE))
+                .thenReturn(Optional.of(memberOf(project, ProjectMemberRole.MEMBER)));
+
+        ProjectPermissionsResponseDTO dto = service.getMyPermissions(projectId);
+
+        assertThat(dto.isProjectAdmin()).isFalse();
+        assertThat(dto.role()).isEqualTo(ProjectMemberRole.MEMBER);
+        assertThat(dto.permissions()).isEmpty();
     }
 }

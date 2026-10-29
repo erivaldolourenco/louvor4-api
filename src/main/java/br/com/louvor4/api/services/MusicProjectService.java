@@ -44,6 +44,7 @@ public interface MusicProjectService {
     void deleteProject(UUID projectId);
 
     ProjectMemberRole getMemberRole(UUID projectId);
+    ProjectPermissionsResponseDTO getMyPermissions(UUID projectId);
 
     MonthOverviewResponse getMonthOverview(UUID projectId, String yearMonth);
 }

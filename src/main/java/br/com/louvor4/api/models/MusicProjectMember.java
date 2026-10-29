@@ -1,6 +1,7 @@
 package br.com.louvor4.api.models;
 
 import br.com.louvor4.api.enums.ProjectMemberRole;
+import br.com.louvor4.api.enums.ProjectPermission;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -8,6 +9,7 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -50,6 +52,13 @@ public class MusicProjectMember {
             inverseJoinColumns = @JoinColumn(name = "project_skill_id")
     )
     private Set<ProjectSkill> projectSkills = new HashSet<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "music_project_member_permissions",
+            joinColumns = @JoinColumn(name = "music_project_member_id", columnDefinition = "uuid"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "permission", nullable = false, length = 50)
+    private Set<ProjectPermission> permissions = EnumSet.noneOf(ProjectPermission.class);
 
     @JdbcTypeCode(SqlTypes.UUID)
     @Column(name = "added_by_user_id", columnDefinition = "uuid")
@@ -110,6 +119,14 @@ public class MusicProjectMember {
 
     public void setProjectSkills(Set<ProjectSkill> projectSkills) {
         this.projectSkills = projectSkills;
+    }
+
+    public Set<ProjectPermission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<ProjectPermission> permissions) {
+        this.permissions = permissions;
     }
 
     public UUID getAddedByUserId() {

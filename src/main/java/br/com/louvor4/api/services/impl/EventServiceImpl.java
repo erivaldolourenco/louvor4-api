@@ -214,13 +214,10 @@ public class EventServiceImpl implements EventService {
     }
 
     private void notifyNewParticipants(Event event, List<EventParticipant> newParticipants) {
-        String eventTitle = (event.getTitle() == null || event.getTitle().isBlank())
-                ? "Evento"
-                : event.getTitle().trim();
-        String title = "Convite para escala: " + eventTitle + " - " + formatEventDate(event.getStartAt());
+        String title = EventNotificationMessages.inviteTitle(event);
 
         for (EventParticipant participant : newParticipants) {
-            String message = buildParticipantNotificationMessage(event, participant);
+            String message = EventNotificationMessages.inviteBody(event, participant);
             UUID userId = participant.getMember().getUser().getId();
             userNotificationService.createNotification(new CreateUserNotificationRequest(
                     NotificationType.EVENT_INVITE,
@@ -228,10 +225,12 @@ public class EventServiceImpl implements EventService {
                     title,
                     message,
                     participant.getId(),
-                    null
+                    EventNotificationData.dataJson(event)
             ));
 
-            eventPublisher.publishEvent(new PushNotificationEvent(userId, title, message));
+            eventPublisher.publishEvent(new PushNotificationEvent(
+                    userId, title, message, EventNotificationData.projectImageUrl(event),
+                    eventPushData(NotificationType.EVENT_INVITE, event)));
         }
     }
 
@@ -242,15 +241,8 @@ public class EventServiceImpl implements EventService {
         List<EventParticipant> participants =
                 eventParticipantRepository.findByEventIdWithMemberAndUser(event.getId());
 
-        boolean plural = itemTitles.size() > 1;
-        String resumo = String.join(", ", itemTitles);
-        String sujeito = plural ? "As músicas " : "A música ";
-        String verbo = added
-                ? (plural ? " foram adicionadas ao evento." : " foi adicionada ao evento.")
-                : (plural ? " foram removidas do evento." : " foi removida do evento.");
-
-        String title = event.getTitle() + " — repertório atualizado";
-        String message = sujeito + resumo + verbo;
+        String title = EventNotificationMessages.setlistTitle(event);
+        String message = EventNotificationMessages.setlistBody(event, itemTitles, added);
 
         for (EventParticipant participant : participants) {
             UUID userId = participant.getMember().getUser().getId();
@@ -262,15 +254,21 @@ public class EventServiceImpl implements EventService {
                     title,
                     message,
                     participant.getId(),
-                    null
+                    EventNotificationData.dataJson(event)
             ));
 
-            eventPublisher.publishEvent(new PushNotificationEvent(userId, title, message));
+            eventPublisher.publishEvent(new PushNotificationEvent(
+                    userId, title, message, EventNotificationData.projectImageUrl(event), eventPushData(type, event)));
         }
     }
 
+    /** Payload do push que leva o app direto para a tela do evento. */
+    private Map<String, String> eventPushData(NotificationType type, Event event) {
+        return Map.of("type", type.name(), "eventId", event.getId().toString());
+    }
+
     private String describeSetlistItem(EventSetlistItem item) {
-        return item.isSong() ? item.getSong().getTitle() : item.getMedley().getName();
+        return item.isMedley() ? item.getMedley().getName() : item.getSongData().getTitle();
     }
 
     private void updateParticipationStatus(UUID participantId, EventParticipantStatus status) {
@@ -319,10 +317,14 @@ public class EventServiceImpl implements EventService {
         }
 
         String participantName = buildParticipantName(participant.getMember().getUser());
-        String title = "Resposta de participação: " + event.getTitle();
+        String title = switch (status) {
+            case ACCEPTED -> EventNotificationMessages.acceptedTitle(event);
+            case DECLINED -> EventNotificationMessages.declinedTitle(event);
+            default -> "Resposta de participação: " + event.getTitle();
+        };
         String message = switch (status) {
-            case ACCEPTED -> participantName + " aceitou participar do evento.";
-            case DECLINED -> participantName + " recusou participar do evento.";
+            case ACCEPTED -> EventNotificationMessages.acceptedBody(event, participant, participantName);
+            case DECLINED -> EventNotificationMessages.declinedBody(event, participant, participantName);
             default -> participantName + " atualizou a participação no evento.";
         };
         NotificationType notificationType = switch (status) {
@@ -337,42 +339,12 @@ public class EventServiceImpl implements EventService {
                 title,
                 message,
                 participant.getId(),
-                null
+                EventNotificationData.dataJson(event)
         ));
 
-        eventPublisher.publishEvent(new PushNotificationEvent(ownerUserId, title, message));
-    }
-
-    private String buildParticipantNotificationMessage(Event event, EventParticipant participant) {
-        String eventTitle = (event.getTitle() == null || event.getTitle().isBlank())
-                ? "evento"
-                : "'" + event.getTitle().trim() + "'";
-        String when = formatEventDateTime(event.getStartAt());
-        String location = (event.getLocation() == null || event.getLocation().isBlank())
-                ? "local a definir"
-                : event.getLocation().trim();
-        String role = (participant.getSkill() == null || participant.getSkill().getName() == null || participant.getSkill().getName().isBlank())
-                ? ""
-                : " Função prevista: " + participant.getSkill().getName().trim() + ".";
-
-        return "Você foi convidado para " + eventTitle
-                + " em " + when
-                + ", local: " + location + "."
-                + role
-                + " Confirme sua participação no app (Aceitar ou Recusar).";
-    }
-
-    private String formatEventDateTime(LocalDateTime dateTime) {
-        if (dateTime == null) return "data/horário a definir";
-        var dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        var timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
-        return dateTime.format(dateFormatter) + " às " + dateTime.format(timeFormatter);
-    }
-
-    private String formatEventDate(LocalDateTime dateTime) {
-        if (dateTime == null) return "data a definir";
-        var dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        return dateTime.format(dateFormatter);
+        eventPublisher.publishEvent(new PushNotificationEvent(
+                ownerUserId, title, message, EventNotificationData.projectImageUrl(event),
+                eventPushData(notificationType, event)));
     }
 
     private Event findEventOrThrow(UUID eventId) {
@@ -488,7 +460,7 @@ public class EventServiceImpl implements EventService {
                 ));
 
         Map<UUID, Integer> songCountByEvent = eventSetlistItemRepository
-                .countDistinctSongsByEventIds(eventIds, SetlistItemType.SONG)
+                .countDistinctSongsByEventIds(eventIds, SetlistItemType.SONG_TYPES)
                 .stream()
                 .collect(Collectors.toMap(
                         EventCountProjection::getEventId,
@@ -635,9 +607,9 @@ public class EventServiceImpl implements EventService {
         }
 
         Set<UUID> existingSongIds = eventSetlistItemRepository
-                .findByEventIdAndTypeOrderBySequenceAsc(eventId, SetlistItemType.SONG)
+                .findByEventIdAndTypeIn(eventId, SetlistItemType.SONG_TYPES)
                 .stream()
-                .map(es -> es.getSong().getId())
+                .map(es -> es.getSongData().getId())
                 .collect(Collectors.toSet());
 
         for (UUID songId : setListItemIds) {
@@ -815,7 +787,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ValidationException("Evento não encontrado."));
         Integer participants = eventRepository.countParticipantsByEventId(eventId);
-        Integer songs = eventRepository.countSongsByEventId(eventId, SetlistItemType.SONG);
+        Integer songs = eventRepository.countSongsByEventId(eventId, SetlistItemType.SONG_TYPES);
         eventValidation.validateDeletionRules(participants, songs);
 
         eventReminderScheduler.cancel(eventId);

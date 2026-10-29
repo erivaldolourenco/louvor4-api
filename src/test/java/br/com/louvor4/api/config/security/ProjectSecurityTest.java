@@ -2,6 +2,7 @@ package br.com.louvor4.api.config.security;
 
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
+import br.com.louvor4.api.enums.ProjectPermission;
 import br.com.louvor4.api.models.MusicProjectMember;
 import br.com.louvor4.api.models.User;
 import br.com.louvor4.api.repositories.EventRepository;
@@ -146,5 +147,46 @@ class ProjectSecurityTest {
         when(eventRepository.findProjectIdByEventId(eventId)).thenReturn(null);
 
         assertThat(projectSecurity.isAdminOrOwnerByEventId(eventId)).isFalse();
+    }
+
+    // --- canManageProjectSongs ---
+
+    private void givenActiveMember(ProjectMemberRole role, ProjectPermission... permissions) {
+        MusicProjectMember member = new MusicProjectMember();
+        member.setProjectRole(role);
+        member.getPermissions().addAll(java.util.List.of(permissions));
+        when(memberRepository.findByMusicProject_IdAndUser_IdAndStatus(
+                projectId, userId, ProjectMemberStatus.ACTIVE)).thenReturn(Optional.of(member));
+    }
+
+    @Test
+    void canManageProjectSongsShouldReturnTrueForOwnerAndAdmin() {
+        givenActiveMember(ProjectMemberRole.OWNER);
+        assertThat(projectSecurity.canManageProjectSongs(projectId)).isTrue();
+
+        givenActiveMember(ProjectMemberRole.ADMIN);
+        assertThat(projectSecurity.canManageProjectSongs(projectId)).isTrue();
+    }
+
+    @Test
+    void canManageProjectSongsShouldReturnTrueForMemberWithPermission() {
+        givenActiveMember(ProjectMemberRole.MEMBER, ProjectPermission.MANAGE_SONGS);
+
+        assertThat(projectSecurity.canManageProjectSongs(projectId)).isTrue();
+    }
+
+    @Test
+    void canManageProjectSongsShouldReturnFalseForMemberWithoutPermission() {
+        givenActiveMember(ProjectMemberRole.MEMBER);
+
+        assertThat(projectSecurity.canManageProjectSongs(projectId)).isFalse();
+    }
+
+    @Test
+    void canManageProjectSongsShouldReturnFalseForNonMember() {
+        when(memberRepository.findByMusicProject_IdAndUser_IdAndStatus(
+                projectId, userId, ProjectMemberStatus.ACTIVE)).thenReturn(Optional.empty());
+
+        assertThat(projectSecurity.canManageProjectSongs(projectId)).isFalse();
     }
 }

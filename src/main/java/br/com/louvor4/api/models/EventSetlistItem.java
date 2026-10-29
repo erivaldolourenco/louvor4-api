@@ -26,7 +26,8 @@ import java.util.UUID;
 @Table(
         name = "event_setlist_items",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uq_event_setlist_song", columnNames = {"event_id", "song_id", "type"})
+                @UniqueConstraint(name = "uq_event_setlist_song", columnNames = {"event_id", "song_id", "type"}),
+                @UniqueConstraint(name = "uq_event_setlist_project_song", columnNames = {"event_id", "project_song_id"})
         },
         indexes = {
                 @Index(name = "idx_event_setlist_items_event_id", columnList = "event_id"),
@@ -59,6 +60,10 @@ public class EventSetlistItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "song_id", columnDefinition = "uuid")
     private Song song;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_song_id", columnDefinition = "uuid")
+    private ProjectSong projectSong;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medley_id", columnDefinition = "uuid")
@@ -104,15 +109,30 @@ public class EventSetlistItem {
         return SetlistItemType.MEDLEY.equals(this.type);
     }
 
+    public boolean isProjectSong() {
+        return SetlistItemType.PROJECT_SONG.equals(this.type);
+    }
+
+    /** Música do item, seja ela pessoal (SONG) ou do projeto (PROJECT_SONG); null para medley. */
+    public SongData getSongData() {
+        if (isSong()) return song;
+        if (isProjectSong()) return projectSong;
+        return null;
+    }
+
     /**
      * Regras de negócio do item de repertório:
      * - Quando o tipo for SONG, o campo song deve estar preenchido.
+     * - Quando o tipo for PROJECT_SONG, o campo projectSong deve estar preenchido.
      * - Quando o tipo for MEDLEY, o relacionamento específico será adicionado futuramente.
      * - O campo addedBy deve ser preenchido para rastrear quem adicionou o item.
      */
     private void validateByType() {
         if (isSong() && this.song == null) {
             throw new IllegalStateException("Item de repertório do tipo SONG deve conter uma música.");
+        }
+        if (isProjectSong() && this.projectSong == null) {
+            throw new IllegalStateException("Item de repertório do tipo PROJECT_SONG deve conter uma música do projeto.");
         }
         if (this.addedBy == null) {
             throw new IllegalStateException("Item de repertório deve conter o participante que o adicionou.");
@@ -157,6 +177,14 @@ public class EventSetlistItem {
 
     public void setSong(Song song) {
         this.song = song;
+    }
+
+    public ProjectSong getProjectSong() {
+        return projectSong;
+    }
+
+    public void setProjectSong(ProjectSong projectSong) {
+        this.projectSong = projectSong;
     }
 
     public Medley getMedley() {

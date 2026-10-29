@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -28,6 +29,12 @@ public class PushSenderServiceImpl implements PushSenderService {
     @Async
     @Override
     public void sendToUser(UUID userId, String title, String message, String imageUrl) {
+        sendToUser(userId, title, message, imageUrl, Map.of());
+    }
+
+    @Async
+    @Override
+    public void sendToUser(UUID userId, String title, String message, String imageUrl, Map<String, String> data) {
         List<NotificationDevice> devices = deviceRepository.findAllByUserIdAndEnabledTrue(userId);
         if (devices.isEmpty()) return;
 
@@ -42,7 +49,7 @@ public class PushSenderServiceImpl implements PushSenderService {
             notificationBuilder.setImage(imageUrl);
         }
 
-        MulticastMessage multicastMessage = MulticastMessage.builder()
+        MulticastMessage.Builder messageBuilder = MulticastMessage.builder()
                 .addAllTokens(tokens)
                 .setNotification(notificationBuilder.build())
                 .setAndroidConfig(AndroidConfig.builder()
@@ -50,7 +57,16 @@ public class PushSenderServiceImpl implements PushSenderService {
                         .build())
                 .putData("screen", "home")
                 .putData("url", "/")
-                .build();
+                .putAllData(data == null ? Map.of() : data);
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            // iOS: mutable-content aciona a extensão ImageNotification do app,
+            // que baixa a imagem de fcm_options.image e anexa à notificação.
+            messageBuilder.setApnsConfig(ApnsConfig.builder()
+                    .setAps(Aps.builder().setMutableContent(true).build())
+                    .setFcmOptions(ApnsFcmOptions.builder().setImage(imageUrl).build())
+                    .build());
+        }
+        MulticastMessage multicastMessage = messageBuilder.build();
 
         try {
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(multicastMessage);

@@ -213,7 +213,7 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
         EventSetlistItem setlistItem = item.getSetlistItem();
         if (setlistItem == null) return;
 
-        Song song = setlistItem.getSong();
+        SongData song = setlistItem.getSongData();
         if (song == null) return;
 
         Font boldFont   = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, COLOR_BLACK);
@@ -283,7 +283,8 @@ public class EventRoteiroServiceImpl implements EventRoteiroService {
 
     private String resolveKey(EventSetlistItem item) {
         if (item.getKey() != null) return item.getKey();
-        return item.getSong() != null ? item.getSong().getKey() : null;
+        SongData song = item.getSongData();
+        return song != null ? song.getKey() : null;
     }
 
     private String buildDetailsLine(String key, Integer bpm) {

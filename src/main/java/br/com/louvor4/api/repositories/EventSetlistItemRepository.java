@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,9 +17,9 @@ public interface EventSetlistItemRepository extends JpaRepository<EventSetlistIt
 
     List<EventSetlistItem> findByEventIdOrderBySequenceAsc(UUID eventId);
 
-    List<EventSetlistItem> findByEventIdAndTypeOrderBySequenceAsc(UUID eventId, SetlistItemType type);
+    List<EventSetlistItem> findByEventIdInAndTypeIn(List<UUID> eventIds, Collection<SetlistItemType> types);
 
-    List<EventSetlistItem> findByEventIdInAndType(List<UUID> eventIds, SetlistItemType type);
+    List<EventSetlistItem> findByEventIdAndTypeIn(UUID eventId, Collection<SetlistItemType> types);
 
     // Usado ao remover participantes de um evento (soft delete): o item do repertório não pode
     // sobreviver apontando pra um participante que o @SQLRestriction esconde, senão o carregamento
@@ -75,15 +76,17 @@ public interface EventSetlistItemRepository extends JpaRepository<EventSetlistIt
     Integer findMaxSequenceByEventId(@Param("eventId") UUID eventId);
 
     @Query("""
-            select esi.event.id as eventId, count(distinct esi.song.id) as total
+            select esi.event.id as eventId, count(distinct coalesce(s.id, ps.id)) as total
             from EventSetlistItem esi
+            left join esi.song s
+            left join esi.projectSong ps
             where esi.event.id in :eventIds
-              and esi.type = :type
-              and esi.song is not null
+              and esi.type in :types
+              and (s.id is not null or ps.id is not null)
             group by esi.event.id
             """)
     List<EventCountProjection> countDistinctSongsByEventIds(
             @Param("eventIds") List<UUID> eventIds,
-            @Param("type") SetlistItemType type
+            @Param("types") Collection<SetlistItemType> types
     );
 }

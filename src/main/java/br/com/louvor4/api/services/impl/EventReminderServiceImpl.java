@@ -19,8 +19,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -28,7 +28,6 @@ public class EventReminderServiceImpl implements EventReminderService {
 
     private static final Logger log = LoggerFactory.getLogger(EventReminderServiceImpl.class);
     private static final int STUCK_PROCESSING_MINUTES = 10;
-    private static final DateTimeFormatter REMINDER_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM");
 
     private final EventReminderRepository reminderRepository;
     private final EventParticipantRepository participantRepository;
@@ -101,27 +100,26 @@ public class EventReminderServiceImpl implements EventReminderService {
     private void sendReminderToAccepted(EventReminder reminder, EventParticipant participant) {
         UUID userId = participant.getMember().getUser().getId();
         Event event = reminder.getEvent();
-        String title = "Lembrete: " + event.getTitle() + " - " + event.getStartAt().format(REMINDER_DATE_FORMAT);
-        String skillName = participant.getSkill() != null ? participant.getSkill().getName() : null;
-        String message = skillName != null
-                ? "Lembrete: " + event.getTitle() + " acontece amanhã e você está escalado na função \""
-                        + skillName + "\". Até lá!"
-                : "Lembrete: " + event.getTitle() + " acontece amanhã e você está escalado. Até lá!";
-        sendAll(userId, participant.getMember().getUser().getEmail(), title, message);
+        String title = EventNotificationMessages.reminderTitle(event);
+        String message = EventNotificationMessages.reminderBody(event, participant);
+        sendAll(userId, participant.getMember().getUser().getEmail(), title, message, event);
     }
 
     private void sendNudgeToPending(EventReminder reminder, EventParticipant participant) {
         UUID userId = participant.getMember().getUser().getId();
-        String title = reminder.getEvent().getTitle() + " é amanhã";
-        String message = "Você ainda não confirmou sua presença em "
-                + reminder.getEvent().getTitle() + ". Acesse o app para responder.";
-        sendAll(userId, participant.getMember().getUser().getEmail(), title, message);
+        Event event = reminder.getEvent();
+        String title = EventNotificationMessages.pendingReminderTitle(event);
+        String message = EventNotificationMessages.pendingReminderBody(event);
+        sendAll(userId, participant.getMember().getUser().getEmail(), title, message, event);
     }
 
-    private void sendAll(UUID userId, String email, String title, String message) {
+    private void sendAll(UUID userId, String email, String title, String message, Event event) {
         // Push is @Async — exceptions cannot surface synchronously; treat as best-effort
         try {
-            pushSenderService.sendToUser(userId, title, message);
+            // type + eventId: o app abre a tela do evento ao tocar na notificação.
+            pushSenderService.sendToUser(userId, title, message, EventNotificationData.projectImageUrl(event), Map.of(
+                    "type", NotificationType.EVENT_REMINDER.name(),
+                    "eventId", event.getId().toString()));
         } catch (Exception e) {
             log.warn("Push falhou para usuário {}: {}", userId, e.getMessage());
         }
@@ -133,7 +131,7 @@ public class EventReminderServiceImpl implements EventReminderService {
                     title,
                     message,
                     null,
-                    null
+                    EventNotificationData.dataJson(event)
             ));
         } catch (Exception e) {
             log.warn("Notificação interna falhou para usuário {}: {}", userId, e.getMessage());

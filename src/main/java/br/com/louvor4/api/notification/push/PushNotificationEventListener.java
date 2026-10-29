@@ -21,7 +21,7 @@ public class PushNotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onPushNotification(PushNotificationEvent event) {
         try {
-            pushSenderService.sendToUser(event.userId(), event.title(), event.message());
+            pushSenderService.sendToUser(event.userId(), event.title(), event.message(), event.imageUrl(), event.data());
         } catch (Exception e) {
             log.warn("Falha ao enviar push para usuário {}: {}", event.userId(), e.getMessage());
         }

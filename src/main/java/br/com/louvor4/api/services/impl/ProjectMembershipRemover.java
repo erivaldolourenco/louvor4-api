@@ -48,6 +48,8 @@ public class ProjectMembershipRemover {
         // Responsabilidades: períodos que ainda não começaram saem; o atual e os passados ficam no histórico
         responsibilityAssignmentRepository.deleteNotStartedByMemberId(member.getId(), LocalDate.now());
 
+        // Se voltar ao projeto, volta sem permissões extras
+        member.getPermissions().clear();
         member.setStatus(ProjectMemberStatus.REMOVED);
         musicProjectMemberRepository.save(member);
     }

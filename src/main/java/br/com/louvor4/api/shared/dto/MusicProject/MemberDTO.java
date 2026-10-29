@@ -2,6 +2,7 @@ package br.com.louvor4.api.shared.dto.MusicProject;
 
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
+import br.com.louvor4.api.enums.ProjectPermission;
 
 import java.util.Set;
 import java.util.UUID;
@@ -17,6 +18,7 @@ public class MemberDTO {
     private ProjectMemberRole projectRole;
     private ProjectMemberStatus status;
     private Set<ProjectSkillDTO> skills;
+    private Set<ProjectPermission> permissions;
 
     public UUID getId() {
         return id;
@@ -96,5 +98,13 @@ public class MemberDTO {
 
     public void setSkills(Set<ProjectSkillDTO> skills) {
         this.skills = skills;
+    }
+
+    public Set<ProjectPermission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<ProjectPermission> permissions) {
+        this.permissions = permissions;
     }
 }

@@ -21,7 +21,7 @@ import java.util.UUID;
                 @Index(name = "idx_songs_owner_id", columnList = "owner_id")
         }
 )
-public class Song {
+public class Song implements SongData {
     @Id
     @GeneratedValue
     @UuidGenerator

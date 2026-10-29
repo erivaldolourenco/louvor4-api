@@ -17,6 +17,9 @@ public class ChordSheetValidation {
     private static final Pattern CHORD_PATTERN = Pattern.compile("^[A-G](#|b)?[^/\\s]*(/[A-G](#|b)?)?$");
     private static final String CHORD_SEQUENCE_TYPE = "chord_sequence";
     private static final int PICKUP_POSITION = -1;
+    // Acordes depois do fim da frase (ex.: passagem "G D Em" no fim da linha)
+    // ficam em posições além do texto, até esse limite.
+    private static final int MAX_TRAILING_POSITIONS = 40;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -77,7 +80,7 @@ public class ChordSheetValidation {
                         if (!chordSequencePositions.add(position)) {
                             throw new ValidationException("Posição de acorde duplicada em chord_sequence: " + position + ".");
                         }
-                    } else if (position < PICKUP_POSITION || position > text.length()) {
+                    } else if (position < PICKUP_POSITION || position > text.length() + MAX_TRAILING_POSITIONS) {
                         throw new ValidationException(
                                 "Posição de acorde inválida: " + position + " para linha com " + text.length() + " caracteres.");
                     }

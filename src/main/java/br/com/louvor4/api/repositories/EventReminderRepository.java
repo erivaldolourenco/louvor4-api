@@ -16,7 +16,8 @@ public interface EventReminderRepository extends JpaRepository<EventReminder, UU
 
     @Query("""
         SELECT r FROM EventReminder r
-        JOIN FETCH r.event
+        JOIN FETCH r.event e
+        JOIN FETCH e.musicProject
         WHERE r.status = :status AND r.scheduledFor <= :now
         """)
     List<EventReminder> findByStatusAndScheduledForLessThanEqual(

@@ -50,10 +50,21 @@ class ChordSheetValidationTest {
     }
 
     @Test
-    void shouldRejectRegularSectionWhenChordPositionExceedsTextLength() {
+    void shouldAcceptChordsAfterEndOfText() {
         String json = """
                 {"schemaVersion":1,"sections":[{"type":"verse","label":"Verso 1","lines":[
-                {"text":"Deus","chords":[{"position":10,"chord":"G"}]}
+                {"text":"Deus","chords":[{"position":4,"chord":"G"},{"position":6,"chord":"D"},{"position":44,"chord":"Em"}]}
+                ]}]}
+                """;
+
+        assertThatCode(() -> validation.validate(json)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldRejectRegularSectionWhenChordPositionIsTooFarAfterText() {
+        String json = """
+                {"schemaVersion":1,"sections":[{"type":"verse","label":"Verso 1","lines":[
+                {"text":"Deus","chords":[{"position":45,"chord":"G"}]}
                 ]}]}
                 """;
 

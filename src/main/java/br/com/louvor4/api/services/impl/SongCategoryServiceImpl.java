@@ -9,6 +9,7 @@ import br.com.louvor4.api.services.SongCategoryService;
 import br.com.louvor4.api.shared.dto.Song.SongCategoryDTO;
 import br.com.louvor4.api.shared.dto.Song.SongCategoryRequestDTO;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -64,10 +65,14 @@ public class SongCategoryServiceImpl implements SongCategoryService {
         return SongCategoryDTO.fromEntity(saved);
     }
 
+    // Excluir a categoria só a tira das músicas e medleys; eles continuam.
     @Override
+    @Transactional
     public void delete(UUID categoryId) {
         SongCategory category = songCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ValidationException("Categoria não encontrada."));
+        songCategoryRepository.deleteSongAssignmentsByCategoryId(categoryId);
+        songCategoryRepository.deleteMedleyAssignmentsByCategoryId(categoryId);
         songCategoryRepository.delete(category);
     }
 }

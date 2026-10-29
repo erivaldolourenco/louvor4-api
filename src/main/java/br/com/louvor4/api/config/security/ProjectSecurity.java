@@ -3,6 +3,7 @@ package br.com.louvor4.api.config.security;
 import br.com.louvor4.api.enums.EventPermission;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
+import br.com.louvor4.api.enums.ProjectPermission;
 import br.com.louvor4.api.repositories.EventParticipantRepository;
 import br.com.louvor4.api.repositories.EventRepository;
 import br.com.louvor4.api.repositories.EventSetlistItemRepository;
@@ -74,6 +75,16 @@ public class ProjectSecurity {
                         projectId, userId, ProjectMemberStatus.ACTIVE)
                 .map(m -> m.getProjectRole() == ProjectMemberRole.OWNER
                         || m.getProjectRole() == ProjectMemberRole.ADMIN)
+                .orElse(false);
+    }
+
+    public boolean canManageProjectSongs(UUID projectId) {
+        UUID userId = currentUserProvider.get().getId();
+        return memberRepository.findByMusicProject_IdAndUser_IdAndStatus(
+                        projectId, userId, ProjectMemberStatus.ACTIVE)
+                .map(m -> m.getProjectRole() == ProjectMemberRole.OWNER
+                        || m.getProjectRole() == ProjectMemberRole.ADMIN
+                        || m.getPermissions().contains(ProjectPermission.MANAGE_SONGS))
                 .orElse(false);
     }
 

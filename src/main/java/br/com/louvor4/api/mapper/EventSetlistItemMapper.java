@@ -3,7 +3,9 @@ package br.com.louvor4.api.mapper;
 import br.com.louvor4.api.models.EventSetlistItem;
 import br.com.louvor4.api.models.Medley;
 import br.com.louvor4.api.models.MedleyItem;
+import br.com.louvor4.api.models.ProjectSong;
 import br.com.louvor4.api.models.Song;
+import br.com.louvor4.api.models.SongData;
 import br.com.louvor4.api.shared.dto.Event.EventMedleyDTO;
 import br.com.louvor4.api.shared.dto.Event.PublicSetlistItemDTO;
 import br.com.louvor4.api.shared.dto.Event.PublicSetlistMedleyDTO;
@@ -14,6 +16,7 @@ import br.com.louvor4.api.shared.dto.Song.EventSongDTO;
 import br.com.louvor4.api.shared.dto.eventOverview.MonthEventSongItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import java.util.List;
 import java.util.Objects;
@@ -52,8 +55,40 @@ public interface EventSetlistItemMapper {
                 resolveAddedBy(entity),
                 resolveAddedByUserId(entity),
                 resolveNotes(entity),
-                entity.isSong() ? toSongDto(entity) : null,
+                entity.isSong() ? toSongDto(entity)
+                        : entity.isProjectSong() ? toProjectSongDto(entity) : null,
                 entity.isMedley() ? toMedleyDto(entity) : null
+        );
+    }
+
+    /**
+     * Música do projeto sai no mesmo formato da música pessoal (eventSong), com songId = id da
+     * música do projeto; o tipo PROJECT_SONG do item diz de onde ela vem. Ainda não há áudio
+     * nem edição colaborativa de cifra por evento para música do projeto.
+     */
+    @Named("toProjectSongDto")
+    default EventSongDTO toProjectSongDto(EventSetlistItem entity) {
+        if (entity == null || entity.getProjectSong() == null) {
+            return null;
+        }
+
+        ProjectSong song = entity.getProjectSong();
+        return new EventSongDTO(
+                entity.getId(),
+                song.getId(),
+                song.getTitle(),
+                song.getArtist(),
+                resolveKey(entity),
+                song.getBpm(),
+                song.getYouTubeUrl(),
+                song.getSpotifyUrl(),
+                song.getDeezerUrl(),
+                song.getCoverUrl(),
+                resolveNotes(entity),
+                resolveAddedBy(entity),
+                null,
+                null,
+                false
         );
     }
 
@@ -67,18 +102,26 @@ public interface EventSetlistItemMapper {
                 .collect(Collectors.toList());
     }
 
-    @Mapping(target = "songId", source = "song.id")
-    @Mapping(target = "title", source = "song.title")
-    @Mapping(target = "artist", source = "song.artist")
-    @Mapping(target = "key", expression = "java(resolveKey(entity))")
-    @Mapping(target = "addedBy", source = "addedBy.member.user.firstName")
-    MonthEventSongItem toMonthOverviewSong(EventSetlistItem entity);
+    default MonthEventSongItem toMonthOverviewSong(EventSetlistItem entity) {
+        if (entity == null || entity.getSongData() == null) {
+            return null;
+        }
+
+        SongData song = entity.getSongData();
+        return new MonthEventSongItem(
+                song.getId(),
+                song.getTitle(),
+                song.getArtist(),
+                resolveKey(entity),
+                resolveAddedBy(entity)
+        );
+    }
 
     default String resolveKey(EventSetlistItem entity) {
         if (entity == null) {
             return null;
         }
-        return entity.getKey() != null ? entity.getKey() : (entity.getSong() != null ? entity.getSong().getKey() : null);
+        return entity.getKey() != null ? entity.getKey() : (entity.getSongData() != null ? entity.getSongData().getKey() : null);
     }
 
     default String resolveNotes(EventSetlistItem entity) {
@@ -88,8 +131,8 @@ public interface EventSetlistItemMapper {
         if (entity.getNotes() != null) {
             return entity.getNotes();
         }
-        if (entity.getSong() != null) {
-            return entity.getSong().getNotes();
+        if (entity.getSongData() != null) {
+            return entity.getSongData().getNotes();
         }
         if (entity.getMedley() != null) {
             return entity.getMedley().getNotes();
@@ -143,7 +186,7 @@ public interface EventSetlistItemMapper {
 
         return new PublicSetlistItemDTO(
                 entity.getType(),
-                entity.isSong() ? toPublicSongDto(entity) : null,
+                entity.getSongData() != null ? toPublicSongDto(entity) : null,
                 entity.isMedley() ? toPublicMedleyDto(entity.getMedley()) : null
         );
     }
@@ -159,11 +202,11 @@ public interface EventSetlistItemMapper {
     }
 
     default PublicSetlistSongDTO toPublicSongDto(EventSetlistItem entity) {
-        if (entity == null || entity.getSong() == null) {
+        if (entity == null || entity.getSongData() == null) {
             return null;
         }
 
-        Song song = entity.getSong();
+        SongData song = entity.getSongData();
         return new PublicSetlistSongDTO(
                 song.getArtist(),
                 song.getTitle(),

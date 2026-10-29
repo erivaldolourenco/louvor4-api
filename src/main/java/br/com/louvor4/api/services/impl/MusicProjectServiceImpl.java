@@ -6,6 +6,7 @@ import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.enums.NotificationType;
 import br.com.louvor4.api.enums.ProjectMemberRole;
 import br.com.louvor4.api.enums.ProjectMemberStatus;
+import br.com.louvor4.api.enums.ProjectPermission;
 import br.com.louvor4.api.enums.SetlistItemType;
 import br.com.louvor4.api.exceptions.ForbiddenException;
 import br.com.louvor4.api.exceptions.ValidationException;
@@ -250,8 +251,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         userNotificationService.createNotification(new CreateUserNotificationRequest(
                 NotificationType.PROJECT_MEMBER_INVITE,
                 userMember.getId(),
-                "Convite para projeto: " + musicProject.getName(),
-                "Você foi convidado para participar do projeto " + musicProject.getName() + ". Aceite ou recuse o convite.",
+                "🤝 Convite para projeto: " + musicProject.getName(),
+                creator.getFirstName() + " convidou você para participar do projeto.",
                 null,
                 dataJson
         ));
@@ -312,8 +313,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 userNotificationService.createNotification(new CreateUserNotificationRequest(
                         NotificationType.PROJECT_MEMBER_INVITE_ACCEPTED,
                         member.getAddedByUserId(),
-                        "Convite aceito",
-                        currentUser.getFirstName() + " aceitou o convite para o projeto " + project.getName() + ".",
+                        "✅ Convite aceito: " + project.getName(),
+                        currentUser.getFirstName() + " agora faz parte do projeto.",
                         null,
                         dataJson
                 ));
@@ -331,8 +332,8 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                 userNotificationService.createNotification(new CreateUserNotificationRequest(
                         NotificationType.PROJECT_MEMBER_INVITE_DECLINED,
                         member.getAddedByUserId(),
-                        "Convite recusado",
-                        currentUser.getFirstName() + " recusou o convite para o projeto " + project.getName() + ".",
+                        "❌ Convite recusado: " + project.getName(),
+                        currentUser.getFirstName() + " recusou o convite para o projeto.",
                         null,
                         dataJson
                 ));
@@ -412,7 +413,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
                         event.getMusicProject().getName(),
                         event.getMusicProject().getProfileImage(),
                         eventRepository.countParticipantsByEventId(event.getId()),
-                        eventRepository.countSongsByEventId(event.getId(), SetlistItemType.SONG),
+                        eventRepository.countSongsByEventId(event.getId(), SetlistItemType.SONG_TYPES),
                         participantsImagesByEvent.getOrDefault(event.getId(), List.of()),
                         event.getMusicProject().getType() != MusicProjectType.MEDIA
                 ))
@@ -563,12 +564,17 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     public MemberDTO updateMember(UUID projectId, UUID memberId, UpdateMemberRequest request) {
         MusicProjectMember member = musicProjectMemberRepository
                 .findById(memberId)
+                .filter(m -> m.getMusicProject().getId().equals(projectId))
                 .orElseThrow(() -> new ValidationException("O usuário não é membro deste projeto."));
         member.setProjectRole(request.projectRole());
         Set<ProjectSkill> newSkills = new HashSet<>(
                 projectSkillRepository.findAllById(request.skillIds())
         );
         member.setProjectSkills(newSkills);
+        if (request.permissions() != null) {
+            member.getPermissions().clear();
+            member.getPermissions().addAll(request.permissions());
+        }
         return memberMapper.toDto(musicProjectMemberRepository.save(member));
     }
 
@@ -647,6 +653,20 @@ public class MusicProjectServiceImpl implements MusicProjectService {
     }
 
     @Override
+    public ProjectPermissionsResponseDTO getMyPermissions(UUID projectId) {
+        User currentUser = currentUserProvider.get();
+        MusicProjectMember member = musicProjectMemberRepository
+                .findByMusicProject_IdAndUser_IdAndStatus(projectId, currentUser.getId(), ProjectMemberStatus.ACTIVE)
+                .orElseThrow(() -> new ForbiddenException("Você não é membro deste projeto."));
+
+        ProjectMemberRole role = member.getProjectRole();
+        boolean isAdmin = role == ProjectMemberRole.OWNER || role == ProjectMemberRole.ADMIN;
+        Set<ProjectPermission> permissions = EnumSet.noneOf(ProjectPermission.class);
+        permissions.addAll(isAdmin ? EnumSet.allOf(ProjectPermission.class) : member.getPermissions());
+        return new ProjectPermissionsResponseDTO(role, isAdmin, permissions);
+    }
+
+    @Override
     public MonthOverviewResponse getMonthOverview(UUID projectId, String yearMonth) {
         List<Event> events = getEventsOfMonth(projectId, yearMonth);
 
@@ -657,7 +677,7 @@ public class MusicProjectServiceImpl implements MusicProjectService {
         List<UUID> eventIds = events.stream().map(Event::getId).toList();
 
         List<EventParticipant> allParticipants = eventParticipantRepository.findByEventIdIn(eventIds);
-        List<EventSetlistItem> allSongs = eventSetlistItemRepository.findByEventIdInAndType(eventIds, SetlistItemType.SONG);
+        List<EventSetlistItem> allSongs = eventSetlistItemRepository.findByEventIdInAndTypeIn(eventIds, SetlistItemType.SONG_TYPES);
 
         Map<UUID, List<EventParticipant>> participantsByEvent = allParticipants.stream()
                 .collect(java.util.stream.Collectors.groupingBy(p -> p.getEvent().getId()));

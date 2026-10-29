@@ -6,4 +6,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record AudioFileDTO(UUID songId, UUID medleyId, AudioType type, String audioUrl) {}
+public record AudioFileDTO(UUID songId, UUID medleyId, AudioType type, String audioUrl, UUID projectSongId) {
+
+    public AudioFileDTO(UUID songId, UUID medleyId, AudioType type, String audioUrl) {
+        this(songId, medleyId, type, audioUrl, null);
+    }
+}

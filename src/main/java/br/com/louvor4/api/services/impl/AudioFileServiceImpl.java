@@ -6,9 +6,11 @@ import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Medley;
+import br.com.louvor4.api.models.ProjectSong;
 import br.com.louvor4.api.models.Song;
 import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.MedleyRepository;
+import br.com.louvor4.api.repositories.ProjectSongRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.StorageService;
@@ -27,15 +29,18 @@ public class AudioFileServiceImpl implements AudioFileService {
     private final MedleyRepository medleyRepository;
     private final AudioFileRepository audioFileRepository;
     private final StorageService storageService;
+    private final ProjectSongRepository projectSongRepository;
 
     public AudioFileServiceImpl(SongRepository songRepository,
                                 MedleyRepository medleyRepository,
                                 AudioFileRepository audioFileRepository,
-                                StorageService storageService) {
+                                StorageService storageService,
+                                ProjectSongRepository projectSongRepository) {
         this.songRepository = songRepository;
         this.medleyRepository = medleyRepository;
         this.audioFileRepository = audioFileRepository;
         this.storageService = storageService;
+        this.projectSongRepository = projectSongRepository;
     }
 
     @Override
@@ -80,6 +85,31 @@ public class AudioFileServiceImpl implements AudioFileService {
         AudioFile saved = audioFileRepository.save(audioFile);
 
         return new AudioFileDTO(null, saved.getMedley().getId(), saved.getType(), saved.getAudioUrl());
+    }
+
+    // Plano de quem envia (upload_audio), igual à música pessoal; a permissão no projeto
+    // (admin/owner ou MANAGE_SONGS) é checada no controller.
+    @Override
+    @Transactional
+    @RequiresPlan(feature = "upload_audio")
+    public AudioFileDTO uploadProjectSongAudio(UUID projectId, UUID projectSongId, AudioType type, MultipartFile file) {
+        ProjectSong projectSong = projectSongRepository
+                .findByIdAndMusicProject_IdAndDeletedAtIsNull(projectSongId, projectId)
+                .orElseThrow(() -> new NotFoundException("Música não encontrada."));
+
+        validateFile(file);
+
+        AudioFile audioFile = audioFileRepository.findByProjectSong_IdAndType(projectSongId, type)
+                .orElseGet(AudioFile::new);
+        audioFile.setProjectSong(projectSong);
+        audioFile.setType(type);
+
+        String audioUrl = storageService.uploadFileWithPrefix(file, FileCategory.PROJECT_SONG_AUDIO, projectSongId.toString());
+        audioFile.setAudioUrl(audioUrl);
+
+        AudioFile saved = audioFileRepository.save(audioFile);
+
+        return new AudioFileDTO(null, null, saved.getType(), saved.getAudioUrl(), saved.getProjectSong().getId());
     }
 
     private void validateFile(MultipartFile file) {

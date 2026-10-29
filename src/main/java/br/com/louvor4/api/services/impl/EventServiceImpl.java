@@ -689,28 +689,31 @@ public class EventServiceImpl implements EventService {
                 .stream()
                 .collect(Collectors.toMap(af -> af.getMedley().getId(), AudioFile::getAudioUrl));
 
+        List<UUID> projectSongIds = setlistItems.stream()
+                .filter(EventSetlistItem::isProjectSong)
+                .map(item -> item.getProjectSong() != null ? item.getProjectSong().getId() : null)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<UUID, Map<AudioType, String>> audiosByProjectSongId = projectSongIds.isEmpty()
+                ? Map.of()
+                : audioFileRepository.findByProjectSong_IdIn(projectSongIds).stream()
+                        .collect(Collectors.groupingBy(
+                                af -> af.getProjectSong().getId(),
+                                Collectors.toMap(AudioFile::getType, AudioFile::getAudioUrl, (a, b) -> b)));
+
         return setlistItems.stream().map(item -> {
             SetlistDTO dto = eventSetlistItemMapper.toSetlistDto(item);
             if (item.isSong() && item.getSong() != null && dto.eventSong() != null) {
-                String audioUrl = audioUrlBySongId.get(item.getSong().getId());
-                String vsAudioUrl = vsAudioUrlBySongId.get(item.getSong().getId());
-                EventSongDTO enriched = new EventSongDTO(
-                        dto.eventSong().id(),
-                        dto.eventSong().songId(),
-                        dto.eventSong().title(),
-                        dto.eventSong().artist(),
-                        dto.eventSong().key(),
-                        dto.eventSong().bpm(),
-                        dto.eventSong().youTubeUrl(),
-                        dto.eventSong().spotifyUrl(),
-                        dto.eventSong().deezerUrl(),
-                        dto.eventSong().coverUrl(),
-                        dto.eventSong().notes(),
-                        dto.eventSong().addedBy(),
-                        audioUrl,
-                        vsAudioUrl,
-                        dto.eventSong().editChordSheetPermission()
-                );
+                EventSongDTO enriched = withAudios(dto.eventSong(),
+                        audioUrlBySongId.get(item.getSong().getId()),
+                        vsAudioUrlBySongId.get(item.getSong().getId()));
+                return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.addedByUserId(), dto.notes(), enriched, dto.eventMedley());
+            }
+            if (item.isProjectSong() && item.getProjectSong() != null && dto.eventSong() != null) {
+                Map<AudioType, String> audios = audiosByProjectSongId.getOrDefault(item.getProjectSong().getId(), Map.of());
+                EventSongDTO enriched = withAudios(dto.eventSong(), audios.get(AudioType.REFERENCE), audios.get(AudioType.VS));
                 return new SetlistDTO(dto.id(), dto.type(), dto.addedBy(), dto.addedByUserId(), dto.notes(), enriched, dto.eventMedley());
             }
             if (item.isMedley() && item.getMedley() != null && dto.eventMedley() != null) {
@@ -727,6 +730,26 @@ public class EventServiceImpl implements EventService {
             }
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    private static EventSongDTO withAudios(EventSongDTO song, String referenceAudioUrl, String vsAudioUrl) {
+        return new EventSongDTO(
+                song.id(),
+                song.songId(),
+                song.title(),
+                song.artist(),
+                song.key(),
+                song.bpm(),
+                song.youTubeUrl(),
+                song.spotifyUrl(),
+                song.deezerUrl(),
+                song.coverUrl(),
+                song.notes(),
+                song.addedBy(),
+                referenceAudioUrl,
+                vsAudioUrl,
+                song.editChordSheetPermission()
+        );
     }
 
     @Override

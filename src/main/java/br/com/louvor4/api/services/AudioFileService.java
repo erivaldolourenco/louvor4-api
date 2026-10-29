@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface AudioFileService {
     AudioFileDTO uploadSongAudio(UUID songId, AudioType type, MultipartFile file);
     AudioFileDTO uploadMedleyAudio(UUID medleyId, AudioType type, MultipartFile file);
+    AudioFileDTO uploadProjectSongAudio(UUID projectId, UUID projectSongId, AudioType type, MultipartFile file);
 }

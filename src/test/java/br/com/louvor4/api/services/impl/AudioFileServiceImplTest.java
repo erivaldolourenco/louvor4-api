@@ -6,9 +6,11 @@ import br.com.louvor4.api.exceptions.NotFoundException;
 import br.com.louvor4.api.exceptions.ValidationException;
 import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.Medley;
+import br.com.louvor4.api.models.ProjectSong;
 import br.com.louvor4.api.models.Song;
 import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.MedleyRepository;
+import br.com.louvor4.api.repositories.ProjectSongRepository;
 import br.com.louvor4.api.repositories.SongRepository;
 import br.com.louvor4.api.services.StorageService;
 import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
@@ -37,6 +39,7 @@ class AudioFileServiceImplTest {
     @Mock MedleyRepository medleyRepository;
     @Mock AudioFileRepository audioFileRepository;
     @Mock StorageService storageService;
+    @Mock ProjectSongRepository projectSongRepository;
     @Mock MultipartFile file;
 
     @InjectMocks AudioFileServiceImpl service;
@@ -239,5 +242,49 @@ class AudioFileServiceImplTest {
         assertThatThrownBy(() -> service.uploadMedleyAudio(medleyId, AudioType.REFERENCE, file))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("áudio válido");
+    }
+
+    // --- uploadProjectSongAudio ---
+
+    @Test
+    void uploadProjectSongAudioShouldSaveWithProjectSongAsOwner() {
+        UUID projectId = UUID.randomUUID();
+        UUID projectSongId = UUID.randomUUID();
+        ProjectSong projectSong = new ProjectSong();
+        projectSong.setId(projectSongId);
+
+        when(projectSongRepository.findByIdAndMusicProject_IdAndDeletedAtIsNull(projectSongId, projectId))
+                .thenReturn(Optional.of(projectSong));
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getContentType()).thenReturn("audio/mpeg");
+        when(storageService.uploadFileWithPrefix(eq(file), eq(FileCategory.PROJECT_SONG_AUDIO), eq(projectSongId.toString())))
+                .thenReturn("https://s3.example.com/audio/project-song.mp3");
+        when(audioFileRepository.findByProjectSong_IdAndType(projectSongId, AudioType.VS))
+                .thenReturn(Optional.empty());
+        when(audioFileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AudioFileDTO result = service.uploadProjectSongAudio(projectId, projectSongId, AudioType.VS, file);
+
+        assertThat(result.projectSongId()).isEqualTo(projectSongId);
+        assertThat(result.songId()).isNull();
+        assertThat(result.type()).isEqualTo(AudioType.VS);
+        assertThat(result.audioUrl()).isEqualTo("https://s3.example.com/audio/project-song.mp3");
+
+        ArgumentCaptor<AudioFile> captor = ArgumentCaptor.forClass(AudioFile.class);
+        verify(audioFileRepository).save(captor.capture());
+        assertThat(captor.getValue().getProjectSong()).isEqualTo(projectSong);
+        assertThat(captor.getValue().getSong()).isNull();
+    }
+
+    @Test
+    void uploadProjectSongAudioShouldThrowWhenSongIsNotFromProject() {
+        UUID projectId = UUID.randomUUID();
+        UUID projectSongId = UUID.randomUUID();
+        when(projectSongRepository.findByIdAndMusicProject_IdAndDeletedAtIsNull(projectSongId, projectId))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.uploadProjectSongAudio(projectId, projectSongId, AudioType.REFERENCE, file))
+                .isInstanceOf(NotFoundException.class);
+        verify(storageService, never()).uploadFileWithPrefix(any(), any(), any());
     }
 }

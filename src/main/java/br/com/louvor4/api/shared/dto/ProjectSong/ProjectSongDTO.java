@@ -23,9 +23,15 @@ public record ProjectSongDTO(
         String notes,
         UUID createdByUserId,
         boolean hasChordSheet,
-        List<SongCategoryDTO> categories
+        List<SongCategoryDTO> categories,
+        String referenceAudioUrl,
+        String vsAudioUrl
 ) {
     public static ProjectSongDTO fromEntity(ProjectSong song) {
+        return fromEntity(song, null, null);
+    }
+
+    public static ProjectSongDTO fromEntity(ProjectSong song, String referenceAudioUrl, String vsAudioUrl) {
         return new ProjectSongDTO(
                 song.getId(),
                 song.getMusicProject().getId(),
@@ -45,7 +51,9 @@ public record ProjectSongDTO(
                 song.getCategories().stream()
                         .map(c -> new SongCategoryDTO(c.getId(), c.getName()))
                         .sorted(Comparator.comparing(SongCategoryDTO::name, String.CASE_INSENSITIVE_ORDER))
-                        .toList()
+                        .toList(),
+                referenceAudioUrl,
+                vsAudioUrl
         );
     }
 }

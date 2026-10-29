@@ -25,6 +25,11 @@ public class AudioFile {
     @JoinColumn(name = "medley_id", columnDefinition = "uuid")
     private Medley medley;
 
+    // Música do projeto (aba Músicas do projeto). Exatamente um dos três donos vem preenchido.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_song_id", columnDefinition = "uuid")
+    private ProjectSong projectSong;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)
     private AudioType type;
@@ -48,6 +53,9 @@ public class AudioFile {
 
     public Medley getMedley() { return medley; }
     public void setMedley(Medley medley) { this.medley = medley; }
+
+    public ProjectSong getProjectSong() { return projectSong; }
+    public void setProjectSong(ProjectSong projectSong) { this.projectSong = projectSong; }
 
     public AudioType getType() { return type; }
     public void setType(AudioType type) { this.type = type; }

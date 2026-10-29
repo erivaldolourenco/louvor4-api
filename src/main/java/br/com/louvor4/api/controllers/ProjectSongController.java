@@ -1,15 +1,20 @@
 package br.com.louvor4.api.controllers;
 
+import br.com.louvor4.api.enums.AudioType;
+import br.com.louvor4.api.services.AudioFileService;
 import br.com.louvor4.api.services.ProjectSongService;
+import br.com.louvor4.api.shared.dto.Audio.AudioFileDTO;
 import br.com.louvor4.api.shared.dto.ProjectSong.ProjectSongDTO;
 import br.com.louvor4.api.shared.dto.ProjectSong.ProjectSongRequestDTO;
 import br.com.louvor4.api.shared.dto.Song.AssignSongCategoriesDTO;
 import br.com.louvor4.api.shared.dto.Song.ChordSheetDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,9 +24,11 @@ import java.util.UUID;
 public class ProjectSongController {
 
     private final ProjectSongService projectSongService;
+    private final AudioFileService audioFileService;
 
-    public ProjectSongController(ProjectSongService projectSongService) {
+    public ProjectSongController(ProjectSongService projectSongService, AudioFileService audioFileService) {
         this.projectSongService = projectSongService;
+        this.audioFileService = audioFileService;
     }
 
     @GetMapping
@@ -68,6 +75,18 @@ public class ProjectSongController {
     public ResponseEntity<Void> delete(@PathVariable UUID projectId, @PathVariable UUID songId) {
         projectSongService.delete(projectId, songId);
         return ResponseEntity.noContent().build();
+    }
+
+    // Áudio de referência ou VS: quem gerencia as músicas envia; todos os membros ouvem.
+    @PostMapping(value = "/{songId}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@projectSecurity.canManageProjectSongs(#projectId)")
+    public ResponseEntity<AudioFileDTO> uploadAudio(
+            @PathVariable UUID projectId,
+            @PathVariable UUID songId,
+            @RequestParam AudioType type,
+            @RequestParam("file") MultipartFile file) {
+        AudioFileDTO dto = audioFileService.uploadProjectSongAudio(projectId, songId, type, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @GetMapping("/{songId}/chord-sheet")

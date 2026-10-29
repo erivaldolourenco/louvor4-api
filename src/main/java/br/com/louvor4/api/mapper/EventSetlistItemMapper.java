@@ -63,8 +63,8 @@ public interface EventSetlistItemMapper {
 
     /**
      * Música do projeto sai no mesmo formato da música pessoal (eventSong), com songId = id da
-     * música do projeto; o tipo PROJECT_SONG do item diz de onde ela vem. Ainda não há áudio
-     * nem edição colaborativa de cifra por evento para música do projeto.
+     * música do projeto; o tipo PROJECT_SONG do item diz de onde ela vem. Os áudios entram depois,
+     * no getSetlist (como na música pessoal). Não há edição colaborativa de cifra por evento.
      */
     @Named("toProjectSongDto")
     default EventSongDTO toProjectSongDto(EventSetlistItem entity) {

@@ -1,12 +1,15 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
+import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.MusicProject;
 import br.com.louvor4.api.models.ProjectSong;
 import br.com.louvor4.api.models.ProjectSongCategory;
 import br.com.louvor4.api.models.User;
+import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.MusicProjectRepository;
 import br.com.louvor4.api.repositories.ProjectSongCategoryRepository;
 import br.com.louvor4.api.repositories.ProjectSongRepository;
@@ -39,6 +42,7 @@ class ProjectSongServiceImplTest {
     @Mock CurrentUserProvider currentUserProvider;
     @Mock ChordSheetValidation chordSheetValidation;
     @Mock ProjectSongCategoryRepository categoryRepository;
+    @Mock AudioFileRepository audioFileRepository;
 
     @InjectMocks ProjectSongServiceImpl service;
 
@@ -216,5 +220,34 @@ class ProjectSongServiceImplTest {
 
         assertThat(existing.getCategories()).isEmpty();
         verifyNoInteractions(categoryRepository);
+    }
+
+    @Test
+    void listByProject_includesReferenceAndVsAudios() {
+        ProjectSong song = new ProjectSong();
+        song.setId(UUID.randomUUID());
+        song.setMusicProject(project);
+        song.setTitle("Grande é o Senhor");
+        song.setArtist("Adhemar");
+        song.setKey("G");
+
+        AudioFile reference = new AudioFile();
+        reference.setProjectSong(song);
+        reference.setType(AudioType.REFERENCE);
+        reference.setAudioUrl("https://s3/ref.mp3");
+        AudioFile vs = new AudioFile();
+        vs.setProjectSong(song);
+        vs.setType(AudioType.VS);
+        vs.setAudioUrl("https://s3/vs.mp3");
+
+        when(projectSongRepository.findByMusicProject_IdAndDeletedAtIsNullOrderByTitleAsc(projectId))
+                .thenReturn(List.of(song));
+        when(audioFileRepository.findByProjectSong_IdIn(List.of(song.getId()))).thenReturn(List.of(reference, vs));
+
+        List<ProjectSongDTO> result = service.listByProject(projectId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).referenceAudioUrl()).isEqualTo("https://s3/ref.mp3");
+        assertThat(result.get(0).vsAudioUrl()).isEqualTo("https://s3/vs.mp3");
     }
 }

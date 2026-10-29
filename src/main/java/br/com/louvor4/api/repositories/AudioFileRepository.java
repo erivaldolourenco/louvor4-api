@@ -14,7 +14,9 @@ import java.util.UUID;
 public interface AudioFileRepository extends JpaRepository<AudioFile, UUID> {
     Optional<AudioFile> findBySong_IdAndType(UUID songId, AudioType type);
     Optional<AudioFile> findByMedley_IdAndType(UUID medleyId, AudioType type);
+    Optional<AudioFile> findByProjectSong_IdAndType(UUID projectSongId, AudioType type);
     List<AudioFile> findBySong_IdInAndType(Collection<UUID> songIds, AudioType type);
     List<AudioFile> findByMedley_IdInAndType(Collection<UUID> medleyIds, AudioType type);
+    List<AudioFile> findByProjectSong_IdIn(Collection<UUID> projectSongIds);
     void deleteBySong_Id(UUID songId);
 }

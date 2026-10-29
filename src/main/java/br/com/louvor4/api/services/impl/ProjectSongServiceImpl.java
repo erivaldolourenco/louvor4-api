@@ -1,11 +1,14 @@
 package br.com.louvor4.api.services.impl;
 
 import br.com.louvor4.api.config.security.CurrentUserProvider;
+import br.com.louvor4.api.enums.AudioType;
 import br.com.louvor4.api.enums.MusicProjectType;
 import br.com.louvor4.api.exceptions.ValidationException;
+import br.com.louvor4.api.models.AudioFile;
 import br.com.louvor4.api.models.MusicProject;
 import br.com.louvor4.api.models.ProjectSong;
 import br.com.louvor4.api.models.ProjectSongCategory;
+import br.com.louvor4.api.repositories.AudioFileRepository;
 import br.com.louvor4.api.repositories.MusicProjectRepository;
 import br.com.louvor4.api.repositories.ProjectSongCategoryRepository;
 import br.com.louvor4.api.repositories.ProjectSongRepository;
@@ -20,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectSongServiceImpl implements ProjectSongService {
@@ -31,31 +36,33 @@ public class ProjectSongServiceImpl implements ProjectSongService {
     private final CurrentUserProvider currentUserProvider;
     private final ChordSheetValidation chordSheetValidation;
     private final ProjectSongCategoryRepository categoryRepository;
+    private final AudioFileRepository audioFileRepository;
 
     public ProjectSongServiceImpl(ProjectSongRepository projectSongRepository,
                                   MusicProjectRepository musicProjectRepository,
                                   CurrentUserProvider currentUserProvider,
                                   ChordSheetValidation chordSheetValidation,
-                                  ProjectSongCategoryRepository categoryRepository) {
+                                  ProjectSongCategoryRepository categoryRepository,
+                                  AudioFileRepository audioFileRepository) {
         this.projectSongRepository = projectSongRepository;
         this.musicProjectRepository = musicProjectRepository;
         this.currentUserProvider = currentUserProvider;
         this.chordSheetValidation = chordSheetValidation;
         this.categoryRepository = categoryRepository;
+        this.audioFileRepository = audioFileRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProjectSongDTO> listByProject(UUID projectId) {
-        return projectSongRepository.findByMusicProject_IdAndDeletedAtIsNullOrderByTitleAsc(projectId).stream()
-                .map(ProjectSongDTO::fromEntity)
-                .toList();
+        List<ProjectSong> songs = projectSongRepository.findByMusicProject_IdAndDeletedAtIsNullOrderByTitleAsc(projectId);
+        return toDtos(songs);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProjectSongDTO getById(UUID projectId, UUID songId) {
-        return ProjectSongDTO.fromEntity(findOrThrow(projectId, songId));
+        return toDto(findOrThrow(projectId, songId));
     }
 
     @Override
@@ -79,7 +86,7 @@ public class ProjectSongServiceImpl implements ProjectSongService {
     public ProjectSongDTO update(UUID projectId, UUID songId, ProjectSongRequestDTO requestDto) {
         ProjectSong song = findOrThrow(projectId, songId);
         applyRequest(song, requestDto);
-        return ProjectSongDTO.fromEntity(projectSongRepository.save(song));
+        return toDto(projectSongRepository.save(song));
     }
 
     // Exclusão lógica: repertórios de eventos que já usam a música continuam mostrando.
@@ -105,7 +112,7 @@ public class ProjectSongServiceImpl implements ProjectSongService {
         }
 
         song.setCategories(new HashSet<>(categories));
-        return ProjectSongDTO.fromEntity(projectSongRepository.save(song));
+        return toDto(projectSongRepository.save(song));
     }
 
     @Override
@@ -124,6 +131,24 @@ public class ProjectSongServiceImpl implements ProjectSongService {
         song.setChordSheetJson(chordSheetJson);
         ProjectSong saved = projectSongRepository.save(song);
         return new ChordSheetDTO(saved.getId(), saved.getChordSheetJson(), null);
+    }
+
+    private ProjectSongDTO toDto(ProjectSong song) {
+        return toDtos(List.of(song)).get(0);
+    }
+
+    /** Áudios (referência e VS) buscados de uma vez para a lista toda. */
+    private List<ProjectSongDTO> toDtos(List<ProjectSong> songs) {
+        if (songs.isEmpty()) return List.of();
+        List<UUID> ids = songs.stream().map(ProjectSong::getId).toList();
+        Map<UUID, Map<AudioType, String>> audios = audioFileRepository.findByProjectSong_IdIn(ids).stream()
+                .collect(Collectors.groupingBy(
+                        af -> af.getProjectSong().getId(),
+                        Collectors.toMap(AudioFile::getType, AudioFile::getAudioUrl, (a, b) -> b)));
+        return songs.stream().map(song -> {
+            Map<AudioType, String> byType = audios.getOrDefault(song.getId(), Map.of());
+            return ProjectSongDTO.fromEntity(song, byType.get(AudioType.REFERENCE), byType.get(AudioType.VS));
+        }).toList();
     }
 
     private void applyRequest(ProjectSong song, ProjectSongRequestDTO dto) {

@@ -6,5 +6,8 @@ CREATE TABLE IF NOT EXISTS vch_redemptions (
     previous_plan_id UUID      NOT NULL REFERENCES ent_plans(id),
     redeemed_at      TIMESTAMP NOT NULL DEFAULT now(),
     valid_until      TIMESTAMP NOT NULL,
-    reverted         BOOLEAN   NOT NULL DEFAULT false
+    reverted         BOOLEAN   NOT NULL DEFAULT false,
+
+    -- o mesmo usuário não resgata o mesmo voucher duas vezes (ex.: duplo toque em "Resgatar")
+    CONSTRAINT uq_vch_redemptions_voucher_user UNIQUE (voucher_id, user_id)
 );

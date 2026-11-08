@@ -7,8 +7,16 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "vch_redemptions")
+@Table(
+        name = "vch_redemptions",
+        // impede o mesmo usuário resgatar o mesmo voucher duas vezes (ex.: duplo toque em "Resgatar")
+        uniqueConstraints = @UniqueConstraint(
+                name = VoucherRedemption.UQ_VOUCHER_USER,
+                columnNames = {"voucher_id", "user_id"})
+)
 public class VoucherRedemption {
+
+    public static final String UQ_VOUCHER_USER = "uq_vch_redemptions_voucher_user";
 
     @Id
     @GeneratedValue
